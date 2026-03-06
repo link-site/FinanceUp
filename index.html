@@ -1,13 +1,412 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceUP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #000; color: #fff; font-family: system-ui, -apple-system, sans-serif; }
+        .text-neon { color: #39FF14; }
+        .bg-neon { background-color: #39FF14; color: #000; }
+        .border-neon { border-color: #39FF14; }
+        .hover-bg-neon:hover { background-color: #32e612; }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+        .ai-chat { display: none; }
+        .ai-chat.active { display: flex; }
+    </style>
+</head>
+<body class="selection:bg-[#39FF14] selection:text-black pb-24">
+    <!-- Header -->
+    <header class="bg-zinc-950 border-b border-zinc-900 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-neon rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(57,255,20,0.3)]">
+                    <span class="font-black text-xl tracking-tighter">F</span>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight">Finance<span class="text-neon">UP</span></h1>
+            </div>
+            <button onclick="openModal()" class="bg-neon px-6 py-2.5 rounded-full font-bold flex items-center gap-2 hover-bg-neon transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)]">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                <span class="hidden sm:inline">Novo Lançamento</span>
+            </button>
+        </div>
+    </header>
 
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-light text-zinc-300">Visão Geral</h2>
+            <div class="flex bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
+                <div class="flex items-center gap-2 px-3 border-r border-zinc-800">
+                    <i data-lucide="calendar" class="w-4 h-4 text-neon"></i>
+                    <select id="monthSelect" class="bg-transparent text-white focus:outline-none cursor-pointer py-1"></select>
+                </div>
+                <select id="yearSelect" class="bg-transparent text-white focus:outline-none cursor-pointer px-4 py-1"></select>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-neon flex justify-between items-center">
+                <div>
+                    <p class="text-zinc-400 text-sm mb-1">Entradas</p>
+                    <h3 id="totalIncomes" class="text-2xl font-bold">R$ 0,00</h3>
+                </div>
+                <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="arrow-up-circle" class="w-6 h-6 text-neon"></i></div>
+            </div>
+            <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-red-500 flex justify-between items-center">
+                <div>
+                    <p class="text-zinc-400 text-sm mb-1">Saídas</p>
+                    <h3 id="totalExpenses" class="text-2xl font-bold">R$ 0,00</h3>
+                </div>
+                <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="arrow-down-circle" class="w-6 h-6 text-red-500"></i></div>
+            </div>
+            <div id="balanceCard" class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-neon flex justify-between items-center">
+                <div>
+                    <p class="text-zinc-400 text-sm mb-1">Disponível</p>
+                    <h3 id="totalBalance" class="text-2xl font-bold">R$ 0,00</h3>
+                </div>
+                <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-white"></i></div>
+            </div>
+        </div>
+
+        <h3 class="text-xl font-semibold text-zinc-200 mb-6">Movimentações</h3>
+        
+        <!-- Table -->
+        <div class="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-zinc-950/50 border-b border-zinc-800 text-sm text-zinc-400">
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Data</th>
+                        <th class="p-4">Descrição</th>
+                        <th class="p-4">Categoria</th>
+                        <th class="p-4 text-right">Valor</th>
+                        <th class="p-4 text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsTable"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="transactionModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-zinc-900 w-full max-w-md rounded-2xl border border-zinc-800">
+            <div class="flex justify-between items-center p-6 border-b border-zinc-800">
+                <h2 class="text-xl font-bold">Novo Lançamento</h2>
+                <button onclick="closeModal()" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <form id="transactionForm" class="p-6 space-y-4">
+                <div class="flex bg-zinc-800 p-1 rounded-lg">
+                    <button type="button" id="btnTypeEntrada" onclick="setType('Entrada')" class="flex-1 py-2 text-sm rounded-md bg-neon text-black">Entrada</button>
+                    <button type="button" id="btnTypeSaida" onclick="setType('Saída')" class="flex-1 py-2 text-sm rounded-md text-zinc-400">Saída</button>
+                </div>
+                <input type="hidden" id="txType" value="Entrada">
+                
+                <div>
+                    <label class="block text-sm text-zinc-400 mb-1">Descrição</label>
+                    <input required type="text" id="txDesc" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-zinc-400 mb-1">Valor (R$)</label>
+                        <input required type="number" step="0.01" id="txValue" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-zinc-400 mb-1">Data</label>
+                        <input required type="date" id="txDate" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-zinc-400 mb-1">Categoria</label>
+                    <div class="flex gap-2">
+                        <select required id="txCategory" onchange="handleCategoryChange()" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none"></select>
+                        <button type="button" onclick="toggleNewCategory()" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 text-zinc-400 hover:text-neon"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                </div>
+                <div id="newCategoryDiv" class="hidden flex gap-2 mt-2">
+                    <input type="text" id="newCategoryName" placeholder="Nova categoria" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-sm focus:border-neon outline-none">
+                    <button type="button" onclick="addCategory()" class="bg-neon text-black px-4 rounded-lg text-sm font-medium">Adicionar</button>
+                </div>
+                
+                <div id="receiptDateDiv" class="hidden">
+                    <label class="block text-sm text-zinc-400 mb-1">Data de Recebimento</label>
+                    <input type="date" id="txReceiptDate" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none">
+                </div>
+                <div id="dueDateDiv" class="hidden">
+                    <label class="block text-sm text-zinc-400 mb-1">Data de Vencimento</label>
+                    <input type="date" id="txDueDate" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none">
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="txRecurring" class="w-4 h-4 rounded bg-zinc-800 border-zinc-700">
+                    <label class="text-sm text-zinc-400">Lançamento Recorrente</label>
+                </div>
+                <button type="submit" class="w-full bg-neon text-black font-bold py-3 rounded-lg mt-6 hover-bg-neon">Salvar Registro</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- AI Consultant -->
+    <button onclick="toggleAI()" class="fixed bottom-6 right-6 bg-neon text-black p-4 rounded-full shadow-lg hover-bg-neon z-40">
+        <i data-lucide="message-square" class="w-6 h-6"></i>
+    </button>
+    <div id="aiChat" class="ai-chat fixed bottom-24 right-6 w-96 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl flex-col z-50" style="height: 500px;">
+        <div class="bg-zinc-950 p-4 border-b border-zinc-800 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i data-lucide="bot" class="w-6 h-6 text-neon"></i>
+                <h3 class="font-bold">Consultor FinanceUP</h3>
+            </div>
+            <button onclick="toggleAI()" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div id="aiMessages" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+        <div class="p-4 bg-zinc-950 border-t border-zinc-800 flex gap-2">
+            <input type="text" id="aiInput" placeholder="Pergunte algo..." class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-sm focus:border-neon outline-none" onkeypress="if(event.key === 'Enter') sendAIMessage()">
+            <button onclick="sendAIMessage()" class="bg-neon text-black p-2 rounded-lg hover-bg-neon"><i data-lucide="send" class="w-5 h-5"></i></button>
+        </div>
+    </div>
+
+    <!-- Firebase & Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { GoogleGenAI } from "https://esm.sh/@google/genai@0.1.1";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlcupbsBAVhqjl4KbRjNVFe78CnunBiZM",
+            authDomain: "financeup-392ae.firebaseapp.com",
+            projectId: "financeup-392ae",
+            storageBucket: "financeup-392ae.firebasestorage.app",
+            messagingSenderId: "299342926526",
+            appId: "1:299342926526:web:593cd247b0e277bed2c4ef"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUser = null;
+        let transactions = [];
+        let categories = [];
+        
+        const defaultCategories = [
+            { name: 'Salário', type: 'Entrada' }, { name: 'Extra', type: 'Entrada' }, { name: 'Outros', type: 'Entrada' },
+            { name: 'Assinaturas', type: 'Saída' }, { name: 'Serviços', type: 'Saída' }, { name: 'Cartão de Credito', type: 'Saída' }, { name: 'Transporte', type: 'Saída' }
+        ];
+
+        // Init UI
+        lucide.createIcons();
+        const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const mSel = document.getElementById('monthSelect');
+        const ySel = document.getElementById('yearSelect');
+        const d = new Date();
+        
+        months.forEach((m, i) => mSel.add(new Option(m, i, false, i === d.getMonth())));
+        for(let y = 2024; y <= 2035; y++) ySel.add(new Option(y, y, false, y === d.getFullYear()));
+
+        mSel.addEventListener('change', renderDashboard);
+        ySel.addEventListener('change', renderDashboard);
+
+        // Auth
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                loadData();
+            } else {
+                signInAnonymously(auth).catch(console.error);
+            }
+        });
+
+        function loadData() {
+            onSnapshot(query(collection(db, 'categories'), where('userId', '==', currentUser.uid)), async (snap) => {
+                if (snap.empty) {
+                    for (const cat of defaultCategories) await addDoc(collection(db, 'categories'), { ...cat, userId: currentUser.uid });
+                } else {
+                    categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    updateCategorySelect();
+                }
+            });
+
+            onSnapshot(query(collection(db, 'transactions'), where('userId', '==', currentUser.uid), orderBy('date', 'desc')), (snap) => {
+                transactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderDashboard();
+            });
+        }
+
+        // Global functions for HTML
+        window.openModal = () => { document.getElementById('transactionModal').classList.add('active'); setType('Entrada'); };
+        window.closeModal = () => document.getElementById('transactionModal').classList.remove('active');
+        
+        window.setType = (type) => {
+            document.getElementById('txType').value = type;
+            document.getElementById('btnTypeEntrada').className = type === 'Entrada' ? 'flex-1 py-2 text-sm rounded-md bg-neon text-black' : 'flex-1 py-2 text-sm rounded-md text-zinc-400';
+            document.getElementById('btnTypeSaida').className = type === 'Saída' ? 'flex-1 py-2 text-sm rounded-md bg-red-500 text-white' : 'flex-1 py-2 text-sm rounded-md text-zinc-400';
+            updateCategorySelect();
+            handleCategoryChange();
+        };
+
+        window.updateCategorySelect = () => {
+            const type = document.getElementById('txType').value;
+            const sel = document.getElementById('txCategory');
+            sel.innerHTML = '<option value="" disabled selected>Selecione...</option>';
+            categories.filter(c => c.type === type).forEach(c => sel.add(new Option(c.name, c.name)));
+        };
+
+        window.handleCategoryChange = () => {
+            const type = document.getElementById('txType').value;
+            const cat = document.getElementById('txCategory').value;
+            document.getElementById('receiptDateDiv').style.display = (type === 'Entrada' && cat === 'Salário') ? 'block' : 'none';
+            document.getElementById('dueDateDiv').style.display = (type === 'Saída' && cat === 'Cartão de Credito') ? 'block' : 'none';
+        };
+
+        window.toggleNewCategory = () => {
+            const div = document.getElementById('newCategoryDiv');
+            div.style.display = div.style.display === 'flex' ? 'none' : 'flex';
+        };
+
+        window.addCategory = async () => {
+            const name = document.getElementById('newCategoryName').value.trim();
+            const type = document.getElementById('txType').value;
+            if (name && currentUser) {
+                await addDoc(collection(db, 'categories'), { name, type, userId: currentUser.uid });
+                document.getElementById('newCategoryName').value = '';
+                toggleNewCategory();
+                setTimeout(() => document.getElementById('txCategory').value = name, 500);
+            }
+        };
+
+        document.getElementById('transactionForm').onsubmit = async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            const type = document.getElementById('txType').value;
+            const data = {
+                userId: currentUser.uid,
+                description: document.getElementById('txDesc').value,
+                value: parseFloat(document.getElementById('txValue').value),
+                date: document.getElementById('txDate').value,
+                type,
+                category: document.getElementById('txCategory').value,
+                isRecurring: document.getElementById('txRecurring').checked,
+                isPaid: type === 'Entrada',
+                createdAt: Date.now()
+            };
+            if (type === 'Entrada' && data.category === 'Salário') data.receiptDate = document.getElementById('txReceiptDate').value;
+            if (type === 'Saída' && data.category === 'Cartão de Credito') data.dueDate = document.getElementById('txDueDate').value;
+            
+            await addDoc(collection(db, 'transactions'), data);
+            closeModal();
+            e.target.reset();
+        };
+
+        window.togglePaid = async (id, current) => {
+            await updateDoc(doc(db, 'transactions', id), { isPaid: !current });
+        };
+
+        window.deleteTx = async (id) => {
+            if (confirm('Excluir lançamento?')) await deleteDoc(doc(db, 'transactions', id));
+        };
+
+        function formatMoney(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val); }
+        function formatDate(dStr) { const [y,m,d] = dStr.split('-'); return `${d}/${m}/${y}`; }
+        function formatShortDate(dStr) { const [y,m,d] = dStr.split('-'); const ms = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; return `${d} ${ms[parseInt(m)-1]}`; }
+
+        window.renderDashboard = () => {
+            const m = parseInt(mSel.value);
+            const y = parseInt(ySel.value);
+            
+            const filtered = transactions.filter(t => {
+                const [ty, tm] = t.date.split('-');
+                return parseInt(tm)-1 === m && parseInt(ty) === y;
+            });
+
+            let inc = 0, exp = 0;
+            const tbody = document.getElementById('transactionsTable');
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-zinc-500">Nenhuma movimentação.</td></tr>';
+            } else {
+                filtered.forEach(t => {
+                    if (t.type === 'Entrada') inc += t.value; else exp += t.value;
+                    
+                    let catExtra = '';
+                    if (t.category === 'Salário' && t.receiptDate) catExtra = `<div class="text-xs text-zinc-500 mt-1">Recebimento: ${formatShortDate(t.receiptDate)}</div>`;
+                    if (t.category === 'Cartão de Credito' && t.dueDate) catExtra = `<div class="text-xs text-zinc-500 mt-1">Vencimento: ${formatShortDate(t.dueDate)}</div>`;
+
+                    const tr = document.createElement('tr');
+                    tr.className = `border-b border-zinc-800/50 hover:bg-zinc-800/30 ${t.isPaid ? 'bg-[#39FF14]/10' : ''}`;
+                    tr.innerHTML = `
+                        <td class="p-4">
+                            <button onclick="togglePaid('${t.id}', ${t.isPaid})" class="flex items-center gap-2 text-sm font-medium">
+                                ${t.isPaid ? '<i data-lucide="check-circle-2" class="w-5 h-5 text-neon"></i><span class="text-neon">Pago</span>' : '<i data-lucide="circle" class="w-5 h-5 text-red-500"></i><span class="text-red-500">Não pago</span>'}
+                            </button>
+                        </td>
+                        <td class="p-4 text-zinc-300">${formatDate(t.date)}</td>
+                        <td class="p-4"><div class="text-white font-medium">${t.description}</div>${t.isRecurring ? '<span class="text-xs text-zinc-500">Recorrente</span>' : ''}</td>
+                        <td class="p-4"><div class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800 border border-zinc-700">${t.category}</div>${catExtra}</td>
+                        <td class="p-4 text-right font-bold ${t.type === 'Entrada' ? 'text-neon' : 'text-red-500'}">${t.type === 'Saída' ? '- ' : '+ '}${formatMoney(t.value)}</td>
+                        <td class="p-4 text-center"><button onclick="deleteTx('${t.id}')" class="text-zinc-500 hover:text-red-500 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            document.getElementById('totalIncomes').innerText = formatMoney(inc);
+            document.getElementById('totalExpenses').innerText = formatMoney(exp);
+            const bal = inc - exp;
+            document.getElementById('totalBalance').innerText = formatMoney(bal);
+            document.getElementById('balanceCard').className = `bg-zinc-900 p-6 rounded-2xl border-l-4 flex justify-between items-center ${bal >= 0 ? 'border-neon' : 'border-red-500'}`;
+            lucide.createIcons();
+        };
+
+        // AI Logic
+        window.toggleAI = () => document.getElementById('aiChat').classList.toggle('active');
+        
+        const aiMessages = [{ role: 'model', text: 'Olá! Sou seu consultor financeiro IA. Como posso ajudar com seu orçamento hoje?' }];
+        const renderAIMessages = () => {
+            const div = document.getElementById('aiMessages');
+            div.innerHTML = aiMessages.map(m => `
+                <div class="flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}">
+                    <div class="max-w-[80%] p-3 rounded-2xl text-sm ${m.role === 'user' ? 'bg-neon text-black rounded-tr-none' : 'bg-zinc-800 text-zinc-200 rounded-tl-none'}">
+                        ${m.text}
+                    </div>
+                </div>
+            `).join('');
+            div.scrollTop = div.scrollHeight;
+        };
+        renderAIMessages();
+
+        window.sendAIMessage = async () => {
+            const input = document.getElementById('aiInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            aiMessages.push({ role: 'user', text });
+            input.value = '';
+            renderAIMessages();
+
+            try {
+                const ai = new GoogleGenAI({ apiKey: "AIzaSyCrqECbdY29Vw1mKHt0Gfjdmsm2KGauIVo" });
+                const ctx = transactions.map(t => `${t.type}: ${t.description} - R$ ${t.value} em ${t.date} (${t.category})`).join('\n');
+                const sys = `Você é um consultor financeiro especialista do sistema FinanceUP. Responda de forma concisa, educada e sofisticada. Movimentações:\n${ctx || 'Nenhuma.'}`;
+                
+                const response = await ai.models.generateContent({
+                    model: 'gemini-3-flash-preview',
+                    contents: text,
+                    config: { systemInstruction: sys, temperature: 0.7 }
+                });
+                aiMessages.push({ role: 'model', text: response.text || 'Erro.' });
+            } catch (e) {
+                aiMessages.push({ role: 'model', text: 'Erro ao conectar com a IA.' });
+            }
+            renderAIMessages();
+        };
+    </script>
+</body>
+</html>
