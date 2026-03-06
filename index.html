@@ -165,6 +165,21 @@
         </div>
     </div>
 
+    <!-- Edit Value Modal -->
+    <div id="editValueModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-zinc-900 w-full max-w-sm rounded-2xl border border-zinc-800 p-6">
+            <h2 class="text-xl font-bold mb-4">Editar Valor</h2>
+            <div class="mb-6">
+                <label class="block text-sm text-zinc-400 mb-1">Novo Valor (R$)</label>
+                <input type="number" id="editTxValue" step="0.01" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none text-white">
+            </div>
+            <div class="flex gap-4">
+                <button onclick="closeEditValueModal()" class="flex-1 py-2 rounded-lg bg-zinc-800 text-white hover:bg-zinc-700">Cancelar</button>
+                <button onclick="confirmEditValue()" class="flex-1 py-2 rounded-lg bg-neon text-black hover-bg-neon font-bold">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Consultant -->
     <button onclick="toggleAI()" class="fixed bottom-6 right-6 bg-neon text-black p-4 rounded-full shadow-lg hover-bg-neon z-40">
         <i data-lucide="message-square" class="w-6 h-6"></i>
@@ -268,6 +283,26 @@
             }
         };
 
+        window.txToEdit = null;
+        window.openEditValueModal = (id, currentValue) => {
+            window.txToEdit = id;
+            document.getElementById('editTxValue').value = currentValue;
+            document.getElementById('editValueModal').classList.add('active');
+        };
+        
+        window.closeEditValueModal = () => {
+            window.txToEdit = null;
+            document.getElementById('editValueModal').classList.remove('active');
+        };
+        
+        window.confirmEditValue = async () => {
+            const newValue = parseFloat(document.getElementById('editTxValue').value);
+            if (window.txToEdit && window.dbInstance && !isNaN(newValue)) {
+                await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToEdit), { value: newValue });
+                window.closeEditValueModal();
+            }
+        };
+
         function formatMoney(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val); }
         function formatDate(dStr) { const [y,m,d] = dStr.split('-'); return `${d}/${m}/${y}`; }
         function formatShortDate(dStr) { const [y,m,d] = dStr.split('-'); const ms = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; return `${d} ${ms[parseInt(m)-1]}`; }
@@ -333,6 +368,12 @@
 
                     const tr = document.createElement('tr');
                     tr.className = `border-b border-zinc-800/50 hover:bg-zinc-800/30 ${t.isPaid ? 'bg-[#39FF14]/10' : ''}`;
+                    
+                    let actionsHtml = `<button onclick="deleteTx('${t.id}')" class="text-zinc-500 hover:text-red-500 p-2" title="Excluir"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                    if (t.category === 'Cartão de Credito') {
+                        actionsHtml = `<button onclick="openEditValueModal('${t.id}', ${t.value})" class="text-zinc-500 hover:text-neon p-2" title="Editar Valor"><i data-lucide="pencil" class="w-4 h-4"></i></button>` + actionsHtml;
+                    }
+
                     tr.innerHTML = `
                         <td class="p-4">
                             <button onclick="togglePaid('${t.id}', ${t.isPaid})" class="flex items-center gap-2 text-sm font-medium">
@@ -343,7 +384,7 @@
                         <td class="p-4"><div class="text-white font-medium">${t.description}</div>${t.isRecurring ? '<span class="text-xs text-zinc-500">Recorrente</span>' : ''}</td>
                         <td class="p-4"><div class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800 border border-zinc-700">${t.category}</div>${catExtra}</td>
                         <td class="p-4 text-right font-bold ${t.type === 'Entrada' ? 'text-neon' : 'text-red-500'}">${t.type === 'Saída' ? '- ' : '+ '}${formatMoney(t.value)}</td>
-                        <td class="p-4 text-center"><button onclick="deleteTx('${t.id}')" class="text-zinc-500 hover:text-red-500 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                        <td class="p-4 text-center flex justify-center gap-1">${actionsHtml}</td>
                     `;
                     tbody.appendChild(tr);
                 });
