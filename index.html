@@ -172,72 +172,18 @@
     </div>
 
     <!-- Firebase & Logic -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-        import { GoogleGenAI } from "https://esm.sh/@google/genai@0.1.1";
+    <script>
+        // Global UI State
+        window.currentUser = null;
+        window.transactions = [];
+        window.categories = [];
+        window.dbInstance = null;
+        window.firebaseFns = {};
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAlcupbsBAVhqjl4KbRjNVFe78CnunBiZM",
-            authDomain: "financeup-392ae.firebaseapp.com",
-            projectId: "financeup-392ae",
-            storageBucket: "financeup-392ae.firebasestorage.app",
-            messagingSenderId: "299342926526",
-            appId: "1:299342926526:web:593cd247b0e277bed2c4ef"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        let currentUser = null;
-        let transactions = [];
-        let categories = [];
-        
-        const defaultCategories = [
+        window.defaultCategories = [
             { name: 'Salário', type: 'Entrada' }, { name: 'Extra', type: 'Entrada' }, { name: 'Outros', type: 'Entrada' },
             { name: 'Assinaturas', type: 'Saída' }, { name: 'Serviços', type: 'Saída' }, { name: 'Cartão de Credito', type: 'Saída' }, { name: 'Transporte', type: 'Saída' }
         ];
-
-        // Init UI
-        lucide.createIcons();
-        const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-        const mSel = document.getElementById('monthSelect');
-        const ySel = document.getElementById('yearSelect');
-        const d = new Date();
-        
-        months.forEach((m, i) => mSel.add(new Option(m, i, false, i === d.getMonth())));
-        for(let y = 2024; y <= 2035; y++) ySel.add(new Option(y, y, false, y === d.getFullYear()));
-
-        mSel.addEventListener('change', renderDashboard);
-        ySel.addEventListener('change', renderDashboard);
-
-        // Auth
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                loadData();
-            } else {
-                signInAnonymously(auth).catch(console.error);
-            }
-        });
-
-        function loadData() {
-            onSnapshot(query(collection(db, 'categories'), where('userId', '==', currentUser.uid)), async (snap) => {
-                if (snap.empty) {
-                    for (const cat of defaultCategories) await addDoc(collection(db, 'categories'), { ...cat, userId: currentUser.uid });
-                } else {
-                    categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    updateCategorySelect();
-                }
-            });
-
-            onSnapshot(query(collection(db, 'transactions'), where('userId', '==', currentUser.uid), orderBy('date', 'desc')), (snap) => {
-                transactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                renderDashboard();
-            });
-        }
 
         // Global functions for HTML
         window.openModal = () => { document.getElementById('transactionModal').classList.add('active'); setType('Entrada'); };
@@ -255,7 +201,7 @@
             const type = document.getElementById('txType').value;
             const sel = document.getElementById('txCategory');
             sel.innerHTML = '<option value="" disabled selected>Selecione...</option>';
-            categories.filter(c => c.type === type).forEach(c => sel.add(new Option(c.name, c.name)));
+            window.categories.filter(c => c.type === type).forEach(c => sel.add(new Option(c.name, c.name)));
         };
 
         window.handleCategoryChange = () => {
@@ -273,43 +219,24 @@
         window.addCategory = async () => {
             const name = document.getElementById('newCategoryName').value.trim();
             const type = document.getElementById('txType').value;
-            if (name && currentUser) {
-                await addDoc(collection(db, 'categories'), { name, type, userId: currentUser.uid });
+            if (name && window.currentUser && window.dbInstance) {
+                await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'categories'), { name, type, userId: window.currentUser.uid });
                 document.getElementById('newCategoryName').value = '';
                 toggleNewCategory();
                 setTimeout(() => document.getElementById('txCategory').value = name, 500);
             }
         };
 
-        document.getElementById('transactionForm').onsubmit = async (e) => {
-            e.preventDefault();
-            if (!currentUser) return;
-            const type = document.getElementById('txType').value;
-            const data = {
-                userId: currentUser.uid,
-                description: document.getElementById('txDesc').value,
-                value: parseFloat(document.getElementById('txValue').value),
-                date: document.getElementById('txDate').value,
-                type,
-                category: document.getElementById('txCategory').value,
-                isRecurring: document.getElementById('txRecurring').checked,
-                isPaid: type === 'Entrada',
-                createdAt: Date.now()
-            };
-            if (type === 'Entrada' && data.category === 'Salário') data.receiptDate = document.getElementById('txReceiptDate').value;
-            if (type === 'Saída' && data.category === 'Cartão de Credito') data.dueDate = document.getElementById('txDueDate').value;
-            
-            await addDoc(collection(db, 'transactions'), data);
-            closeModal();
-            e.target.reset();
-        };
-
         window.togglePaid = async (id, current) => {
-            await updateDoc(doc(db, 'transactions', id), { isPaid: !current });
+            if (window.dbInstance) {
+                await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', id), { isPaid: !current });
+            }
         };
 
         window.deleteTx = async (id) => {
-            if (confirm('Excluir lançamento?')) await deleteDoc(doc(db, 'transactions', id));
+            if (confirm('Excluir lançamento?') && window.dbInstance) {
+                await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', id));
+            }
         };
 
         function formatMoney(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val); }
@@ -317,16 +244,22 @@
         function formatShortDate(dStr) { const [y,m,d] = dStr.split('-'); const ms = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; return `${d} ${ms[parseInt(m)-1]}`; }
 
         window.renderDashboard = () => {
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            if (!mSel || !ySel) return;
+            
             const m = parseInt(mSel.value);
             const y = parseInt(ySel.value);
             
-            const filtered = transactions.filter(t => {
+            const filtered = window.transactions.filter(t => {
+                if (!t.date) return false;
                 const [ty, tm] = t.date.split('-');
                 return parseInt(tm)-1 === m && parseInt(ty) === y;
             });
 
             let inc = 0, exp = 0;
             const tbody = document.getElementById('transactionsTable');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
             if (filtered.length === 0) {
@@ -362,16 +295,17 @@
             const bal = inc - exp;
             document.getElementById('totalBalance').innerText = formatMoney(bal);
             document.getElementById('balanceCard').className = `bg-zinc-900 p-6 rounded-2xl border-l-4 flex justify-between items-center ${bal >= 0 ? 'border-neon' : 'border-red-500'}`;
-            lucide.createIcons();
+            if (window.lucide) window.lucide.createIcons();
         };
 
         // AI Logic
         window.toggleAI = () => document.getElementById('aiChat').classList.toggle('active');
         
-        const aiMessages = [{ role: 'model', text: 'Olá! Sou seu consultor financeiro IA. Como posso ajudar com seu orçamento hoje?' }];
-        const renderAIMessages = () => {
+        window.aiMessages = [{ role: 'model', text: 'Olá! Sou seu consultor financeiro IA. Como posso ajudar com seu orçamento hoje?' }];
+        window.renderAIMessages = () => {
             const div = document.getElementById('aiMessages');
-            div.innerHTML = aiMessages.map(m => `
+            if (!div) return;
+            div.innerHTML = window.aiMessages.map(m => `
                 <div class="flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}">
                     <div class="max-w-[80%] p-3 rounded-2xl text-sm ${m.role === 'user' ? 'bg-neon text-black rounded-tr-none' : 'bg-zinc-800 text-zinc-200 rounded-tl-none'}">
                         ${m.text}
@@ -380,20 +314,20 @@
             `).join('');
             div.scrollTop = div.scrollHeight;
         };
-        renderAIMessages();
 
         window.sendAIMessage = async () => {
             const input = document.getElementById('aiInput');
             const text = input.value.trim();
             if (!text) return;
             
-            aiMessages.push({ role: 'user', text });
+            window.aiMessages.push({ role: 'user', text });
             input.value = '';
-            renderAIMessages();
+            window.renderAIMessages();
 
             try {
-                const ai = new GoogleGenAI({ apiKey: "AIzaSyCrqECbdY29Vw1mKHt0Gfjdmsm2KGauIVo" });
-                const ctx = transactions.map(t => `${t.type}: ${t.description} - R$ ${t.value} em ${t.date} (${t.category})`).join('\n');
+                if (!window.GoogleGenAI) throw new Error("SDK not loaded");
+                const ai = new window.GoogleGenAI({ apiKey: "AIzaSyCrqECbdY29Vw1mKHt0Gfjdmsm2KGauIVo" });
+                const ctx = window.transactions.map(t => `${t.type}: ${t.description} - R$ ${t.value} em ${t.date} (${t.category})`).join('\n');
                 const sys = `Você é um consultor financeiro especialista do sistema FinanceUP. Responda de forma concisa, educada e sofisticada. Movimentações:\n${ctx || 'Nenhuma.'}`;
                 
                 const response = await ai.models.generateContent({
@@ -401,12 +335,112 @@
                     contents: text,
                     config: { systemInstruction: sys, temperature: 0.7 }
                 });
-                aiMessages.push({ role: 'model', text: response.text || 'Erro.' });
+                window.aiMessages.push({ role: 'model', text: response.text || 'Erro.' });
             } catch (e) {
-                aiMessages.push({ role: 'model', text: 'Erro ao conectar com a IA.' });
+                console.error(e);
+                window.aiMessages.push({ role: 'model', text: 'Erro ao conectar com a IA.' });
             }
-            renderAIMessages();
+            window.renderAIMessages();
         };
+
+        // Initialize basic UI
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) window.lucide.createIcons();
+            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const d = new Date();
+            
+            if (mSel && ySel) {
+                months.forEach((m, i) => mSel.add(new Option(m, i, false, i === d.getMonth())));
+                for(let y = 2024; y <= 2035; y++) ySel.add(new Option(y, y, false, y === d.getFullYear()));
+
+                mSel.addEventListener('change', window.renderDashboard);
+                ySel.addEventListener('change', window.renderDashboard);
+            }
+            
+            window.renderAIMessages();
+            
+            const form = document.getElementById('transactionForm');
+            if (form) {
+                form.onsubmit = async (e) => {
+                    e.preventDefault();
+                    if (!window.currentUser || !window.dbInstance) return;
+                    const type = document.getElementById('txType').value;
+                    const data = {
+                        userId: window.currentUser.uid,
+                        description: document.getElementById('txDesc').value,
+                        value: parseFloat(document.getElementById('txValue').value),
+                        date: document.getElementById('txDate').value,
+                        type,
+                        category: document.getElementById('txCategory').value,
+                        isRecurring: document.getElementById('txRecurring').checked,
+                        isPaid: type === 'Entrada',
+                        createdAt: Date.now()
+                    };
+                    if (type === 'Entrada' && data.category === 'Salário') data.receiptDate = document.getElementById('txReceiptDate').value;
+                    if (type === 'Saída' && data.category === 'Cartão de Credito') data.dueDate = document.getElementById('txDueDate').value;
+                    
+                    await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), data);
+                    window.closeModal();
+                    e.target.reset();
+                };
+            }
+        });
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        
+        // Load Gemini dynamically to prevent it from crashing the module if it fails
+        import("https://esm.sh/@google/genai").then(module => {
+            window.GoogleGenAI = module.GoogleGenAI;
+        }).catch(console.error);
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlcupbsBAVhqjl4KbRjNVFe78CnunBiZM",
+            authDomain: "financeup-392ae.firebaseapp.com",
+            projectId: "financeup-392ae",
+            storageBucket: "financeup-392ae.firebasestorage.app",
+            messagingSenderId: "299342926526",
+            appId: "1:299342926526:web:593cd247b0e277bed2c4ef"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        window.dbInstance = db;
+        window.firebaseFns = { collection, addDoc, updateDoc, deleteDoc, doc };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                window.currentUser = user;
+                loadData();
+            } else {
+                signInAnonymously(auth).catch(console.error);
+            }
+        });
+
+        function loadData() {
+            onSnapshot(query(collection(db, 'categories'), where('userId', '==', window.currentUser.uid)), async (snap) => {
+                if (snap.empty) {
+                    for (const cat of window.defaultCategories) {
+                        await addDoc(collection(db, 'categories'), { ...cat, userId: window.currentUser.uid });
+                    }
+                } else {
+                    window.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    window.updateCategorySelect();
+                }
+            });
+
+            onSnapshot(query(collection(db, 'transactions'), where('userId', '==', window.currentUser.uid)), (snap) => {
+                window.transactions = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.date) - new Date(a.date));
+                window.renderDashboard();
+            });
+        }
     </script>
 </body>
 </html>
