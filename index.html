@@ -17,6 +17,7 @@
         .modal.active { display: flex; }
         .ai-chat { display: none; }
         .ai-chat.active { display: flex; }
+        select option { background-color: #18181b; color: #fff; }
     </style>
 </head>
 <body class="selection:bg-[#39FF14] selection:text-black pb-24">
@@ -209,6 +210,10 @@
             const cat = document.getElementById('txCategory').value;
             document.getElementById('receiptDateDiv').style.display = (type === 'Entrada' && cat === 'Salário') ? 'block' : 'none';
             document.getElementById('dueDateDiv').style.display = (type === 'Saída' && cat === 'Cartão de Credito') ? 'block' : 'none';
+            
+            if (type === 'Entrada' && cat === 'Salário') {
+                document.getElementById('txRecurring').checked = true;
+            }
         };
 
         window.toggleNewCategory = () => {
@@ -251,10 +256,40 @@
             const m = parseInt(mSel.value);
             const y = parseInt(ySel.value);
             
+            const shiftDate = (dateStr) => {
+                if (!dateStr) return dateStr;
+                const [yearStr, monthStr, d] = dateStr.split('-');
+                const newMonth = (m + 1).toString().padStart(2, '0');
+                return `${y}-${newMonth}-${d}`;
+            };
+
             const filtered = window.transactions.filter(t => {
                 if (!t.date) return false;
                 const [ty, tm] = t.date.split('-');
-                return parseInt(tm)-1 === m && parseInt(ty) === y;
+                const txMonthTotal = parseInt(ty) * 12 + (parseInt(tm) - 1);
+                const selMonthTotal = y * 12 + m;
+                
+                if (t.isRecurring) return txMonthTotal <= selMonthTotal;
+                return txMonthTotal === selMonthTotal;
+            }).map(t => {
+                const [ty, tm] = t.date.split('-');
+                const txMonthTotal = parseInt(ty) * 12 + (parseInt(tm) - 1);
+                const selMonthTotal = y * 12 + m;
+                
+                if (t.isRecurring && txMonthTotal < selMonthTotal) {
+                    return {
+                        ...t,
+                        displayDate: shiftDate(t.date),
+                        displayReceiptDate: shiftDate(t.receiptDate),
+                        displayDueDate: shiftDate(t.dueDate)
+                    };
+                }
+                return {
+                    ...t,
+                    displayDate: t.date,
+                    displayReceiptDate: t.receiptDate,
+                    displayDueDate: t.dueDate
+                };
             });
 
             let inc = 0, exp = 0;
@@ -269,8 +304,8 @@
                     if (t.type === 'Entrada') inc += t.value; else exp += t.value;
                     
                     let catExtra = '';
-                    if (t.category === 'Salário' && t.receiptDate) catExtra = `<div class="text-xs text-zinc-500 mt-1">Recebimento: ${formatShortDate(t.receiptDate)}</div>`;
-                    if (t.category === 'Cartão de Credito' && t.dueDate) catExtra = `<div class="text-xs text-zinc-500 mt-1">Vencimento: ${formatShortDate(t.dueDate)}</div>`;
+                    if (t.category === 'Salário' && t.displayReceiptDate) catExtra = `<div class="text-xs text-zinc-500 mt-1">Recebimento: ${formatShortDate(t.displayReceiptDate)}</div>`;
+                    if (t.category === 'Cartão de Credito' && t.displayDueDate) catExtra = `<div class="text-xs text-zinc-500 mt-1">Vencimento: ${formatShortDate(t.displayDueDate)}</div>`;
 
                     const tr = document.createElement('tr');
                     tr.className = `border-b border-zinc-800/50 hover:bg-zinc-800/30 ${t.isPaid ? 'bg-[#39FF14]/10' : ''}`;
@@ -280,7 +315,7 @@
                                 ${t.isPaid ? '<i data-lucide="check-circle-2" class="w-5 h-5 text-neon"></i><span class="text-neon">Pago</span>' : '<i data-lucide="circle" class="w-5 h-5 text-red-500"></i><span class="text-red-500">Não pago</span>'}
                             </button>
                         </td>
-                        <td class="p-4 text-zinc-300">${formatDate(t.date)}</td>
+                        <td class="p-4 text-zinc-300">${formatDate(t.displayDate)}</td>
                         <td class="p-4"><div class="text-white font-medium">${t.description}</div>${t.isRecurring ? '<span class="text-xs text-zinc-500">Recorrente</span>' : ''}</td>
                         <td class="p-4"><div class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800 border border-zinc-700">${t.category}</div>${catExtra}</td>
                         <td class="p-4 text-right font-bold ${t.type === 'Entrada' ? 'text-neon' : 'text-red-500'}">${t.type === 'Saída' ? '- ' : '+ '}${formatMoney(t.value)}</td>
@@ -395,7 +430,7 @@
         import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         
         // Load Gemini dynamically to prevent it from crashing the module if it fails
-        import("https://esm.sh/@google/genai").then(module => {
+        import("https://cdn.jsdelivr.net/npm/@google/genai@1.44.0/+esm").then(module => {
             window.GoogleGenAI = module.GoogleGenAI;
         }).catch(console.error);
 
