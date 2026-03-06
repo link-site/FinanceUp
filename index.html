@@ -153,6 +153,18 @@
         </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-zinc-900 w-full max-w-sm rounded-2xl border border-zinc-800 p-6">
+            <h2 class="text-xl font-bold mb-4">Excluir Lançamento</h2>
+            <p class="text-zinc-400 mb-6">Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.</p>
+            <div class="flex gap-4">
+                <button onclick="closeDeleteModal()" class="flex-1 py-2 rounded-lg bg-zinc-800 text-white hover:bg-zinc-700">Cancelar</button>
+                <button onclick="confirmDeleteTx()" class="flex-1 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 font-bold">Excluir</button>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Consultant -->
     <button onclick="toggleAI()" class="fixed bottom-6 right-6 bg-neon text-black p-4 rounded-full shadow-lg hover-bg-neon z-40">
         <i data-lucide="message-square" class="w-6 h-6"></i>
@@ -238,9 +250,21 @@
             }
         };
 
-        window.deleteTx = async (id) => {
-            if (confirm('Excluir lançamento?') && window.dbInstance) {
-                await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', id));
+        window.txToDelete = null;
+        window.deleteTx = (id) => {
+            window.txToDelete = id;
+            document.getElementById('deleteModal').classList.add('active');
+        };
+        
+        window.closeDeleteModal = () => {
+            window.txToDelete = null;
+            document.getElementById('deleteModal').classList.remove('active');
+        };
+        
+        window.confirmDeleteTx = async () => {
+            if (window.txToDelete && window.dbInstance) {
+                await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToDelete));
+                window.closeDeleteModal();
             }
         };
 
