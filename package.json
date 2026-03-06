@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "npx serve -p 3000",
-    "build": "echo 'No build step required'"
+    "build": "mkdir -p public && cp index.html public/"
   },
   "dependencies": {
     "serve": "^14.2.1"
