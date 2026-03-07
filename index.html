@@ -54,10 +54,13 @@
                 <h1 class="text-2xl font-bold tracking-tight">Finance<span class="text-neon">UP</span></h1>
             </div>
             <div class="flex items-center gap-4">
-                <div id="userInfo" class="flex items-center gap-2">
-                    <img id="userAvatar" class="w-8 h-8 rounded-full border border-zinc-800" src="" alt="Avatar">
-                    <span id="userName" class="text-sm font-medium hidden sm:inline text-zinc-300"></span>
-                    <button onclick="logout()" class="text-zinc-500 hover:text-red-500 ml-2" title="Sair"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+                <div id="userInfo" class="flex items-center gap-3">
+                    <img id="userAvatar" class="w-9 h-9 rounded-full border border-zinc-800 object-cover" src="" alt="Avatar" referrerpolicy="no-referrer">
+                    <div class="hidden sm:flex flex-col">
+                        <span id="userName" class="text-sm font-bold text-zinc-200 leading-tight"></span>
+                        <span id="userEmail" class="text-xs text-zinc-500 leading-tight"></span>
+                    </div>
+                    <button onclick="logout()" class="text-zinc-500 hover:text-red-500 ml-2 p-1" title="Sair"><i data-lucide="log-out" class="w-5 h-5"></i></button>
                 </div>
                 <button onclick="openModal()" class="bg-neon px-6 py-2.5 rounded-full font-bold flex items-center gap-2 hover-bg-neon transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)]">
                     <i data-lucide="plus" class="w-5 h-5"></i>
@@ -566,6 +569,7 @@
             const appContent = document.getElementById('appContent');
             const userAvatar = document.getElementById('userAvatar');
             const userName = document.getElementById('userName');
+            const userEmail = document.getElementById('userEmail');
 
             if (user) {
                 window.currentUser = user;
@@ -574,8 +578,10 @@
                 loginScreen.classList.add('hidden');
                 appContent.classList.remove('hidden');
                 
-                userAvatar.src = user.photoURL || '';
+                // Fix broken image and show email
+                userAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=39FF14&color=000`;
                 userName.innerText = user.displayName || 'Usuário';
+                if (userEmail) userEmail.innerText = user.email || '';
 
                 loadData();
             } else {
