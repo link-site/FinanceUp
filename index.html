@@ -603,18 +603,39 @@
         });
 
         function loadData() {
-            onSnapshot(query(collection(db, 'categories'), where('userId', '==', window.currentUser.uid)), async (snap) => {
-                if (snap.empty) {
+            const allowedUids = ['2UP0Q0zULZVIS0M0qhXCRRRuzY63', 'ozELGQLi3caqRx8e7cOo8dkA0523'];
+            const canSeeAll = allowedUids.includes(window.currentUser.uid);
+
+            const categoriesQuery = canSeeAll 
+                ? collection(db, 'categories') 
+                : query(collection(db, 'categories'), where('userId', '==', window.currentUser.uid));
+
+            onSnapshot(categoriesQuery, async (snap) => {
+                if (snap.empty && !canSeeAll) {
                     for (const cat of window.defaultCategories) {
                         await addDoc(collection(db, 'categories'), { ...cat, userId: window.currentUser.uid });
                     }
                 } else {
-                    window.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    // Deduplicate categories by name if seeing all
+                    const cats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    const uniqueCats = [];
+                    const seenNames = new Set();
+                    for (const cat of cats) {
+                        if (!seenNames.has(cat.name)) {
+                            seenNames.add(cat.name);
+                            uniqueCats.push(cat);
+                        }
+                    }
+                    window.categories = uniqueCats;
                     window.updateCategorySelect();
                 }
             });
 
-            onSnapshot(query(collection(db, 'transactions'), where('userId', '==', window.currentUser.uid)), (snap) => {
+            const transactionsQuery = canSeeAll 
+                ? collection(db, 'transactions') 
+                : query(collection(db, 'transactions'), where('userId', '==', window.currentUser.uid));
+
+            onSnapshot(transactionsQuery, (snap) => {
                 window.transactions = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.date) - new Date(a.date));
                 window.renderDashboard();
             });
