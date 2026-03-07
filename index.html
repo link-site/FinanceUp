@@ -58,7 +58,6 @@
                     <img id="userAvatar" class="w-9 h-9 rounded-full border border-zinc-800 object-cover" src="" alt="Avatar" referrerpolicy="no-referrer">
                     <div class="hidden sm:flex flex-col">
                         <span id="userName" class="text-sm font-bold text-zinc-200 leading-tight"></span>
-                        <span id="userEmail" class="text-xs text-zinc-500 leading-tight"></span>
                     </div>
                     <button onclick="logout()" class="text-zinc-500 hover:text-red-500 ml-2 p-1" title="Sair"><i data-lucide="log-out" class="w-5 h-5"></i></button>
                 </div>
@@ -569,7 +568,6 @@
             const appContent = document.getElementById('appContent');
             const userAvatar = document.getElementById('userAvatar');
             const userName = document.getElementById('userName');
-            const userEmail = document.getElementById('userEmail');
 
             if (user) {
                 window.currentUser = user;
@@ -580,8 +578,7 @@
                 
                 // Fix broken image and show email
                 userAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=39FF14&color=000`;
-                userName.innerText = user.displayName || 'Usuário';
-                if (userEmail) userEmail.innerText = user.email || '';
+                userName.innerText = user.email || user.displayName || 'Usuário';
 
                 loadData();
             } else {
