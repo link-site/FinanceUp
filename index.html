@@ -42,10 +42,6 @@
                     <i data-lucide="log-in" class="w-5 h-5"></i> Entrar
                 </button>
             </form>
-            
-            <div class="text-sm text-zinc-400">
-                Não tem uma conta? <button onclick="toggleAuthMode()" id="authModeBtn" class="text-neon hover:underline font-bold">Criar agora</button>
-            </div>
         </div>
     </div>
 
@@ -532,7 +528,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         
         // Load Gemini dynamically to prevent it from crashing the module if it fails
@@ -556,28 +552,6 @@
         window.dbInstance = db;
         window.firebaseFns = { collection, addDoc, updateDoc, deleteDoc, doc };
 
-        let isSignUpMode = false;
-        
-        window.toggleAuthMode = () => {
-            isSignUpMode = !isSignUpMode;
-            const btn = document.querySelector('#loginForm button[type="submit"]');
-            const toggleBtn = document.getElementById('authModeBtn');
-            const errorDiv = document.getElementById('loginError');
-            
-            errorDiv.classList.add('hidden');
-            
-            if (isSignUpMode) {
-                btn.innerHTML = '<i data-lucide="user-plus" class="w-5 h-5"></i> Criar Conta';
-                toggleBtn.innerText = 'Fazer login';
-                toggleBtn.parentElement.childNodes[0].nodeValue = 'Já tem uma conta? ';
-            } else {
-                btn.innerHTML = '<i data-lucide="log-in" class="w-5 h-5"></i> Entrar';
-                toggleBtn.innerText = 'Criar agora';
-                toggleBtn.parentElement.childNodes[0].nodeValue = 'Não tem uma conta? ';
-            }
-            if (window.lucide) window.lucide.createIcons();
-        };
-
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
@@ -586,20 +560,12 @@
             
             try {
                 errorDiv.classList.add('hidden');
-                if (isSignUpMode) {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                } else {
-                    await signInWithEmailAndPassword(auth, email, password);
-                }
+                await signInWithEmailAndPassword(auth, email, password);
             } catch (error) {
                 console.error("Auth error:", error);
                 errorDiv.classList.remove('hidden');
                 if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                     errorDiv.innerText = 'E-mail ou senha incorretos.';
-                } else if (error.code === 'auth/email-already-in-use') {
-                    errorDiv.innerText = 'Este e-mail já está em uso.';
-                } else if (error.code === 'auth/weak-password') {
-                    errorDiv.innerText = 'A senha deve ter pelo menos 6 caracteres.';
                 } else {
                     errorDiv.innerText = 'Ocorreu um erro. Tente novamente.';
                 }
