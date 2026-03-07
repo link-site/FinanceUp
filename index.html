@@ -21,7 +21,30 @@
     </style>
 </head>
 <body class="selection:bg-[#39FF14] selection:text-black pb-24">
-    <!-- Header -->
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex flex-col items-center justify-center px-4">
+        <div class="bg-zinc-900 p-8 rounded-3xl border border-zinc-800 w-full max-w-md text-center shadow-2xl">
+            <div class="w-16 h-16 bg-neon rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(57,255,20,0.3)] mx-auto mb-6">
+                <span class="font-black text-3xl text-black tracking-tighter">F</span>
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight mb-2">Finance<span class="text-neon">UP</span></h1>
+            <p class="text-zinc-400 mb-8">Faça login para gerenciar suas finanças e sincronizar seus dados em todos os dispositivos.</p>
+            
+            <button onclick="loginWithGoogle()" class="w-full bg-white text-black font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-zinc-200 transition-colors">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continuar com Google
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App Content -->
+    <div id="appContent" class="hidden">
+        <!-- Header -->
     <header class="bg-zinc-950 border-b border-zinc-900 sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -30,10 +53,17 @@
                 </div>
                 <h1 class="text-2xl font-bold tracking-tight">Finance<span class="text-neon">UP</span></h1>
             </div>
-            <button onclick="openModal()" class="bg-neon px-6 py-2.5 rounded-full font-bold flex items-center gap-2 hover-bg-neon transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)]">
-                <i data-lucide="plus" class="w-5 h-5"></i>
-                <span class="hidden sm:inline">Novo Lançamento</span>
-            </button>
+            <div class="flex items-center gap-4">
+                <div id="userInfo" class="flex items-center gap-2">
+                    <img id="userAvatar" class="w-8 h-8 rounded-full border border-zinc-800" src="" alt="Avatar">
+                    <span id="userName" class="text-sm font-medium hidden sm:inline text-zinc-300"></span>
+                    <button onclick="logout()" class="text-zinc-500 hover:text-red-500 ml-2" title="Sair"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+                </div>
+                <button onclick="openModal()" class="bg-neon px-6 py-2.5 rounded-full font-bold flex items-center gap-2 hover-bg-neon transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)]">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                    <span class="hidden sm:inline">Novo Lançamento</span>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -200,6 +230,8 @@
     </div>
 
     <!-- Firebase & Logic -->
+    </div> <!-- End of appContent -->
+
     <script>
         // Global UI State
         window.currentUser = null;
@@ -491,7 +523,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         
         // Load Gemini dynamically to prevent it from crashing the module if it fails
@@ -515,12 +547,41 @@
         window.dbInstance = db;
         window.firebaseFns = { collection, addDoc, updateDoc, deleteDoc, doc };
 
+        window.loginWithGoogle = async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Login error:", error);
+            }
+        };
+
+        window.logout = async () => {
+            await signOut(auth);
+            window.location.reload();
+        };
+
         onAuthStateChanged(auth, async (user) => {
+            const loginScreen = document.getElementById('loginScreen');
+            const appContent = document.getElementById('appContent');
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+
             if (user) {
                 window.currentUser = user;
+                
+                // Show app, hide login
+                loginScreen.classList.add('hidden');
+                appContent.classList.remove('hidden');
+                
+                userAvatar.src = user.photoURL || '';
+                userName.innerText = user.displayName || 'Usuário';
+
                 loadData();
             } else {
-                signInAnonymously(auth).catch(console.error);
+                // Show login, hide app
+                loginScreen.classList.remove('hidden');
+                appContent.classList.add('hidden');
             }
         });
 
