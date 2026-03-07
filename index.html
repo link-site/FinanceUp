@@ -636,7 +636,17 @@
                 : query(collection(db, 'transactions'), where('userId', '==', window.currentUser.uid));
 
             onSnapshot(transactionsQuery, (snap) => {
-                window.transactions = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.date) - new Date(a.date));
+                window.transactions = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
+                    // First sort by type: Entrada comes before Saída
+                    if (a.type === 'Entrada' && b.type === 'Saída') return -1;
+                    if (a.type === 'Saída' && b.type === 'Entrada') return 1;
+                    
+                    // Then sort by createdAt timestamp descending (newest first)
+                    // Fallback to date if createdAt doesn't exist for older records
+                    const timeA = a.createdAt || new Date(a.date).getTime();
+                    const timeB = b.createdAt || new Date(b.date).getTime();
+                    return timeB - timeA;
+                });
                 window.renderDashboard();
             });
         }
