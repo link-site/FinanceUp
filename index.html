@@ -55,6 +55,10 @@
                     <span class="font-black text-xl tracking-tighter">F</span>
                 </div>
                 <h1 class="text-2xl font-bold tracking-tight">Finance<span class="text-neon">UP</span></h1>
+                <div class="flex items-center gap-2 ml-6">
+                    <button onclick="setView('budget')" id="btnBudget" class="px-4 py-1.5 rounded-full border border-neon text-xs font-bold transition-all bg-neon text-black">Orçamento</button>
+                    <button onclick="setView('organization')" id="btnOrg" class="px-4 py-1.5 rounded-full border border-neon text-xs font-bold transition-all text-neon hover:bg-neon/10">Organização</button>
+                </div>
             </div>
             <div class="flex items-center gap-4">
                 <div id="userInfo" class="flex items-center gap-3">
@@ -75,7 +79,7 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8">
-            <h2 class="text-3xl font-light text-zinc-300">Visão Geral</h2>
+            <h2 id="viewTitle" class="text-3xl font-light text-zinc-300">Visão Geral</h2>
             <div class="flex bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
                 <div class="flex items-center gap-2 px-3 border-r border-zinc-800">
                     <i data-lucide="calendar" class="w-4 h-4 text-neon"></i>
@@ -87,23 +91,23 @@
 
         <!-- Dashboard -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-neon flex justify-between items-center">
+            <div id="incomesCard" class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-neon flex justify-between items-center transition-all duration-300">
                 <div>
                     <p class="text-zinc-400 text-sm mb-1">Entradas</p>
                     <h3 id="totalIncomes" class="text-2xl font-bold">R$ 0,00</h3>
                 </div>
                 <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="arrow-up-circle" class="w-6 h-6 text-neon"></i></div>
             </div>
-            <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-red-500 flex justify-between items-center">
+            <div id="expensesCard" class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-red-500 flex justify-between items-center transition-all duration-300">
                 <div>
                     <p class="text-zinc-400 text-sm mb-1">Saídas</p>
                     <h3 id="totalExpenses" class="text-2xl font-bold">R$ 0,00</h3>
                 </div>
                 <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="arrow-down-circle" class="w-6 h-6 text-red-500"></i></div>
             </div>
-            <div id="balanceCard" class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-neon flex justify-between items-center">
+            <div id="balanceCard" class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-neon flex justify-between items-center transition-all duration-300">
                 <div>
-                    <p class="text-zinc-400 text-sm mb-1">Disponível</p>
+                    <p id="balanceLabel" class="text-zinc-400 text-sm mb-1">Disponível</p>
                     <h3 id="totalBalance" class="text-2xl font-bold">R$ 0,00</h3>
                 </div>
                 <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-white"></i></div>
@@ -388,7 +392,7 @@
                 };
             });
 
-            let inc = 0, exp = 0;
+            let inc = 0, exp = 0, bal = 0;
             const tbody = document.getElementById('transactionsTable');
             if (!tbody) return;
             tbody.innerHTML = '';
@@ -397,7 +401,21 @@
                 tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-zinc-500">Nenhuma movimentação.</td></tr>';
             } else {
                 filtered.forEach(t => {
-                    if (t.type === 'Entrada') inc += t.value; else exp += t.value;
+                    if (window.currentView === 'budget') {
+                        if (t.type === 'Entrada') inc += t.value; else exp += t.value;
+                    } else {
+                        // Organização view: 
+                        // Entradas = Total Incomes (always)
+                        // Saídas = Total Expenses (always)
+                        // No Caixa = Total Incomes - Paid Expenses
+                        if (t.type === 'Entrada') {
+                            inc += t.value;
+                            bal += t.value; // Start with total income
+                        } else {
+                            exp += t.value;
+                            if (t.isPaid) bal -= t.value; // Only subtract if paid
+                        }
+                    }
                     
                     let catExtra = '';
                     if (t.category === 'Salário' && t.displayReceiptDate) catExtra = `<div class="text-xs text-zinc-500 mt-1">Recebimento: ${formatShortDate(t.displayReceiptDate)}</div>`;
@@ -411,10 +429,18 @@
                         actionsHtml = `<button onclick="openEditValueModal('${t.id}', ${t.value})" class="text-zinc-500 hover:text-neon p-2" title="Editar Valor"><i data-lucide="pencil" class="w-4 h-4"></i></button>` + actionsHtml;
                     }
 
+                    const statusLabel = t.type === 'Entrada' 
+                        ? (t.isPaid ? 'Recebido' : 'Não recebido') 
+                        : (t.isPaid ? 'Pago' : 'Não pago');
+                    const statusIcon = t.isPaid 
+                        ? '<i data-lucide="check-circle-2" class="w-5 h-5 text-neon"></i>' 
+                        : '<i data-lucide="circle" class="w-5 h-5 text-red-500"></i>';
+                    const statusClass = t.isPaid ? 'text-neon' : 'text-red-500';
+
                     tr.innerHTML = `
                         <td class="p-4">
                             <button onclick="togglePaid('${t.id}', ${t.isPaid})" class="flex items-center gap-2 text-sm font-medium">
-                                ${t.isPaid ? '<i data-lucide="check-circle-2" class="w-5 h-5 text-neon"></i><span class="text-neon">Pago</span>' : '<i data-lucide="circle" class="w-5 h-5 text-red-500"></i><span class="text-red-500">Não pago</span>'}
+                                ${statusIcon}<span class="${statusClass}">${statusLabel}</span>
                             </button>
                         </td>
                         <td class="p-4 text-zinc-300">${formatDate(t.displayDate)}</td>
@@ -429,9 +455,28 @@
 
             document.getElementById('totalIncomes').innerText = formatMoney(inc);
             document.getElementById('totalExpenses').innerText = formatMoney(exp);
-            const bal = inc - exp;
-            document.getElementById('totalBalance').innerText = formatMoney(bal);
-            document.getElementById('balanceCard').className = `bg-zinc-900 p-6 rounded-2xl border-l-4 flex justify-between items-center ${bal >= 0 ? 'border-neon' : 'border-red-500'}`;
+            const finalBal = window.currentView === 'budget' ? (inc - exp) : bal;
+            document.getElementById('totalBalance').innerText = formatMoney(finalBal);
+            
+            const balanceLabel = document.getElementById('balanceLabel');
+            const incCard = document.getElementById('incomesCard');
+            const expCard = document.getElementById('expensesCard');
+            const balCard = document.getElementById('balanceCard');
+
+            if (window.currentView === 'organization') {
+                balanceLabel.innerText = 'No Caixa';
+                incCard.classList.add('scale-95', 'opacity-70');
+                expCard.classList.add('scale-95', 'opacity-70');
+                balCard.classList.add('scale-105', 'shadow-[0_0_20px_rgba(57,255,20,0.3)]', 'border-neon', 'z-10');
+                balCard.classList.remove('opacity-70');
+            } else {
+                balanceLabel.innerText = 'Disponível';
+                incCard.classList.remove('scale-95', 'opacity-70');
+                expCard.classList.remove('scale-95', 'opacity-70');
+                balCard.classList.remove('scale-105', 'shadow-[0_0_20px_rgba(57,255,20,0.3)]', 'z-10');
+                balCard.className = `bg-zinc-900 p-6 rounded-2xl border-l-4 flex justify-between items-center transition-all duration-300 ${finalBal >= 0 ? 'border-neon' : 'border-red-500'}`;
+            }
+
             if (window.lucide) window.lucide.createIcons();
         };
 
@@ -551,6 +596,28 @@
         
         window.dbInstance = db;
         window.firebaseFns = { collection, addDoc, updateDoc, deleteDoc, doc };
+        window.currentView = 'budget';
+
+        window.setView = (view) => {
+            window.currentView = view;
+            const btnBudget = document.getElementById('btnBudget');
+            const btnOrg = document.getElementById('btnOrg');
+            
+            if (view === 'budget') {
+                btnBudget.classList.add('bg-neon', 'text-black');
+                btnBudget.classList.remove('text-neon', 'hover:bg-neon/10');
+                btnOrg.classList.remove('bg-neon', 'text-black');
+                btnOrg.classList.add('text-neon', 'hover:bg-neon/10');
+                document.getElementById('viewTitle').innerText = 'Visão Geral';
+            } else {
+                btnOrg.classList.add('bg-neon', 'text-black');
+                btnOrg.classList.remove('text-neon', 'hover:bg-neon/10');
+                btnBudget.classList.remove('bg-neon', 'text-black');
+                btnBudget.classList.add('text-neon', 'hover:bg-neon/10');
+                document.getElementById('viewTitle').innerText = 'Organização do Caixa';
+            }
+            window.renderDashboard();
+        };
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
