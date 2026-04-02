@@ -276,20 +276,24 @@
         window.handleCategoryChange = () => {
             const type = document.getElementById('txType').value;
             const cat = document.getElementById('txCategory').value;
-            const isSalario = (type === 'Entrada' && cat === 'Salário');
             
+            const isSalario = (type === 'Entrada' && cat === 'Salário');
+            const isSaida = (type === 'Saída');
+            const isCompras = (cat === 'Compras');
+            const needsDueDate = ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(cat);
+
             document.getElementById('receiptDateDiv').style.display = isSalario ? 'block' : 'none';
-            document.getElementById('dueDateDiv').style.display = (type === 'Saída' && cat === 'Cartão de Credito') ? 'block' : 'none';
+            document.getElementById('dueDateDiv').style.display = (isSaida && needsDueDate) ? 'block' : 'none';
             
             const dateDiv = document.getElementById('dateFieldDiv');
             const dateInput = document.getElementById('txDate');
-            if (isSalario) {
-                dateDiv.style.display = 'none';
-                dateInput.required = false;
-            } else {
-                dateDiv.style.display = 'block';
-                dateInput.required = true;
-            }
+            
+            let showDate = true;
+            if (isSalario) showDate = false;
+            if (isSaida && !isCompras) showDate = false;
+            
+            dateDiv.style.display = showDate ? 'block' : 'none';
+            dateInput.required = showDate;
             
             if (isSalario) {
                 document.getElementById('txRecurring').checked = true;
@@ -573,9 +577,12 @@
                     const cat = document.getElementById('txCategory').value;
                     let date = document.getElementById('txDate').value;
                     const receiptDate = document.getElementById('txReceiptDate').value;
+                    const dueDate = document.getElementById('txDueDate').value;
 
                     if (type === 'Entrada' && cat === 'Salário') {
                         date = receiptDate;
+                    } else if (type === 'Saída' && cat !== 'Compras') {
+                        date = dueDate;
                     }
 
                     const data = {
@@ -590,7 +597,7 @@
                         createdAt: Date.now()
                     };
                     if (type === 'Entrada' && data.category === 'Salário') data.receiptDate = receiptDate;
-                    if (type === 'Saída' && data.category === 'Cartão de Credito') data.dueDate = document.getElementById('txDueDate').value;
+                    if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(data.category)) data.dueDate = dueDate;
                     
                     await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), data);
                     window.closeModal();
