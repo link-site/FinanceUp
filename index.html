@@ -405,16 +405,15 @@
                         if (t.type === 'Entrada') inc += t.value; else exp += t.value;
                     } else {
                         // Organização view: 
-                        // Entradas = Total Incomes (always)
-                        // Saídas = Total Expenses (always)
-                        // No Caixa = Total Incomes - Paid Expenses
+                        // Entradas = Only Received Incomes
+                        // Saídas = Only Paid Expenses
+                        // No Caixa = Received Incomes - Paid Expenses
                         if (t.type === 'Entrada') {
-                            inc += t.value;
-                            bal += t.value; // Start with total income
+                            if (t.isPaid) inc += t.value;
                         } else {
-                            exp += t.value;
-                            if (t.isPaid) bal -= t.value; // Only subtract if paid
+                            if (t.isPaid) exp += t.value;
                         }
+                        bal = inc - exp;
                     }
                     
                     let catExtra = '';
@@ -557,7 +556,7 @@
                         type,
                         category: document.getElementById('txCategory').value,
                         isRecurring: document.getElementById('txRecurring').checked,
-                        isPaid: type === 'Entrada',
+                        isPaid: false,
                         createdAt: Date.now()
                     };
                     if (type === 'Entrada' && data.category === 'Salário') data.receiptDate = document.getElementById('txReceiptDate').value;
