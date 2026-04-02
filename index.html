@@ -157,7 +157,7 @@
                         <label class="block text-sm text-zinc-400 mb-1">Valor (R$)</label>
                         <input required type="number" step="0.01" id="txValue" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none">
                     </div>
-                    <div>
+                    <div id="dateFieldDiv">
                         <label class="block text-sm text-zinc-400 mb-1">Data</label>
                         <input required type="date" id="txDate" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none">
                     </div>
@@ -276,10 +276,22 @@
         window.handleCategoryChange = () => {
             const type = document.getElementById('txType').value;
             const cat = document.getElementById('txCategory').value;
-            document.getElementById('receiptDateDiv').style.display = (type === 'Entrada' && cat === 'Salário') ? 'block' : 'none';
+            const isSalario = (type === 'Entrada' && cat === 'Salário');
+            
+            document.getElementById('receiptDateDiv').style.display = isSalario ? 'block' : 'none';
             document.getElementById('dueDateDiv').style.display = (type === 'Saída' && cat === 'Cartão de Credito') ? 'block' : 'none';
             
-            if (type === 'Entrada' && cat === 'Salário') {
+            const dateDiv = document.getElementById('dateFieldDiv');
+            const dateInput = document.getElementById('txDate');
+            if (isSalario) {
+                dateDiv.style.display = 'none';
+                dateInput.required = false;
+            } else {
+                dateDiv.style.display = 'block';
+                dateInput.required = true;
+            }
+            
+            if (isSalario) {
                 document.getElementById('txRecurring').checked = true;
             }
         };
@@ -417,8 +429,9 @@
                     }
                     
                     let catExtra = '';
-                    if (t.category === 'Salário' && t.displayReceiptDate) catExtra = `<div class="text-xs text-zinc-500 mt-1">Recebimento: ${formatShortDate(t.displayReceiptDate)}</div>`;
-                    if (t.category === 'Cartão de Credito' && t.displayDueDate) catExtra = `<div class="text-xs text-zinc-500 mt-1">Vencimento: ${formatShortDate(t.displayDueDate)}</div>`;
+                    let dateLabel = '';
+                    if (t.type === 'Entrada' && t.category === 'Salário') dateLabel = 'Recebimento';
+                    if (t.type === 'Saída' && t.isRecurring) dateLabel = 'Vencimento';
 
                     const tr = document.createElement('tr');
                     tr.className = `border-b border-zinc-800/50 hover:bg-zinc-800/30 ${t.isPaid ? 'bg-[#39FF14]/10' : ''}`;
@@ -436,13 +449,22 @@
                         : '<i data-lucide="circle" class="w-5 h-5 text-red-500"></i>';
                     const statusClass = t.isPaid ? 'text-neon' : 'text-red-500';
 
+                    let dateToDisplay = t.displayDate;
+                    if (t.isRecurring) {
+                        if (t.type === 'Entrada' && t.displayReceiptDate) dateToDisplay = t.displayReceiptDate;
+                        else if (t.type === 'Saída' && t.displayDueDate) dateToDisplay = t.displayDueDate;
+                    }
+
                     tr.innerHTML = `
                         <td class="p-4">
                             <button onclick="togglePaid('${t.id}', ${t.isPaid})" class="flex items-center gap-2 text-sm font-medium">
                                 ${statusIcon}<span class="${statusClass}">${statusLabel}</span>
                             </button>
                         </td>
-                        <td class="p-4 text-zinc-300">${formatDate(t.displayDate)}</td>
+                        <td class="p-4 text-zinc-300">
+                            <div>${formatDate(dateToDisplay)}</div>
+                            ${dateLabel ? `<div class="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mt-0.5">${dateLabel}</div>` : ''}
+                        </td>
                         <td class="p-4"><div class="text-white font-medium">${t.description}</div>${t.isRecurring ? '<span class="text-xs text-zinc-500">Recorrente</span>' : ''}</td>
                         <td class="p-4"><div class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800 border border-zinc-700">${t.category}</div>${catExtra}</td>
                         <td class="p-4 text-right font-bold ${t.type === 'Entrada' ? 'text-neon' : 'text-red-500'}">${t.type === 'Saída' ? '- ' : '+ '}${formatMoney(t.value)}</td>
@@ -548,18 +570,26 @@
                     e.preventDefault();
                     if (!window.currentUser || !window.dbInstance) return;
                     const type = document.getElementById('txType').value;
+                    const cat = document.getElementById('txCategory').value;
+                    let date = document.getElementById('txDate').value;
+                    const receiptDate = document.getElementById('txReceiptDate').value;
+
+                    if (type === 'Entrada' && cat === 'Salário') {
+                        date = receiptDate;
+                    }
+
                     const data = {
                         userId: window.currentUser.uid,
                         description: document.getElementById('txDesc').value,
                         value: parseFloat(document.getElementById('txValue').value),
-                        date: document.getElementById('txDate').value,
+                        date: date,
                         type,
-                        category: document.getElementById('txCategory').value,
+                        category: cat,
                         isRecurring: document.getElementById('txRecurring').checked,
                         isPaid: false,
                         createdAt: Date.now()
                     };
-                    if (type === 'Entrada' && data.category === 'Salário') data.receiptDate = document.getElementById('txReceiptDate').value;
+                    if (type === 'Entrada' && data.category === 'Salário') data.receiptDate = receiptDate;
                     if (type === 'Saída' && data.category === 'Cartão de Credito') data.dueDate = document.getElementById('txDueDate').value;
                     
                     await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), data);
