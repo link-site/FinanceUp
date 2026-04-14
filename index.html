@@ -122,7 +122,8 @@
                 <thead>
                     <tr class="bg-zinc-950/50 border-b border-zinc-800 text-sm text-zinc-400">
                         <th class="p-4">Status</th>
-                        <th class="p-4">Data</th>
+                        <th class="p-4">Registro</th>
+                        <th class="p-4">Vencimento</th>
                         <th class="p-4">Descrição</th>
                         <th class="p-4">Categoria</th>
                         <th class="p-4 text-right">Valor</th>
@@ -297,6 +298,22 @@
             
             if (isSalario) {
                 document.getElementById('txRecurring').checked = true;
+                if (!document.getElementById('txReceiptDate').value) {
+                    const mSel = document.getElementById('monthSelect');
+                    const ySel = document.getElementById('yearSelect');
+                    let nextM = parseInt(mSel.value) + 2;
+                    let nextY = parseInt(ySel.value);
+                    if (nextM > 12) { nextM = 1; nextY++; }
+                    document.getElementById('txReceiptDate').value = `${nextY}-${nextM.toString().padStart(2, '0')}-05`;
+                }
+            }
+            if (isSaida && needsDueDate && !document.getElementById('txDueDate').value) {
+                const mSel = document.getElementById('monthSelect');
+                const ySel = document.getElementById('yearSelect');
+                let nextM = parseInt(mSel.value) + 2;
+                let nextY = parseInt(ySel.value);
+                if (nextM > 12) { nextM = 1; nextY++; }
+                document.getElementById('txDueDate').value = `${nextY}-${nextM.toString().padStart(2, '0')}-05`;
             }
         };
 
@@ -372,11 +389,17 @@
             const m = parseInt(mSel.value);
             const y = parseInt(ySel.value);
             
-            const shiftDate = (dateStr) => {
+            const shiftDate = (dateStr, offset = 1) => {
                 if (!dateStr) return dateStr;
                 const [yearStr, monthStr, d] = dateStr.split('-');
-                const newMonth = (m + 1).toString().padStart(2, '0');
-                return `${y}-${newMonth}-${d}`;
+                let targetMonth = m + offset; 
+                let targetYear = y;
+                if (targetMonth > 12) {
+                    targetMonth = 1;
+                    targetYear++;
+                }
+                const newMonth = targetMonth.toString().padStart(2, '0');
+                return `${targetYear}-${newMonth}-${d}`;
             };
 
             const filtered = window.transactions.filter(t => {
@@ -388,23 +411,17 @@
                 if (t.isRecurring) return txMonthTotal <= selMonthTotal;
                 return txMonthTotal === selMonthTotal;
             }).map(t => {
-                const [ty, tm] = t.date.split('-');
-                const txMonthTotal = parseInt(ty) * 12 + (parseInt(tm) - 1);
-                const selMonthTotal = y * 12 + m;
-                
-                if (t.isRecurring && txMonthTotal < selMonthTotal) {
+                if (t.isRecurring) {
                     return {
                         ...t,
-                        displayDate: shiftDate(t.date),
-                        displayReceiptDate: shiftDate(t.receiptDate),
-                        displayDueDate: shiftDate(t.dueDate)
+                        displayDate: shiftDate(t.date, 1),
+                        displayVencimento: shiftDate(t.receiptDate || t.dueDate, 2)
                     };
                 }
                 return {
                     ...t,
                     displayDate: t.date,
-                    displayReceiptDate: t.receiptDate,
-                    displayDueDate: t.dueDate
+                    displayVencimento: t.receiptDate || t.dueDate || t.date
                 };
             });
 
@@ -434,8 +451,9 @@
                     
                     let catExtra = '';
                     let dateLabel = '';
+                    const needsDueDateCats = ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'];
                     if (t.type === 'Entrada' && t.category === 'Salário') dateLabel = 'Recebimento';
-                    if (t.type === 'Saída' && t.isRecurring) dateLabel = 'Vencimento';
+                    if (t.type === 'Saída' && (t.isRecurring || needsDueDateCats.includes(t.category))) dateLabel = 'Vencimento';
 
                     const tr = document.createElement('tr');
                     tr.className = `border-b border-zinc-800/50 hover:bg-zinc-800/30 ${t.isPaid ? 'bg-[#39FF14]/10' : ''}`;
@@ -453,12 +471,6 @@
                         : '<i data-lucide="circle" class="w-5 h-5 text-red-500"></i>';
                     const statusClass = t.isPaid ? 'text-neon' : 'text-red-500';
 
-                    let dateToDisplay = t.displayDate;
-                    if (t.isRecurring) {
-                        if (t.type === 'Entrada' && t.displayReceiptDate) dateToDisplay = t.displayReceiptDate;
-                        else if (t.type === 'Saída' && t.displayDueDate) dateToDisplay = t.displayDueDate;
-                    }
-
                     tr.innerHTML = `
                         <td class="p-4">
                             <button onclick="togglePaid('${t.id}', ${t.isPaid})" class="flex items-center gap-2 text-sm font-medium">
@@ -466,8 +478,10 @@
                             </button>
                         </td>
                         <td class="p-4 text-zinc-300">
-                            <div>${formatDate(dateToDisplay)}</div>
-                            ${dateLabel ? `<div class="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mt-0.5">${dateLabel}</div>` : ''}
+                            <div>${formatDate(t.displayDate)}</div>
+                        </td>
+                        <td class="p-4 text-zinc-300">
+                            <div>${formatDate(t.displayVencimento)}</div>
                         </td>
                         <td class="p-4"><div class="text-white font-medium">${t.description}</div>${t.isRecurring ? '<span class="text-xs text-zinc-500">Recorrente</span>' : ''}</td>
                         <td class="p-4"><div class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800 border border-zinc-700">${t.category}</div>${catExtra}</td>
@@ -573,16 +587,23 @@
                 form.onsubmit = async (e) => {
                     e.preventDefault();
                     if (!window.currentUser || !window.dbInstance) return;
+                    
+                    const mSel = document.getElementById('monthSelect');
+                    const ySel = document.getElementById('yearSelect');
+                    const selMonth = (parseInt(mSel.value) + 1).toString().padStart(2, '0');
+                    const selYear = ySel.value;
+
                     const type = document.getElementById('txType').value;
                     const cat = document.getElementById('txCategory').value;
                     let date = document.getElementById('txDate').value;
                     const receiptDate = document.getElementById('txReceiptDate').value;
                     const dueDate = document.getElementById('txDueDate').value;
 
-                    if (type === 'Entrada' && cat === 'Salário') {
-                        date = receiptDate;
-                    } else if (type === 'Saída' && cat !== 'Compras') {
-                        date = dueDate;
+                    // Se a data principal estiver oculta, usamos o mês/ano selecionado no dashboard
+                    if (!date) {
+                        const daySource = receiptDate || dueDate || '2024-01-01';
+                        const day = daySource.split('-')[2] || '01';
+                        date = `${selYear}-${selMonth}-${day}`;
                     }
 
                     const data = {
