@@ -184,6 +184,17 @@
                     <input type="date" id="txDueDate" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none">
                 </div>
 
+                <div id="parcelaDiv" class="hidden">
+                    <div class="flex items-center gap-2 pt-2">
+                        <input type="checkbox" id="txParcela" onchange="toggleInstallments()" class="w-4 h-4 rounded bg-zinc-800 border-zinc-700">
+                        <label class="text-sm text-zinc-400">Parcela</label>
+                    </div>
+                    <div id="installmentMonthsDiv" class="hidden mt-3 p-4 bg-zinc-800 rounded-lg border border-zinc-700">
+                        <p class="text-xs text-zinc-500 mb-2 uppercase font-bold tracking-wider">Selecione os meses das parcelas:</p>
+                        <div id="installmentMonthsList" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2"></div>
+                    </div>
+                </div>
+
                 <div class="flex items-center gap-2 pt-2">
                     <input type="checkbox" id="txRecurring" class="w-4 h-4 rounded bg-zinc-800 border-zinc-700">
                     <label class="text-sm text-zinc-400">Lançamento Recorrente</label>
@@ -256,7 +267,12 @@
         ];
 
         // Global functions for HTML
-        window.openModal = () => { document.getElementById('transactionModal').classList.add('active'); setType('Entrada'); };
+        window.openModal = () => { 
+            document.getElementById('transactionModal').classList.add('active'); 
+            setType('Entrada'); 
+            document.getElementById('txParcela').checked = false;
+            toggleInstallments();
+        };
         window.closeModal = () => document.getElementById('transactionModal').classList.remove('active');
         
         window.setType = (type) => {
@@ -285,6 +301,12 @@
 
             document.getElementById('receiptDateDiv').style.display = isSalario ? 'block' : 'none';
             document.getElementById('dueDateDiv').style.display = (isSaida && needsDueDate) ? 'block' : 'none';
+            document.getElementById('parcelaDiv').style.display = isSaida ? 'block' : 'none';
+            
+            if (!isSaida) {
+                document.getElementById('txParcela').checked = false;
+                toggleInstallments();
+            }
             
             const dateDiv = document.getElementById('dateFieldDiv');
             const dateInput = document.getElementById('txDate');
@@ -314,6 +336,46 @@
                 let nextY = parseInt(ySel.value);
                 if (nextM > 12) { nextM = 1; nextY++; }
                 document.getElementById('txDueDate').value = `${nextY}-${nextM.toString().padStart(2, '0')}-05`;
+            }
+        };
+
+        window.toggleInstallments = () => {
+            const checked = document.getElementById('txParcela').checked;
+            const div = document.getElementById('installmentMonthsDiv');
+            div.style.display = checked ? 'block' : 'none';
+            if (checked) renderInstallmentMonths();
+        };
+
+        window.renderInstallmentMonths = () => {
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            if (!mSel || !ySel) return;
+
+            const startM = parseInt(mSel.value);
+            const startY = parseInt(ySel.value);
+            const list = document.getElementById('installmentMonthsList');
+            list.innerHTML = '';
+
+            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+            for (let i = 1; i <= 12; i++) {
+                let m = startM + i;
+                let y = startY;
+                if (m >= 12) {
+                    y += Math.floor(m / 12);
+                    m = m % 12;
+                }
+                
+                const monthName = months[m];
+                const dateValue = `${y}-${(m + 1).toString().padStart(2, '0')}`;
+                
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-2 p-2 rounded bg-zinc-900 border border-zinc-800";
+                div.innerHTML = `
+                    <input type="checkbox" name="installmentMonth" value="${dateValue}" class="w-3 h-3 rounded bg-zinc-800 border-zinc-700">
+                    <span class="text-xs text-zinc-300 font-medium">${monthName}/${y}</span>
+                `;
+                list.appendChild(div);
             }
         };
 
@@ -606,23 +668,52 @@
                         date = `${selYear}-${selMonth}-${day}`;
                     }
 
-                    const data = {
+                    const isParcela = document.getElementById('txParcela').checked;
+                    const installments = Array.from(document.querySelectorAll('input[name="installmentMonth"]:checked')).map(el => el.value);
+
+                    const baseData = {
                         userId: window.currentUser.uid,
                         description: document.getElementById('txDesc').value,
                         value: parseFloat(document.getElementById('txValue').value),
-                        date: date,
                         type,
                         category: cat,
                         isRecurring: document.getElementById('txRecurring').checked,
                         isPaid: false,
                         createdAt: Date.now()
                     };
-                    if (type === 'Entrada' && data.category === 'Salário') data.receiptDate = receiptDate;
-                    if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(data.category)) data.dueDate = dueDate;
+
+                    // Criar lançamento principal
+                    const mainData = { ...baseData, date: date };
+                    if (type === 'Entrada' && mainData.category === 'Salário') mainData.receiptDate = receiptDate;
+                    if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(mainData.category)) mainData.dueDate = dueDate;
                     
-                    await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), data);
+                    const promises = [window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), mainData)];
+
+                    // Criar parcelas se selecionado
+                    if (isParcela && installments.length > 0) {
+                        const day = date.split('-')[2] || '01';
+                        installments.forEach(monthYear => {
+                            const installmentDate = `${monthYear}-${day}`;
+                            const installmentData = { ...baseData, date: installmentDate };
+                            
+                            // Ajustar datas de recebimento/vencimento para as parcelas
+                            if (type === 'Entrada' && installmentData.category === 'Salário' && receiptDate) {
+                                installmentData.receiptDate = `${monthYear}-${receiptDate.split('-')[2] || '01'}`;
+                            }
+                            if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(installmentData.category) && dueDate) {
+                                installmentData.dueDate = `${monthYear}-${dueDate.split('-')[2] || '01'}`;
+                            }
+                            
+                            promises.push(window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), installmentData));
+                        });
+                    }
+
+                    await Promise.all(promises);
                     window.closeModal();
                     e.target.reset();
+                    // Reset installments
+                    document.getElementById('installmentMonthsDiv').style.display = 'none';
+                    document.getElementById('installmentMonthsList').innerHTML = '';
                 };
             }
         });
