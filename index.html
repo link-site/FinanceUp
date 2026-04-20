@@ -80,12 +80,19 @@
     <main class="max-w-7xl mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8">
             <h2 id="viewTitle" class="text-3xl font-light text-zinc-300">Visão Geral</h2>
-            <div class="flex bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
-                <div class="flex items-center gap-2 px-3 border-r border-zinc-800">
+            <div class="flex items-center bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+                <button onclick="changePeriod(-1)" class="p-2 hover:bg-zinc-800 rounded-lg text-neon transition-colors" title="Mês Anterior">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <div class="flex items-center gap-2 px-4 min-w-[160px] justify-center">
                     <i data-lucide="calendar" class="w-4 h-4 text-neon"></i>
-                    <select id="monthSelect" class="bg-transparent text-white focus:outline-none cursor-pointer py-1"></select>
+                    <span id="periodDisplay" class="text-sm font-bold text-white uppercase tracking-wider"></span>
                 </div>
-                <select id="yearSelect" class="bg-transparent text-white focus:outline-none cursor-pointer px-4 py-1"></select>
+                <button onclick="changePeriod(1)" class="p-2 hover:bg-zinc-800 rounded-lg text-neon transition-colors" title="Próximo Mês">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+                <input type="hidden" id="monthSelect">
+                <input type="hidden" id="yearSelect">
             </div>
         </div>
 
@@ -605,6 +612,39 @@
             if (window.lucide) window.lucide.createIcons();
         };
 
+        window.changePeriod = (offset) => {
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            if (!mSel || !ySel) return;
+            
+            let m = parseInt(mSel.value);
+            let y = parseInt(ySel.value);
+            
+            m += offset;
+            if (m < 0) {
+                m = 11;
+                y--;
+            } else if (m > 11) {
+                m = 0;
+                y++;
+            }
+            
+            mSel.value = m;
+            ySel.value = y;
+            window.updatePeriodDisplay();
+            window.renderDashboard();
+        };
+
+        window.updatePeriodDisplay = () => {
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const display = document.getElementById('periodDisplay');
+            if (!mSel || !ySel || !display) return;
+            
+            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            display.innerText = `${months[parseInt(mSel.value)]} ${ySel.value}`;
+        };
+
         // AI Logic
         window.toggleAI = () => document.getElementById('aiChat').classList.toggle('active');
         
@@ -653,17 +693,14 @@
         // Initialize basic UI
         document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) window.lucide.createIcons();
-            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             const mSel = document.getElementById('monthSelect');
             const ySel = document.getElementById('yearSelect');
             const d = new Date();
             
             if (mSel && ySel) {
-                months.forEach((m, i) => mSel.add(new Option(m, i, false, i === d.getMonth())));
-                for(let y = 2024; y <= 2035; y++) ySel.add(new Option(y, y, false, y === d.getFullYear()));
-
-                mSel.addEventListener('change', window.renderDashboard);
-                ySel.addEventListener('change', window.renderDashboard);
+                mSel.value = d.getMonth();
+                ySel.value = d.getFullYear();
+                window.updatePeriodDisplay();
             }
             
             window.renderAIMessages();
