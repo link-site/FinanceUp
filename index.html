@@ -169,6 +169,7 @@
                         <select required id="txCategory" onchange="handleCategoryChange()" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none"></select>
                         <button type="button" onclick="toggleNewCategory()" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 text-zinc-400 hover:text-neon"><i data-lucide="plus" class="w-5 h-5"></i></button>
                     </div>
+                    <p id="txEditHint" class="text-[10px] text-neon mt-1 hidden font-medium">Dica: Você pode editar o valor desta categoria diretamente na lista de movimentações abaixo.</p>
                 </div>
                 <div id="newCategoryDiv" class="hidden flex gap-2 mt-2">
                     <input type="text" id="newCategoryName" placeholder="Nova categoria" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-sm focus:border-neon outline-none">
@@ -299,11 +300,12 @@
             const isCompras = (cat === 'Compras');
             const needsDueDate = ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(cat);
 
+            const isBudgetView = window.currentView === 'budget';
             document.getElementById('receiptDateDiv').style.display = isSalario ? 'block' : 'none';
             document.getElementById('dueDateDiv').style.display = (isSaida && needsDueDate) ? 'block' : 'none';
-            document.getElementById('parcelaDiv').style.display = isSaida ? 'block' : 'none';
+            document.getElementById('parcelaDiv').style.display = (isSaida && isBudgetView) ? 'block' : 'none';
             
-            if (!isSaida) {
+            if (!isSaida || !isBudgetView) {
                 document.getElementById('txParcela').checked = false;
                 toggleInstallments();
             }
@@ -337,6 +339,11 @@
                 if (nextM > 12) { nextM = 1; nextY++; }
                 document.getElementById('txDueDate').value = `${nextY}-${nextM.toString().padStart(2, '0')}-05`;
             }
+
+            // Hint for editing credit card/services
+            const catLower = cat.toLowerCase();
+            const showHint = isBudgetView && ((catLower.includes('cartão') && (catLower.includes('credito') || catLower.includes('crédito'))) || catLower.includes('serviço') || catLower.includes('servico'));
+            document.getElementById('txEditHint').style.display = showHint ? 'block' : 'none';
         };
 
         window.toggleInstallments = () => {
@@ -439,9 +446,18 @@
             }
         };
 
-        function formatMoney(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val); }
-        function formatDate(dStr) { const [y,m,d] = dStr.split('-'); return `${d}/${m}/${y}`; }
-        function formatShortDate(dStr) { const [y,m,d] = dStr.split('-'); const ms = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; return `${d} ${ms[parseInt(m)-1]}`; }
+        function formatMoney(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0); }
+        function formatDate(dStr) { 
+            if (!dStr || typeof dStr !== 'string' || !dStr.includes('-')) return '--/--/----';
+            const [y,m,d] = dStr.split('-'); 
+            return `${d}/${m}/${y}`; 
+        }
+        function formatShortDate(dStr) { 
+            if (!dStr || typeof dStr !== 'string' || !dStr.includes('-')) return '--/--';
+            const [y,m,d] = dStr.split('-'); 
+            const ms = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; 
+            return `${d} ${ms[parseInt(m)-1] || ''}`; 
+        }
 
         window.renderDashboard = () => {
             const mSel = document.getElementById('monthSelect');
@@ -452,8 +468,10 @@
             const y = parseInt(ySel.value);
             
             const shiftDate = (dateStr, offset = 1) => {
-                if (!dateStr) return dateStr;
-                const [yearStr, monthStr, d] = dateStr.split('-');
+                if (!dateStr || typeof dateStr !== 'string' || !dateStr.includes('-')) return dateStr;
+                const parts = dateStr.split('-');
+                if (parts.length < 3) return dateStr;
+                const [yearStr, monthStr, d] = parts;
                 let targetMonth = m + offset; 
                 let targetYear = y;
                 if (targetMonth > 12) {
@@ -521,7 +539,13 @@
                     tr.className = `border-b border-zinc-800/50 hover:bg-zinc-800/30 ${t.isPaid ? 'bg-[#39FF14]/10' : ''}`;
                     
                     let actionsHtml = `<button onclick="deleteTx('${t.id}')" class="text-zinc-500 hover:text-red-500 p-2" title="Excluir"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
-                    if (t.category === 'Cartão de Credito' || t.category === 'Serviços') {
+                    const catLower = t.category ? t.category.toLowerCase() : '';
+                    const isCreditCard = catLower.includes('cartão') && (catLower.includes('credito') || catLower.includes('crédito'));
+                    const isServices = catLower.includes('serviço') || catLower.includes('servico');
+                    
+                    const isBudgetView = window.currentView === 'budget';
+                    
+                    if (isBudgetView && (isCreditCard || isServices)) {
                         actionsHtml = `<button onclick="openEditValueModal('${t.id}', ${t.value})" class="text-zinc-500 hover:text-neon p-2" title="Editar Valor"><i data-lucide="pencil" class="w-4 h-4"></i></button>` + actionsHtml;
                     }
 
@@ -663,8 +687,9 @@
 
                     // Se a data principal estiver oculta, usamos o mês/ano selecionado no dashboard
                     if (!date) {
-                        const daySource = receiptDate || dueDate || '2024-01-01';
-                        const day = daySource.split('-')[2] || '01';
+                        const daySource = (receiptDate && receiptDate.includes('-')) ? receiptDate : ((dueDate && dueDate.includes('-')) ? dueDate : '2024-01-01');
+                        const parts = daySource.split('-');
+                        const day = parts.length > 2 ? parts[2] : '01';
                         date = `${selYear}-${selMonth}-${day}`;
                     }
 
@@ -691,17 +716,20 @@
 
                     // Criar parcelas se selecionado
                     if (isParcela && installments.length > 0) {
-                        const day = date.split('-')[2] || '01';
+                        const dateParts = date.split('-');
+                        const day = dateParts.length > 2 ? dateParts[2] : '01';
                         installments.forEach(monthYear => {
                             const installmentDate = `${monthYear}-${day}`;
                             const installmentData = { ...baseData, date: installmentDate };
                             
                             // Ajustar datas de recebimento/vencimento para as parcelas
-                            if (type === 'Entrada' && installmentData.category === 'Salário' && receiptDate) {
-                                installmentData.receiptDate = `${monthYear}-${receiptDate.split('-')[2] || '01'}`;
+                            if (type === 'Entrada' && installmentData.category === 'Salário' && receiptDate && receiptDate.includes('-')) {
+                                const rdParts = receiptDate.split('-');
+                                installmentData.receiptDate = `${monthYear}-${rdParts.length > 2 ? rdParts[2] : '05'}`;
                             }
-                            if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(installmentData.category) && dueDate) {
-                                installmentData.dueDate = `${monthYear}-${dueDate.split('-')[2] || '01'}`;
+                            if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(installmentData.category) && dueDate && dueDate.includes('-')) {
+                                const ddParts = dueDate.split('-');
+                                installmentData.dueDate = `${monthYear}-${ddParts.length > 2 ? ddParts[2] : '05'}`;
                             }
                             
                             promises.push(window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), installmentData));
