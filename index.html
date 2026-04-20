@@ -129,8 +129,7 @@
                 <thead>
                     <tr class="bg-zinc-950/50 border-b border-zinc-800 text-sm text-zinc-400">
                         <th class="p-4">Status</th>
-                        <th class="p-4">Registro</th>
-                        <th class="p-4">Vencimento</th>
+                        <th class="p-4">Data</th>
                         <th class="p-4">Descrição</th>
                         <th class="p-4">Categoria</th>
                         <th class="p-4 text-right">Valor</th>
@@ -474,41 +473,28 @@
             const m = parseInt(mSel.value);
             const y = parseInt(ySel.value);
             
-            const shiftDate = (dateStr, offset = 1) => {
-                if (!dateStr || typeof dateStr !== 'string' || !dateStr.includes('-')) return dateStr;
-                const parts = dateStr.split('-');
-                if (parts.length < 3) return dateStr;
-                const [yearStr, monthStr, d] = parts;
-                let targetMonth = m + offset; 
-                let targetYear = y;
-                if (targetMonth > 12) {
-                    targetMonth = 1;
-                    targetYear++;
-                }
-                const newMonth = targetMonth.toString().padStart(2, '0');
-                return `${targetYear}-${newMonth}-${d}`;
-            };
-
             const filtered = window.transactions.filter(t => {
-                if (!t.date) return false;
-                const [ty, tm] = t.date.split('-');
+                if (!t.date || typeof t.date !== 'string') return false;
+                const parts = t.date.split('-');
+                if (parts.length < 2) return false;
+                const [ty, tm] = parts;
                 const txMonthTotal = parseInt(ty) * 12 + (parseInt(tm) - 1);
                 const selMonthTotal = y * 12 + m;
                 
                 if (t.isRecurring) return txMonthTotal <= selMonthTotal;
                 return txMonthTotal === selMonthTotal;
             }).map(t => {
+                let displayDate = t.receiptDate || t.dueDate || t.date;
+                
                 if (t.isRecurring) {
-                    return {
-                        ...t,
-                        displayDate: shiftDate(t.date, 1),
-                        displayVencimento: shiftDate(t.receiptDate || t.dueDate, 2)
-                    };
+                    const parts = displayDate.split('-');
+                    const day = parts.length > 2 ? parts[2] : '05';
+                    displayDate = `${y}-${(m+1).toString().padStart(2, '0')}-${day}`;
                 }
+
                 return {
                     ...t,
-                    displayDate: t.date,
-                    displayVencimento: t.receiptDate || t.dueDate || t.date
+                    displayDate
                 };
             });
 
@@ -572,9 +558,7 @@
                         </td>
                         <td class="p-4 text-zinc-300">
                             <div>${formatDate(t.displayDate)}</div>
-                        </td>
-                        <td class="p-4 text-zinc-300">
-                            <div>${formatDate(t.displayVencimento)}</div>
+                            ${dateLabel ? `<div class="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mt-0.5">${dateLabel}</div>` : ''}
                         </td>
                         <td class="p-4"><div class="text-white font-medium">${t.description}</div>${t.isRecurring ? '<span class="text-xs text-zinc-500">Recorrente</span>' : ''}</td>
                         <td class="p-4"><div class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-800 border border-zinc-700">${t.category}</div>${catExtra}</td>
