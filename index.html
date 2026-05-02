@@ -346,9 +346,15 @@
                 document.getElementById('txDueDate').value = `${nextY}-${nextM.toString().padStart(2, '0')}-05`;
             }
 
-            // Hint for editing credit card/services
+            // Hint for editing credit card/services/salary
             const catLower = cat.toLowerCase();
-            const showHint = isBudgetView && ((catLower.includes('cartão') && (catLower.includes('credito') || catLower.includes('crédito'))) || catLower.includes('serviço') || catLower.includes('servico'));
+            const showHint = isBudgetView && (
+                (catLower.includes('cartão') && (catLower.includes('credito') || catLower.includes('crédito'))) || 
+                catLower.includes('serviço') || 
+                catLower.includes('servico') ||
+                catLower.includes('salário') ||
+                catLower.includes('salario')
+            );
             document.getElementById('txEditHint').style.display = showHint ? 'block' : 'none';
         };
 
@@ -535,10 +541,11 @@
                     const catLower = t.category ? t.category.toLowerCase() : '';
                     const isCreditCard = catLower.includes('cartão') && (catLower.includes('credito') || catLower.includes('crédito'));
                     const isServices = catLower.includes('serviço') || catLower.includes('servico');
+                    const isSalary = catLower.includes('salário') || catLower.includes('salario');
                     
                     const isBudgetView = window.currentView === 'budget';
                     
-                    if (isBudgetView && (isCreditCard || isServices)) {
+                    if (isBudgetView && (isCreditCard || isServices || isSalary)) {
                         actionsHtml = `<button onclick="openEditValueModal('${t.id}', ${t.value})" class="text-zinc-500 hover:text-neon p-2" title="Editar Valor"><i data-lucide="pencil" class="w-4 h-4"></i></button>` + actionsHtml;
                     }
 
