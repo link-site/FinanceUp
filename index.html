@@ -415,7 +415,28 @@
         };
 
         window.togglePaid = async (id, current) => {
-            if (window.dbInstance) {
+            if (!window.dbInstance || !window.currentUser) return;
+            const tx = window.transactions.find(t => t.id === id);
+            if (!tx) return;
+
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
+
+            // Se for recorrente e estivermos em um mês diferente do original, cria instância
+            if (tx.isRecurring && !tx.date.startsWith(curPeriod)) {
+                const newTx = {
+                    ...tx,
+                    isPaid: !current,
+                    isRecurring: false,
+                    date: tx.date.includes('-') ? `${curPeriod}-${tx.date.split('-')[2]}` : `${curPeriod}-01`,
+                    parentId: tx.id,
+                    parentMonth: curPeriod,
+                    createdAt: Date.now()
+                };
+                delete newTx.id;
+                await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTx);
+            } else {
                 await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', id), { isPaid: !current });
             }
         };
@@ -433,7 +454,25 @@
         
         window.confirmDeleteTx = async () => {
             if (window.txToDelete && window.dbInstance) {
-                await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToDelete));
+                const tx = window.transactions.find(t => t.id === window.txToDelete);
+                const mSel = document.getElementById('monthSelect');
+                const ySel = document.getElementById('yearSelect');
+                const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
+
+                if (tx && tx.isRecurring && !tx.date.startsWith(curPeriod)) {
+                    // É um item recorrente sendo deletado em um mês específico: cria "tombstone"
+                    const tombstone = {
+                        userId: window.currentUser.uid,
+                        parentId: tx.id,
+                        parentMonth: curPeriod,
+                        isTombstone: true,
+                        date: tx.date.includes('-') ? `${curPeriod}-${tx.date.split('-')[2]}` : `${curPeriod}-01`,
+                        createdAt: Date.now()
+                    };
+                    await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), tombstone);
+                } else {
+                    await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToDelete));
+                }
                 window.closeDeleteModal();
             }
         };
@@ -453,7 +492,27 @@
         window.confirmEditValue = async () => {
             const newValue = parseFloat(document.getElementById('editTxValue').value);
             if (window.txToEdit && window.dbInstance && !isNaN(newValue)) {
-                await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToEdit), { value: newValue });
+                const tx = window.transactions.find(t => t.id === window.txToEdit);
+                const mSel = document.getElementById('monthSelect');
+                const ySel = document.getElementById('yearSelect');
+                const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
+
+                if (tx && tx.isRecurring && !tx.date.startsWith(curPeriod)) {
+                    // Cria instância individual para este mês com o novo valor
+                    const newTx = {
+                        ...tx,
+                        value: newValue,
+                        isRecurring: false,
+                        date: tx.date.includes('-') ? `${curPeriod}-${tx.date.split('-')[2]}` : `${curPeriod}-01`,
+                        parentId: tx.id,
+                        parentMonth: curPeriod,
+                        createdAt: Date.now()
+                    };
+                    delete newTx.id;
+                    await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTx);
+                } else {
+                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToEdit), { value: newValue });
+                }
                 window.closeEditValueModal();
             }
         };
@@ -480,14 +539,21 @@
             const y = parseInt(ySel.value);
             
             const filtered = window.transactions.filter(t => {
+                if (t.isTombstone) return false;
                 if (!t.date || typeof t.date !== 'string') return false;
                 const parts = t.date.split('-');
                 if (parts.length < 2) return false;
                 const [ty, tm] = parts;
                 const txMonthTotal = parseInt(ty) * 12 + (parseInt(tm) - 1);
                 const selMonthTotal = y * 12 + m;
+                const curPeriod = `${y}-${(m+1).toString().padStart(2, '0')}`;
                 
-                if (t.isRecurring) return txMonthTotal <= selMonthTotal;
+                if (t.isRecurring) {
+                    if (txMonthTotal > selMonthTotal) return false;
+                    // Oculta o item recorrente se existir uma instância individual (ou deleção) para este mês
+                    const hasOverride = window.transactions.some(ot => ot.parentId === t.id && ot.parentMonth === curPeriod);
+                    return !hasOverride;
+                }
                 return txMonthTotal === selMonthTotal;
             }).map(t => {
                 let displayDate = t.receiptDate || t.dueDate || t.date;
