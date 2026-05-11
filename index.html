@@ -496,6 +496,11 @@
             }
         };
 
+        window.isFixedHeader = (tx) => {
+            if (!tx) return false;
+            return !!tx.isRecurring;
+        };
+
         window.togglePaid = async (id, current) => {
             if (!window.dbInstance || !window.currentUser) return;
             const tx = window.transactions.find(t => t.id === id);
@@ -506,33 +511,36 @@
             if (!mSel || !ySel) return;
             const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
 
-            // Se for recorrente ou de categorias específicas, sempre cria instância individual para não afetar outros meses
-            const catLower = tx.category ? tx.category.toLowerCase() : '';
-            const isSpecificCat = catLower.includes('salário') || catLower.includes('salario') || 
-                                 catLower.includes('cartão') || catLower.includes('serviço') || 
-                                 catLower.includes('assinatura');
+            const isTemplate = window.isFixedHeader(tx) && !tx.parentId;
 
-            if (tx.isRecurring || isSpecificCat) {
-                const day = (tx.date && typeof tx.date === 'string' && tx.date.includes('-')) ? tx.date.split('-')[2] : '01';
-                const newTx = {
-                    ...tx,
-                    isPaid: !current,
-                    isRecurring: false,
-                    date: `${curPeriod}-${day}`,
-                    parentId: tx.id,
-                    parentMonth: curPeriod,
-                    createdAt: Date.now()
-                };
+            if (isTemplate) {
+                // Check if override already exists to update it instead of creating a duplicate
+                const existingOverride = window.transactions.find(ot => ot.parentId === tx.id && ot.parentMonth === curPeriod && !ot.isTombstone);
                 
-                if (tx.receiptDate && tx.receiptDate.includes('-')) {
-                    newTx.receiptDate = `${curPeriod}-${tx.receiptDate.split('-')[2]}`;
-                }
-                if (tx.dueDate && tx.dueDate.includes('-')) {
-                    newTx.dueDate = `${curPeriod}-${tx.dueDate.split('-')[2]}`;
-                }
+                if (existingOverride) {
+                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', existingOverride.id), { isPaid: !current });
+                } else {
+                    const day = (tx.date && typeof tx.date === 'string' && tx.date.includes('-')) ? tx.date.split('-')[2] : '05';
+                    const newTx = {
+                        ...tx,
+                        isPaid: !current,
+                        isRecurring: false,
+                        date: `${curPeriod}-${day}`,
+                        parentId: tx.id,
+                        parentMonth: curPeriod,
+                        createdAt: Date.now()
+                    };
+                    
+                    if (tx.receiptDate && tx.receiptDate.includes('-')) {
+                        newTx.receiptDate = `${curPeriod}-${tx.receiptDate.split('-')[2]}`;
+                    }
+                    if (tx.dueDate && tx.dueDate.includes('-')) {
+                        newTx.dueDate = `${curPeriod}-${tx.dueDate.split('-')[2]}`;
+                    }
 
-                delete newTx.id;
-                await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTx);
+                    delete newTx.id;
+                    await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTx);
+                }
             } else {
                 await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', id), { isPaid: !current });
             }
@@ -557,13 +565,10 @@
                 if (!mSel || !ySel) return;
                 const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
 
-                const catLower = tx.category ? tx.category.toLowerCase() : '';
-                const isSpecificCat = catLower.includes('salário') || catLower.includes('salario') || 
-                                     catLower.includes('cartão') || catLower.includes('serviço') || 
-                                     catLower.includes('assinatura');
+            const isTemplate = window.isFixedHeader(tx) && !tx.parentId;
 
-                if (tx && (tx.isRecurring || isSpecificCat)) {
-                    // É um item recorrente ou específico sendo deletado em um mês: cria "tombstone"
+            if (tx && isTemplate) {
+                // É um item recorrente ou específico sendo deletado em um mês: cria "tombstone"
                     const day = (tx.date && typeof tx.date === 'string' && tx.date.includes('-')) ? tx.date.split('-')[2] : '01';
                     const tombstone = {
                         userId: window.currentUser.uid,
@@ -602,14 +607,17 @@
                 if (!mSel || !ySel) return;
                 const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
 
-                const catLower = tx.category ? tx.category.toLowerCase() : '';
-                const isSpecificCat = catLower.includes('salário') || catLower.includes('salario') || 
-                                     catLower.includes('cartão') || catLower.includes('serviço') || 
-                                     catLower.includes('assinatura');
+            const isTemplate = window.isFixedHeader(tx) && !tx.parentId;
 
-                if (tx && (tx.isRecurring || isSpecificCat)) {
+            if (tx && isTemplate) {
+                // Check if override already exists to update it instead of creating a duplicate
+                const existingOverride = window.transactions.find(ot => ot.parentId === tx.id && ot.parentMonth === curPeriod && !ot.isTombstone);
+                
+                if (existingOverride) {
+                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', existingOverride.id), { value: newValue });
+                } else {
                     // Cria instância individual para este mês com o novo valor
-                    const day = (tx.date && typeof tx.date === 'string' && tx.date.includes('-')) ? tx.date.split('-')[2] : '01';
+                    const day = (tx.date && typeof tx.date === 'string' && tx.date.includes('-')) ? tx.date.split('-')[2] : '05';
                     const newTx = {
                         ...tx,
                         value: newValue,
@@ -629,9 +637,10 @@
 
                     delete newTx.id;
                     await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTx);
-                } else {
-                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToEdit), { value: newValue });
                 }
+            } else {
+                await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToEdit), { value: newValue });
+            }
                 window.closeEditValueModal();
             }
         };
@@ -667,12 +676,9 @@
                 const selMonthTotal = y * 12 + m;
                 const curPeriod = `${y}-${(m+1).toString().padStart(2, '0')}`;
                 
-                const catLower = t.category ? t.category.toLowerCase() : '';
-                const isSpecificCat = catLower.includes('salário') || catLower.includes('salario') || 
-                                     catLower.includes('cartão') || catLower.includes('serviço') || 
-                                     catLower.includes('assinatura');
+                const isFixed = window.isFixedHeader(t);
                 
-                if (t.isRecurring || isSpecificCat) {
+                if (isFixed) {
                     if (txMonthTotal > selMonthTotal) return false;
                     // Oculta o item recorrente/base se existir uma instância individual (ou deleção) para este mês
                     const hasOverride = window.transactions.some(ot => ot.parentId === t.id && ot.parentMonth === curPeriod);
@@ -682,12 +688,9 @@
             }).map(t => {
                 let displayDate = t.receiptDate || t.dueDate || t.date;
                 
-                const catLower = t.category ? t.category.toLowerCase() : '';
-                const isSpecificCat = catLower.includes('salário') || catLower.includes('salario') || 
-                                     catLower.includes('cartão') || catLower.includes('serviço') || 
-                                     catLower.includes('assinatura');
+                const isFixed = window.isFixedHeader(t);
                 
-                if (t.isRecurring || isSpecificCat) {
+                if (isFixed) {
                     const parts = displayDate.split('-');
                     const day = parts.length > 2 ? parts[2] : '05';
                     displayDate = `${y}-${(m+1).toString().padStart(2, '0')}-${day}`;
@@ -703,36 +706,63 @@
             let aInc = 0, aExp = 0; // Annual totals
             const aCats = {};
 
+            // Optimize lookups: Map of overrides by parentId and parentMonth
+            const overridesMap = {};
+            window.transactions.filter(t => t.parentId && !t.isTombstone).forEach(t => {
+                const key = `${t.parentId}_${t.parentMonth}`;
+                overridesMap[key] = t;
+            });
+
+            // Map of tombstones
+            const tombstonesMap = {};
+            window.transactions.filter(t => t.isTombstone).forEach(t => {
+                const key = `${t.parentId}_${t.parentMonth}`;
+                tombstonesMap[key] = true;
+            });
+
             // Annual Calculation Logic
             window.transactions.forEach(t => {
-                if (t.isTombstone) return;
+                if (t.isTombstone || t.parentId) return; // Skip tombstones and overrides (they are handled via template logic or direct count)
+
                 const parts = (t.date || "").split('-');
                 if (parts.length < 2) return;
                 const ty = parseInt(parts[0]);
                 const tm = parseInt(parts[1]) - 1;
 
-                const catLower = t.category ? t.category.toLowerCase() : '';
-                const isSpecificCat = catLower.includes('salário') || catLower.includes('salario') || 
-                                     catLower.includes('cartão') || catLower.includes('serviço') || 
-                                     catLower.includes('assinatura');
+                const isFixed = window.isFixedHeader(t);
 
-                if (t.isRecurring || isSpecificCat) {
+                if (isFixed) {
                     if (ty > y) return;
-                    // Count for each month of the current year
+                    // Count for each month of the current year (y)
                     for (let mIdx = 0; mIdx < 12; mIdx++) {
-                        if (ty < y || (ty === y && tm <= mIdx)) {
+                        // A template is "active" in month mIdx if it was created before or in that month/year
+                        const templateActive = ty < y || (ty === y && tm <= mIdx);
+                        if (templateActive) {
                             const monthsPeriod = `${y}-${(mIdx+1).toString().padStart(2, '0')}`;
-                            const hasOverride = window.transactions.some(ot => ot.parentId === t.id && ot.parentMonth === monthsPeriod);
-                            if (!hasOverride) {
-                                if (t.type === 'Entrada') aInc += t.value; 
-                                else {
-                                    aExp += t.value;
-                                    aCats[t.category] = (aCats[t.category] || 0) + t.value;
-                                }
+                            const overrideKey = `${t.id}_${monthsPeriod}`;
+                            
+                            if (tombstonesMap[overrideKey]) continue; // Deleted for this month
+                            
+                            const override = overridesMap[overrideKey];
+                            const effectiveItem = override || t;
+                            
+                            // For annual totals, we sum based on view
+                            // Dashboard & Budget usually show total estimated/budgeted
+                            // If user wants realized, they switch to Organization (though Card totals change, maybe annual should too?)
+                            // Let's stick to total for annual cards for now, or respect status if in Org view
+                            const isPaid = effectiveItem.isPaid;
+                            const value = effectiveItem.value;
+
+                            if (t.type === 'Entrada') {
+                                aInc += value;
+                            } else {
+                                aExp += value;
+                                aCats[t.category] = (aCats[t.category] || 0) + value;
                             }
                         }
                     }
                 } else {
+                    // One-off transaction
                     if (ty === y) {
                         if (t.type === 'Entrada') aInc += t.value; 
                         else {
@@ -743,14 +773,34 @@
                 }
             });
 
-            // Single item instances (overrides/individual entries) also need to be counted for annual if they are in this year
+            // Count overrides that don't have a template in the current year but were created/overridden for this year
+            // Actually, my Step 4 in the previous version was partially right but needed to NOT count items that correspond to active templates
+            // But with the new logic, templates handle their own overrides.
+            // We only need to catch overrides whose templates are NOT caught by the template logic above (e.g. template created in future?)
+            // Or easier: one-offs with parentId that aren't recurring.
+            // Let's refine the "One-off" block above to skip overrides entirely, because the Template loop handles them.
+            // BUT what if an override exists for a template that is NOT in the year? 
+            // The template loop checks ty <= y. If ty > y, it skips.
+            // If there's an override for a future template? Unlikely but possible.
+            // Better: just loop all non-recurring non-template items (overrides are recurring templates' children).
+            
+            // Re-check overrides loop for anything missed:
             window.transactions.filter(t => t.parentId && !t.isTombstone).forEach(t => {
+                // If the parent template was already processed in the annual loop, it already counted this override.
+                const parent = window.transactions.find(pt => pt.id === t.parentId);
+                if (parent) {
+                    if (window.isFixedHeader(parent)) {
+                        // Parent is a template, it was already handled by the template loop above
+                        return;
+                    }
+                }
+                
+                // If it's a "loose" override or parent not found, count it if in this year
                 const parts = (t.date || "").split('-');
-                if (parts.length < 2) return;
-                const ty = parseInt(parts[0]);
-                if (ty === y) {
-                    if (t.type === 'Entrada') aInc += t.value; 
-                    else {
+                if (parts.length >= 2 && parseInt(parts[0]) === y) {
+                    if (t.type === 'Entrada') {
+                        aInc += t.value;
+                    } else {
                         aExp += t.value;
                         aCats[t.category] = (aCats[t.category] || 0) + t.value;
                     }
