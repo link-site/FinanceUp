@@ -421,15 +421,17 @@
 
             const mSel = document.getElementById('monthSelect');
             const ySel = document.getElementById('yearSelect');
+            if (!mSel || !ySel) return;
             const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
 
-            // Se for recorrente e estivermos em um mês diferente do original, cria instância
-            if (tx.isRecurring && !tx.date.startsWith(curPeriod)) {
+            // Se for recorrente, sempre cria instância individual para não afetar outros meses
+            if (tx.isRecurring) {
+                const day = (tx.date && typeof tx.date === 'string' && tx.date.includes('-')) ? tx.date.split('-')[2] : '01';
                 const newTx = {
                     ...tx,
                     isPaid: !current,
                     isRecurring: false,
-                    date: tx.date.includes('-') ? `${curPeriod}-${tx.date.split('-')[2]}` : `${curPeriod}-01`,
+                    date: `${curPeriod}-${day}`,
                     parentId: tx.id,
                     parentMonth: curPeriod,
                     createdAt: Date.now()
@@ -457,16 +459,18 @@
                 const tx = window.transactions.find(t => t.id === window.txToDelete);
                 const mSel = document.getElementById('monthSelect');
                 const ySel = document.getElementById('yearSelect');
+                if (!mSel || !ySel) return;
                 const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
 
-                if (tx && tx.isRecurring && !tx.date.startsWith(curPeriod)) {
+                if (tx && tx.isRecurring) {
                     // É um item recorrente sendo deletado em um mês específico: cria "tombstone"
+                    const day = (tx.date && typeof tx.date === 'string' && tx.date.includes('-')) ? tx.date.split('-')[2] : '01';
                     const tombstone = {
                         userId: window.currentUser.uid,
                         parentId: tx.id,
                         parentMonth: curPeriod,
                         isTombstone: true,
-                        date: tx.date.includes('-') ? `${curPeriod}-${tx.date.split('-')[2]}` : `${curPeriod}-01`,
+                        date: `${curPeriod}-${day}`,
                         createdAt: Date.now()
                     };
                     await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), tombstone);
@@ -495,15 +499,17 @@
                 const tx = window.transactions.find(t => t.id === window.txToEdit);
                 const mSel = document.getElementById('monthSelect');
                 const ySel = document.getElementById('yearSelect');
+                if (!mSel || !ySel) return;
                 const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
 
-                if (tx && tx.isRecurring && !tx.date.startsWith(curPeriod)) {
+                if (tx && tx.isRecurring) {
                     // Cria instância individual para este mês com o novo valor
+                    const day = (tx.date && typeof tx.date === 'string' && tx.date.includes('-')) ? tx.date.split('-')[2] : '01';
                     const newTx = {
                         ...tx,
                         value: newValue,
                         isRecurring: false,
-                        date: tx.date.includes('-') ? `${curPeriod}-${tx.date.split('-')[2]}` : `${curPeriod}-01`,
+                        date: `${curPeriod}-${day}`,
                         parentId: tx.id,
                         parentMonth: curPeriod,
                         createdAt: Date.now()
