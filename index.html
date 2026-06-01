@@ -702,6 +702,25 @@
                 };
             });
 
+            // Organize list:
+            // 1. First by Type: 'Entrada' comes before 'Saída'
+            // 2. Then by Category: alphabetically
+            // 3. Newest items go to the end of their respective category: chronological ascending by creation date
+            filtered.sort((a, b) => {
+                if (a.type !== b.type) {
+                    return a.type === 'Entrada' ? -1 : 1;
+                }
+                const catA = a.category || '';
+                const catB = b.category || '';
+                const catCompare = catA.localeCompare(catB, 'pt-BR');
+                if (catCompare !== 0) {
+                    return catCompare;
+                }
+                const timeA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
+                const timeB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
+                return timeA - timeB;
+            });
+
             let inc = 0, exp = 0, bal = 0;
             let aInc = 0, aExp = 0; // Annual totals
             const aCats = {};
@@ -1354,14 +1373,22 @@
             onSnapshot(transactionsQuery, (snap) => {
                 window.transactions = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
                     // First sort by type: Entrada comes before Saída
-                    if (a.type === 'Entrada' && b.type === 'Saída') return -1;
-                    if (a.type === 'Saída' && b.type === 'Entrada') return 1;
+                    if (a.type !== b.type) {
+                        return a.type === 'Entrada' ? -1 : 1;
+                    }
                     
-                    // Then sort by createdAt timestamp descending (newest first)
-                    // Fallback to date if createdAt doesn't exist for older records
-                    const timeA = a.createdAt || new Date(a.date).getTime();
-                    const timeB = b.createdAt || new Date(b.date).getTime();
-                    return timeB - timeA;
+                    // Then sort by category alphabetically
+                    const catA = a.category || '';
+                    const catB = b.category || '';
+                    const catCompare = catA.localeCompare(catB, 'pt-BR');
+                    if (catCompare !== 0) {
+                        return catCompare;
+                    }
+
+                    // Then sort by createdAt timestamp ascending (older first, newest at the end)
+                    const timeA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
+                    const timeB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
+                    return timeA - timeB;
                 });
                 window.renderDashboard();
             });
