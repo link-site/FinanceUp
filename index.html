@@ -305,18 +305,64 @@
         </div>
     </div>
 
-    <!-- Edit Value Modal -->
-    <div id="editValueModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="bg-zinc-900 w-full max-w-sm rounded-2xl border border-zinc-800 p-6">
-            <h2 class="text-xl font-bold mb-4">Editar Valor</h2>
-            <div class="mb-6">
-                <label class="block text-sm text-zinc-400 mb-1">Novo Valor (R$)</label>
-                <input type="number" id="editTxValue" step="0.01" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none text-white">
+    <!-- Edit Transaction Modal -->
+    <div id="editTransactionModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-zinc-900 w-full max-w-md rounded-2xl border border-zinc-800">
+            <div class="flex justify-between items-center p-6 border-b border-zinc-800">
+                <h2 class="text-xl font-bold">Editar Lançamento</h2>
+                <button onclick="closeEditTxModal()" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
-            <div class="flex gap-4">
-                <button onclick="closeEditValueModal()" class="flex-1 py-2 rounded-lg bg-zinc-800 text-white hover:bg-zinc-700">Cancelar</button>
-                <button onclick="confirmEditValue()" class="flex-1 py-2 rounded-lg bg-neon text-black hover-bg-neon font-bold">Salvar</button>
-            </div>
+            <form id="editTransactionForm" onsubmit="window.confirmEditTx(event)" class="p-6 space-y-4">
+                <div class="flex bg-zinc-800 p-1 rounded-lg">
+                    <button type="button" id="btnEditTypeEntrada" onclick="setEditType('Entrada')" class="flex-1 py-2 text-sm rounded-md bg-neon text-black">Entrada</button>
+                    <button type="button" id="btnEditTypeSaida" onclick="setEditType('Saída')" class="flex-1 py-2 text-sm rounded-md text-zinc-400">Saída</button>
+                </div>
+                <input type="hidden" id="editTxType" value="Entrada">
+                
+                <div>
+                    <label class="block text-sm text-zinc-400 mb-1">Descrição</label>
+                    <input required type="text" id="editTxDesc" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-zinc-400 mb-1">Valor (R$)</label>
+                        <input required type="number" step="0.01" id="editTxValue" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none text-white">
+                    </div>
+                    <div id="editDateFieldDiv">
+                        <label class="block text-sm text-zinc-400 mb-1">Data</label>
+                        <input type="date" id="editTxDate" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-zinc-400 mb-1">Categoria</label>
+                    <div class="flex gap-2">
+                        <select required id="editTxCategory" onchange="handleEditCategoryChange()" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none text-white"></select>
+                        <button type="button" onclick="toggleEditNewCategory()" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 text-zinc-400 hover:text-neon"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                    </div>
+                </div>
+                <div id="editNewCategoryDiv" class="hidden flex gap-2 mt-2">
+                    <input type="text" id="editNewCategoryName" placeholder="Nova categoria" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-sm focus:border-neon outline-none text-white">
+                    <button type="button" onclick="addEditCategory()" class="bg-neon text-black px-4 rounded-lg text-sm font-medium">Adicionar</button>
+                </div>
+                
+                <div id="editReceiptDateDiv" class="hidden">
+                    <label class="block text-sm text-zinc-400 mb-1">Data de Recebimento</label>
+                    <input type="date" id="editTxReceiptDate" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none text-white">
+                </div>
+                <div id="editDueDateDiv" class="hidden">
+                    <label class="block text-sm text-zinc-400 mb-1">Data de Vencimento</label>
+                    <input type="date" id="editTxDueDate" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 focus:border-neon outline-none text-white">
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="editTxRecurring" class="w-4 h-4 rounded bg-zinc-800 border-zinc-700 text-neon focus:ring-0">
+                    <label class="text-sm text-zinc-400">Lançamento Recorrente</label>
+                </div>
+                <div class="flex gap-4 pt-4 border-t border-zinc-800">
+                    <button type="button" onclick="closeEditTxModal()" class="flex-1 py-2 rounded-lg bg-zinc-800 text-white hover:bg-zinc-700">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 rounded-lg bg-neon text-black hover-bg-neon font-bold">Salvar Alterações</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -587,62 +633,172 @@
         };
 
         window.txToEdit = null;
-        window.openEditValueModal = (id, currentValue) => {
+
+        window.openEditTxModal = (id) => {
+            const tx = window.transactions.find(t => t.id === id);
+            if (!tx) return;
+
             window.txToEdit = id;
-            document.getElementById('editTxValue').value = currentValue;
-            document.getElementById('editValueModal').classList.add('active');
+            
+            // Set type first which populates categories
+            document.getElementById('editTxType').value = tx.type;
+            window.setEditType(tx.type);
+
+            // Populate text/number inputs
+            document.getElementById('editTxDesc').value = tx.description || '';
+            document.getElementById('editTxValue').value = tx.value || 0;
+            document.getElementById('editTxDate').value = tx.date || '';
+            document.getElementById('editTxCategory').value = tx.category || '';
+            document.getElementById('editTxReceiptDate').value = tx.receiptDate || '';
+            document.getElementById('editTxDueDate').value = tx.dueDate || '';
+            document.getElementById('editTxRecurring').checked = !!tx.isRecurring;
+
+            // Trigger category change to set correct visibility of sub-fields (date, receipt date, due date)
+            window.handleEditCategoryChange();
+
+            // Open the modal
+            document.getElementById('editTransactionModal').classList.add('active');
+            if (window.lucide) window.lucide.createIcons();
         };
-        
-        window.closeEditValueModal = () => {
+
+        window.closeEditTxModal = () => {
             window.txToEdit = null;
-            document.getElementById('editValueModal').classList.remove('active');
+            document.getElementById('editTransactionModal').classList.remove('active');
         };
-        
-        window.confirmEditValue = async () => {
-            const newValue = parseFloat(document.getElementById('editTxValue').value);
-            if (window.txToEdit && window.dbInstance && !isNaN(newValue)) {
-                const tx = window.transactions.find(t => t.id === window.txToEdit);
-                const mSel = document.getElementById('monthSelect');
-                const ySel = document.getElementById('yearSelect');
-                if (!mSel || !ySel) return;
-                const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
+
+        window.setEditType = (type) => {
+            document.getElementById('editTxType').value = type;
+            document.getElementById('btnEditTypeEntrada').className = type === 'Entrada' ? 'flex-1 py-1.5 text-sm rounded-md bg-neon text-black font-semibold shadow-sm' : 'flex-1 py-1.5 text-sm rounded-md text-zinc-400';
+            document.getElementById('btnEditTypeSaida').className = type === 'Saída' ? 'flex-1 py-1.5 text-sm rounded-md bg-red-500 text-white font-semibold shadow-sm' : 'flex-1 py-1.5 text-sm rounded-md text-zinc-400';
+            window.updateEditCategorySelect();
+            window.handleEditCategoryChange();
+        };
+
+        window.updateEditCategorySelect = () => {
+            const type = document.getElementById('editTxType').value;
+            const sel = document.getElementById('editTxCategory');
+            const prevVal = sel.value;
+            sel.innerHTML = '<option value="" disabled>Selecione...</option>';
+            window.categories.filter(c => c.type === type).forEach(c => sel.add(new Option(c.name, c.name)));
+            if (prevVal && window.categories.some(c => c.name === prevVal && c.type === type)) {
+                sel.value = prevVal;
+            }
+        };
+
+        window.handleEditCategoryChange = () => {
+            const type = document.getElementById('editTxType').value;
+            const cat = document.getElementById('editTxCategory').value;
+            
+            const isSalario = (type === 'Entrada' && cat === 'Salário');
+            const isSaida = (type === 'Saída');
+            const isCompras = (cat === 'Compras');
+            const needsDueDate = ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(cat);
+
+            document.getElementById('editReceiptDateDiv').style.display = isSalario ? 'block' : 'none';
+            document.getElementById('editDueDateDiv').style.display = (isSaida && needsDueDate) ? 'block' : 'none';
+            
+            const dateDiv = document.getElementById('editDateFieldDiv');
+            const dateInput = document.getElementById('editTxDate');
+            
+            let showDate = true;
+            if (isSalario) showDate = false;
+            if (isSaida && !isCompras) showDate = false;
+            
+            dateDiv.style.display = showDate ? 'block' : 'none';
+            dateInput.required = showDate;
+        };
+
+        window.toggleEditNewCategory = () => {
+            const div = document.getElementById('editNewCategoryDiv');
+            div.style.display = div.style.display === 'flex' ? 'none' : 'flex';
+        };
+
+        window.addEditCategory = async () => {
+            const name = document.getElementById('editNewCategoryName').value.trim();
+            const type = document.getElementById('editTxType').value;
+            if (name && window.currentUser && window.dbInstance) {
+                await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'categories'), { name, type, userId: window.currentUser.uid });
+                document.getElementById('editNewCategoryName').value = '';
+                window.toggleEditNewCategory();
+                setTimeout(() => {
+                    window.updateEditCategorySelect();
+                    document.getElementById('editTxCategory').value = name;
+                    window.handleEditCategoryChange();
+                }, 500);
+            }
+        };
+
+        window.confirmEditTx = async (e) => {
+            if (e) e.preventDefault();
+            if (!window.txToEdit || !window.dbInstance) return;
+
+            const tx = window.transactions.find(t => t.id === window.txToEdit);
+            if (!tx) return;
+
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            if (!mSel || !ySel) return;
+            const curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
+
+            const type = document.getElementById('editTxType').value;
+            const desc = document.getElementById('editTxDesc').value;
+            const val = parseFloat(document.getElementById('editTxValue').value);
+            const cat = document.getElementById('editTxCategory').value;
+            let date = document.getElementById('editTxDate').value;
+            const receiptDate = document.getElementById('editTxReceiptDate').value || null;
+            const dueDate = document.getElementById('editTxDueDate').value || null;
+            const isRecurring = document.getElementById('editTxRecurring').checked;
+
+            if (!date) {
+                const daySource = (receiptDate && receiptDate.includes('-')) ? receiptDate : ((dueDate && dueDate.includes('-')) ? dueDate : '2024-01-01');
+                const parts = daySource.split('-');
+                const day = parts.length > 2 ? parts[2] : '01';
+                date = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}-${day}`;
+            }
+
+            const updateFields = {
+                description: desc,
+                value: val,
+                type: type,
+                category: cat,
+                isRecurring: isRecurring,
+                date: date
+            };
+
+            if (type === 'Entrada' && cat === 'Salário') {
+                updateFields.receiptDate = receiptDate;
+            }
+
+            if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(cat)) {
+                updateFields.dueDate = dueDate;
+            }
 
             const isTemplate = window.isFixedHeader(tx) && !tx.parentId;
 
-            if (tx && isTemplate) {
+            if (isTemplate) {
                 // Check if override already exists to update it instead of creating a duplicate
                 const existingOverride = window.transactions.find(ot => ot.parentId === tx.id && ot.parentMonth === curPeriod && !ot.isTombstone);
                 
                 if (existingOverride) {
-                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', existingOverride.id), { value: newValue });
+                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', existingOverride.id), updateFields);
                 } else {
-                    // Cria instância individual para este mês com o novo valor
-                    const day = (tx.date && typeof tx.date === 'string' && tx.date.includes('-')) ? tx.date.split('-')[2] : '05';
                     const newTx = {
                         ...tx,
-                        value: newValue,
+                        ...updateFields,
                         isRecurring: false,
-                        date: `${curPeriod}-${day}`,
                         parentId: tx.id,
                         parentMonth: curPeriod,
                         createdAt: Date.now()
                     };
 
-                    if (tx.receiptDate && tx.receiptDate.includes('-')) {
-                        newTx.receiptDate = `${curPeriod}-${tx.receiptDate.split('-')[2]}`;
-                    }
-                    if (tx.dueDate && tx.dueDate.includes('-')) {
-                        newTx.dueDate = `${curPeriod}-${tx.dueDate.split('-')[2]}`;
-                    }
-
                     delete newTx.id;
                     await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTx);
                 }
             } else {
-                await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToEdit), { value: newValue });
+                await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', window.txToEdit), updateFields);
             }
-                window.closeEditValueModal();
-            }
+
+            window.closeEditTxModal();
         };
 
         function formatMoney(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0); }
@@ -855,16 +1011,7 @@
                         tr.className = `border-b border-zinc-800/50 hover:bg-zinc-800/30 ${t.isPaid ? 'bg-[#39FF14]/10' : ''}`;
                         
                         let actionsHtml = `<button onclick="deleteTx('${t.id}')" class="text-zinc-500 hover:text-red-500 p-2" title="Excluir"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
-                        const catLower = t.category ? t.category.toLowerCase() : '';
-                        const isCreditCard = catLower.includes('cartão') && (catLower.includes('credito') || catLower.includes('crédito'));
-                        const isServices = catLower.includes('serviço') || catLower.includes('servico');
-                        const isSalary = catLower.includes('salário') || catLower.includes('salario');
-                        
-                        const isBudgetView = window.currentView === 'budget' || window.currentView === 'dashboard';
-                        
-                        if (isBudgetView && (isCreditCard || isServices || isSalary)) {
-                            actionsHtml = `<button onclick="openEditValueModal('${t.id}', ${t.value})" class="text-zinc-500 hover:text-neon p-2" title="Editar Valor"><i data-lucide="pencil" class="w-4 h-4"></i></button>` + actionsHtml;
-                        }
+                        actionsHtml = `<button onclick="openEditTxModal('${t.id}')" class="text-zinc-500 hover:text-neon p-2" title="Editar Lançamento"><i data-lucide="pencil" class="w-4 h-4"></i></button>` + actionsHtml;
 
                         const statusLabel = t.type === 'Entrada' 
                             ? (t.isPaid ? 'Recebido' : 'Não recebido') 
