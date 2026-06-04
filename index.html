@@ -432,7 +432,7 @@
             const isSalario = (type === 'Entrada' && cat === 'Salário');
             const isSaida = (type === 'Saída');
             const isCompras = (cat === 'Compras');
-            const needsDueDate = ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(cat);
+            const needsDueDate = ['Cartão de Credito', 'Cartão de Crédito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo', 'Empréstimo'].includes(cat);
 
             const isBudgetView = window.currentView === 'budget';
             document.getElementById('receiptDateDiv').style.display = isSalario ? 'block' : 'none';
@@ -454,7 +454,7 @@
             dateDiv.style.display = showDate ? 'block' : 'none';
             dateInput.required = showDate;
             
-            if (isSalario || (type === 'Saída' && (cat === 'Cartão de Credito' || cat === 'Serviços' || cat === 'Assinaturas'))) {
+            if (isSalario || (type === 'Saída' && (['Cartão de Credito', 'Cartão de Crédito'].includes(cat) || cat === 'Serviços' || cat === 'Assinaturas'))) {
                 document.getElementById('txRecurring').checked = true;
                 if (isSalario && !document.getElementById('txReceiptDate').value) {
                     const mSel = document.getElementById('monthSelect');
@@ -711,7 +711,7 @@
             const isSalario = (type === 'Entrada' && cat === 'Salário');
             const isSaida = (type === 'Saída');
             const isCompras = (cat === 'Compras');
-            const needsDueDate = ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(cat);
+            const needsDueDate = ['Cartão de Credito', 'Cartão de Crédito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo', 'Empréstimo'].includes(cat);
 
             document.getElementById('editReceiptDateDiv').style.display = isSalario ? 'block' : 'none';
             document.getElementById('editDueDateDiv').style.display = (isSaida && needsDueDate) ? 'block' : 'none';
@@ -788,7 +788,7 @@
                 updateFields.receiptDate = receiptDate;
             }
 
-            if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(cat)) {
+            if (type === 'Saída' && ['Cartão de Credito', 'Cartão de Crédito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo', 'Empréstimo'].includes(cat)) {
                 updateFields.dueDate = dueDate;
             }
 
@@ -1062,7 +1062,7 @@
                     if (tbody) {
                         let catExtra = '';
                         let dateLabel = '';
-                        const needsDueDateCats = ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'];
+                        const needsDueDateCats = ['Cartão de Credito', 'Cartão de Crédito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo', 'Empréstimo'];
                         if (t.type === 'Entrada' && t.category === 'Salário') dateLabel = 'Recebimento';
                         if (t.type === 'Saída' && (t.isRecurring || needsDueDateCats.includes(t.category))) dateLabel = 'Vencimento';
 
@@ -1345,7 +1345,7 @@
                     // Criar lançamento principal
                     const mainData = { ...baseData, date: date };
                     if (type === 'Entrada' && mainData.category === 'Salário') mainData.receiptDate = receiptDate;
-                    if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(mainData.category)) mainData.dueDate = dueDate;
+                    if (type === 'Saída' && ['Cartão de Credito', 'Cartão de Crédito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo', 'Empréstimo'].includes(mainData.category)) mainData.dueDate = dueDate;
                     
                     const promises = [window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), mainData)];
 
@@ -1362,7 +1362,7 @@
                                 const rdParts = receiptDate.split('-');
                                 installmentData.receiptDate = `${monthYear}-${rdParts.length > 2 ? rdParts[2] : '05'}`;
                             }
-                            if (type === 'Saída' && ['Cartão de Credito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo'].includes(installmentData.category) && dueDate && dueDate.includes('-')) {
+                            if (type === 'Saída' && ['Cartão de Credito', 'Cartão de Crédito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo', 'Empréstimo'].includes(installmentData.category) && dueDate && dueDate.includes('-')) {
                                 const ddParts = dueDate.split('-');
                                 installmentData.dueDate = `${monthYear}-${ddParts.length > 2 ? ddParts[2] : '05'}`;
                             }
