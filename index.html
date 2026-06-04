@@ -46,7 +46,7 @@
                 <span class="font-black text-3xl text-black tracking-tighter">F</span>
             </div>
             <h1 class="text-3xl font-bold tracking-tight mb-2">Finance<span class="text-neon">UP</span></h1>
-            <p class="text-zinc-400 mb-8">Faça login para gerenciar suas finanças e sincronizar seus dados em todos os dispositivos.</p>
+            <p id="loginSubtitle" class="text-zinc-400 mb-8">Faça login para gerenciar suas finanças e sincronizar seus dados em todos os dispositivos.</p>
             
             <form id="loginForm" class="space-y-4 mb-6">
                 <div>
@@ -56,8 +56,8 @@
                     <input type="password" id="loginPassword" placeholder="Sua senha" required class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 focus:border-neon outline-none text-white placeholder-zinc-500">
                 </div>
                 <div id="loginError" class="text-red-500 text-sm hidden"></div>
-                <button type="submit" class="w-full bg-neon text-black font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 hover-bg-neon transition-colors">
-                    <i data-lucide="log-in" class="w-5 h-5"></i> Entrar
+                <button type="submit" id="submitAuthBtn" class="w-full bg-neon text-black font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-neon transition-colors">
+                    <i id="submitAuthIcon" data-lucide="log-in" class="w-5 h-5"></i> <span id="submitAuthText">Entrar</span>
                 </button>
             </form>
         </div>
@@ -647,10 +647,29 @@
             // Populate text/number inputs
             document.getElementById('editTxDesc').value = tx.description || '';
             document.getElementById('editTxValue').value = tx.value || 0;
-            document.getElementById('editTxDate').value = tx.date || '';
+
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            let curPeriod = '';
+            if (mSel && ySel) {
+                curPeriod = `${ySel.value}-${(parseInt(mSel.value) + 1).toString().padStart(2, '0')}`;
+            }
+
+            const getAdjustedDate = (dStr) => {
+                if (!dStr) return '';
+                if (window.isFixedHeader(tx) && !tx.parentId && curPeriod && typeof dStr === 'string' && dStr.includes('-')) {
+                    const parts = dStr.split('-');
+                    if (parts.length > 2) {
+                        return `${curPeriod}-${parts[2]}`;
+                    }
+                }
+                return dStr;
+            };
+
+            document.getElementById('editTxDate').value = getAdjustedDate(tx.date);
             document.getElementById('editTxCategory').value = tx.category || '';
-            document.getElementById('editTxReceiptDate').value = tx.receiptDate || '';
-            document.getElementById('editTxDueDate').value = tx.dueDate || '';
+            document.getElementById('editTxReceiptDate').value = getAdjustedDate(tx.receiptDate);
+            document.getElementById('editTxDueDate').value = getAdjustedDate(tx.dueDate);
             document.getElementById('editTxRecurring').checked = !!tx.isRecurring;
 
             // Trigger category change to set correct visibility of sub-fields (date, receipt date, due date)
@@ -776,6 +795,29 @@
             const isTemplate = window.isFixedHeader(tx) && !tx.parentId;
 
             if (isTemplate) {
+                // Ensure the override dates belong to the currently selected month (curPeriod)
+                const getDayStr = (dStr, defaultDay) => {
+                    if (dStr && typeof dStr === 'string' && dStr.includes('-')) {
+                        const parts = dStr.split('-');
+                        return parts[2] || defaultDay;
+                    }
+                    return defaultDay;
+                };
+
+                const day = getDayStr(date, '01');
+                updateFields.date = `${curPeriod}-${day.padStart(2, '0')}`;
+
+                if (updateFields.receiptDate) {
+                    const rDay = getDayStr(updateFields.receiptDate, '05');
+                    updateFields.receiptDate = `${curPeriod}-${rDay.padStart(2, '0')}`;
+                }
+                if (updateFields.dueDate) {
+                    const dDay = getDayStr(updateFields.dueDate, '05');
+                    updateFields.dueDate = `${curPeriod}-${dDay.padStart(2, '0')}`;
+                }
+                
+                updateFields.isRecurring = false;
+
                 // Check if override already exists to update it instead of creating a duplicate
                 const existingOverride = window.transactions.find(ot => ot.parentId === tx.id && ot.parentMonth === curPeriod && !ot.isTombstone);
                 
@@ -1325,7 +1367,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         
         // Load Gemini dynamically to prevent it from crashing the module if it fails
@@ -1431,6 +1473,7 @@
             if (window.lucide) window.lucide.createIcons();
         };
 
+        window.currentAuthMode = 'login';
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
@@ -1445,8 +1488,10 @@
                 errorDiv.classList.remove('hidden');
                 if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                     errorDiv.innerText = 'E-mail ou senha incorretos.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorDiv.innerText = 'O e-mail digitado é inválido.';
                 } else {
-                    errorDiv.innerText = 'Ocorreu um erro. Tente novamente.';
+                    errorDiv.innerText = 'Erro ao realizar login. Tente novamente.';
                 }
             }
         });
