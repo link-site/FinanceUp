@@ -902,21 +902,38 @@
 
             // Organize list:
             // 1. First by Type: 'Entrada' comes before 'Saída'
-            // 2. Then by Category: alphabetically
-            // 3. Newest items go to the end of their respective category: chronological ascending by creation date
+            // 2. 'Entrada' items are sorted by Category alphabetically, then by creations ascending
+            // 3. 'Saída' items are sorted in ascending order always by due date (vencimento data / displayDate)
             filtered.sort((a, b) => {
                 if (a.type !== b.type) {
                     return a.type === 'Entrada' ? -1 : 1;
                 }
-                const catA = a.category || '';
-                const catB = b.category || '';
-                const catCompare = catA.localeCompare(catB, 'pt-BR');
-                if (catCompare !== 0) {
-                    return catCompare;
+                if (a.type === 'Entrada') {
+                    const catA = a.category || '';
+                    const catB = b.category || '';
+                    const catCompare = catA.localeCompare(catB, 'pt-BR');
+                    if (catCompare !== 0) {
+                        return catCompare;
+                    }
+                    const timeA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
+                    const timeB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
+                    return timeA - timeB;
+                } else {
+                    const dateA = a.displayDate || '';
+                    const dateB = b.displayDate || '';
+                    if (dateA !== dateB) {
+                        return dateA.localeCompare(dateB);
+                    }
+                    const catA = a.category || '';
+                    const catB = b.category || '';
+                    const catCompare = catA.localeCompare(catB, 'pt-BR');
+                    if (catCompare !== 0) {
+                        return catCompare;
+                    }
+                    const timeA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
+                    const timeB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
+                    return timeA - timeB;
                 }
-                const timeA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
-                const timeB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
-                return timeA - timeB;
             });
 
             let inc = 0, exp = 0, bal = 0;
@@ -1569,18 +1586,36 @@
                         return a.type === 'Entrada' ? -1 : 1;
                     }
                     
-                    // Then sort by category alphabetically
-                    const catA = a.category || '';
-                    const catB = b.category || '';
-                    const catCompare = catA.localeCompare(catB, 'pt-BR');
-                    if (catCompare !== 0) {
-                        return catCompare;
-                    }
+                    if (a.type === 'Entrada') {
+                        // Then sort by category alphabetically
+                        const catA = a.category || '';
+                        const catB = b.category || '';
+                        const catCompare = catA.localeCompare(catB, 'pt-BR');
+                        if (catCompare !== 0) {
+                            return catCompare;
+                        }
 
-                    // Then sort by createdAt timestamp ascending (older first, newest at the end)
-                    const timeA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
-                    const timeB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
-                    return timeA - timeB;
+                        // Then sort by createdAt timestamp ascending (older first, newest at the end)
+                        const timeA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
+                        const timeB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
+                        return timeA - timeB;
+                    } else {
+                        // Saída: sort by dueDate or date ascending
+                        const dateA = a.dueDate || a.date || '';
+                        const dateB = b.dueDate || b.date || '';
+                        if (dateA !== dateB) {
+                            return dateA.localeCompare(dateB);
+                        }
+                        const catA = a.category || '';
+                        const catB = b.category || '';
+                        const catCompare = catA.localeCompare(catB, 'pt-BR');
+                        if (catCompare !== 0) {
+                            return catCompare;
+                        }
+                        const timeA = a.createdAt || (a.date ? new Date(a.date).getTime() : 0);
+                        const timeB = b.createdAt || (b.date ? new Date(b.date).getTime() : 0);
+                        return timeA - timeB;
+                    }
                 });
                 window.renderDashboard();
             });
