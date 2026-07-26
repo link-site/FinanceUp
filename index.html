@@ -2648,12 +2648,18 @@
                     const receiptDate = document.getElementById('txReceiptDate').value;
                     const dueDate = document.getElementById('txDueDate').value;
 
-                    // Se a data principal estiver oculta, usamos o mês/ano selecionado no dashboard
+                    // Se a data principal estiver oculta, usamos a data de recebimento/vencimento ou o mês/ano selecionado
                     if (!date) {
-                        const daySource = (receiptDate && receiptDate.includes('-')) ? receiptDate : ((dueDate && dueDate.includes('-')) ? dueDate : '2024-01-01');
-                        const parts = daySource.split('-');
-                        const day = parts.length > 2 ? parts[2] : '01';
-                        date = `${selYear}-${selMonth}-${day}`;
+                        if (receiptDate && receiptDate.includes('-')) {
+                            date = receiptDate;
+                        } else if (dueDate && dueDate.includes('-')) {
+                            date = dueDate;
+                        } else {
+                            const daySource = (receiptDate && receiptDate.includes('-')) ? receiptDate : ((dueDate && dueDate.includes('-')) ? dueDate : '2024-01-01');
+                            const parts = daySource.split('-');
+                            const day = parts.length > 2 ? parts[2] : '01';
+                            date = `${selYear}-${selMonth}-${day}`;
+                        }
                     }
 
                     const isParcela = document.getElementById('txParcela').checked;
@@ -2668,9 +2674,11 @@
                         cardId: document.getElementById('txCardId') ? document.getElementById('txCardId').value : '',
                         isRecurring: document.getElementById('txRecurring').checked,
                         isPaid: false,
-                        purchases: ['Cartão de Credito', 'Cartão de Crédito'].includes(cat) ? [] : undefined,
                         createdAt: Date.now()
                     };
+                    if (['Cartão de Credito', 'Cartão de Crédito'].includes(cat)) {
+                        baseData.purchases = [];
+                    }
 
                     // Criar lançamento principal
                     const mainData = { ...baseData, date: date };
