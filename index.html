@@ -84,7 +84,15 @@
                     <button onclick="setView('reports')" id="btnReports" class="px-5 py-2 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-white">Relatórios</button>
                 </nav>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="openMobileQuickSenderModal()" title="Envio Rápido para Celular" class="bg-neon/10 hover:bg-neon/20 text-neon border border-neon/40 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(57,255,20,0.2)]">
+                    <i data-lucide="smartphone" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">📱 Envio Celular</span>
+                </button>
+                <button onclick="openGoogleFormsBotModal()" title="Central de Integração: Google Forms & Bot" class="bg-zinc-900 hover:bg-zinc-800 text-neon border border-neon/30 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(57,255,20,0.15)]">
+                    <i data-lucide="bot" class="w-4 h-4"></i>
+                    <span class="hidden md:inline">Google Forms & Bot</span>
+                </button>
                 <div id="userInfo" class="flex items-center gap-3">
                     <img id="userAvatar" class="w-9 h-9 rounded-full border border-zinc-800 object-cover" src="" alt="Avatar" referrerpolicy="no-referrer">
                     <div class="hidden sm:flex flex-col">
@@ -266,8 +274,12 @@
                         </h3>
                         <p class="text-sm text-zinc-400 mt-1">Gerencie seus limites, datas de fechamento e acompanhe suas faturas mês a mês.</p>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button onclick="openCardModal()" class="bg-neon text-black font-bold px-6 py-3 rounded-xl flex items-center gap-2 hover-bg-neon transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)]">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <button onclick="openGoogleFormsBotModal()" class="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 px-4 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm text-xs sm:text-sm">
+                            <i data-lucide="bot" class="w-5 h-5 text-neon"></i>
+                            <span>Conectar Google Forms / Bot</span>
+                        </button>
+                        <button onclick="openCardModal()" class="bg-neon text-black font-bold px-6 py-3 rounded-xl flex items-center gap-2 hover-bg-neon transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)] text-xs sm:text-sm">
                             <i data-lucide="plus" class="w-5 h-5"></i>
                             <span>Novo Cartão</span>
                         </button>
@@ -688,6 +700,370 @@
         </div>
     </div>
 
+    <!-- Card Purchases Screen / Modal -->
+    <div id="cardPurchasesModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-zinc-950 w-full max-w-4xl rounded-3xl border border-zinc-800 overflow-hidden shadow-2xl max-h-[92vh] flex flex-col my-auto">
+            <div id="cardPurchasesHeader" class="p-4 sm:p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900 shrink-0">
+                <!-- Filled dynamically -->
+            </div>
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                        <h4 class="text-white font-bold text-base">Movimentações de Compras do Cartão</h4>
+                        <p class="text-xs text-zinc-400">Lista exclusiva de compras realizadas neste cartão de crédito</p>
+                    </div>
+                    <button type="button" onclick="window.openAddPurchaseModalForActiveCard()" class="bg-neon text-black px-4 py-2 rounded-xl text-xs sm:text-sm font-bold hover:bg-neon/90 transition shadow flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Nova Compra no Cartão</span>
+                    </button>
+                </div>
+
+                <div class="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-zinc-800 text-xs font-bold text-zinc-400 uppercase tracking-wider bg-zinc-950/50">
+                                <th class="p-3.5 sm:p-4">Compra / Estabelecimento</th>
+                                <th class="p-3.5 sm:p-4">Parcela</th>
+                                <th class="p-3.5 sm:p-4">Mês da Fatura</th>
+                                <th class="p-3.5 sm:p-4">Data</th>
+                                <th class="p-3.5 sm:p-4 text-right">Valor</th>
+                                <th class="p-3.5 sm:p-4 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cardPurchasesTableBody">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="p-4 border-t border-zinc-800 bg-zinc-900 flex justify-end shrink-0">
+                <button type="button" onclick="closeCardPurchasesModal()" class="px-5 py-2.5 rounded-xl bg-zinc-800 text-white hover:bg-zinc-700 font-medium text-sm transition-colors">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Quick Purchase Sender Modal / Page -->
+    <div id="mobileQuickSenderModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/90 backdrop-blur-md p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-zinc-950 w-full max-w-lg rounded-3xl border border-zinc-800 overflow-hidden shadow-2xl flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200">
+            <div class="p-4 sm:p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-neon/10 border border-neon/30 flex items-center justify-center text-neon font-bold">
+                        <i data-lucide="smartphone" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-white">⚡ Envio Rápido de Compra</h3>
+                        <p class="text-xs text-zinc-400">Otimizado para celular • Sincronia instantânea</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeMobileQuickSenderModal()" class="text-zinc-400 hover:text-white p-1 rounded-xl bg-zinc-800/80"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="p-4 sm:p-6 space-y-4 overflow-y-auto">
+                <div class="bg-zinc-900/80 border border-zinc-800 p-3 rounded-2xl flex items-center justify-between gap-2">
+                    <div class="text-xs text-zinc-300">
+                        <b class="text-white block mb-0.5">Link para Celular:</b>
+                        Compartilhe esta página para lançar compras direto no app de qualquer lugar!
+                    </div>
+                    <button type="button" onclick="shareQuickSenderLink()" class="bg-neon/10 hover:bg-neon hover:text-black text-neon border border-neon/30 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-sm">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                        <span>Compartilhar</span>
+                    </button>
+                </div>
+
+                <form onsubmit="window.submitMobileQuickPurchase(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-zinc-400 font-bold mb-1">Selecione o Cartão Destino</label>
+                        <select required id="mobSimCardSelect" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-3 text-white font-medium text-sm focus:border-neon outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-zinc-400 font-bold mb-1">Nome da Compra (ex: Supermercado, Uber)</label>
+                        <input required type="text" id="mobSimPurchaseName" placeholder="Ex: Farmácia São Paulo" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-3 text-white font-medium text-sm focus:border-neon outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-zinc-400 font-bold mb-1">Valor Total (R$)</label>
+                            <input required type="number" step="0.01" min="0.01" id="mobSimPurchaseVal" placeholder="0.00" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-3 text-white font-bold text-sm focus:border-neon outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-zinc-400 font-bold mb-1">Parcelas</label>
+                            <select id="mobSimInstallments" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-3 text-white font-medium text-sm focus:border-neon outline-none">
+                                <option value="1">1x (À vista)</option>
+                                <option value="2">2x</option>
+                                <option value="3">3x</option>
+                                <option value="4">4x</option>
+                                <option value="5">5x</option>
+                                <option value="6">6x</option>
+                                <option value="10">10x</option>
+                                <option value="12">12x</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-zinc-400 font-bold mb-1">Data da Compra</label>
+                        <input required type="date" id="mobSimPurchaseDate" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-3 text-white font-medium text-sm focus:border-neon outline-none">
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 rounded-xl bg-neon text-black font-bold hover:bg-neon/90 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(57,255,20,0.3)] text-sm sm:text-base">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        <span>⚡ Enviar Compra para o Cartão</span>
+                    </button>
+                </form>
+
+                <div id="mobSimFeedback"></div>
+            </div>
+
+            <div class="p-4 border-t border-zinc-800 bg-zinc-900 flex justify-between items-center shrink-0">
+                <span class="text-xs text-zinc-500">FinanceUP Mobile Sync</span>
+                <button type="button" onclick="closeMobileQuickSenderModal()" class="px-5 py-2.5 rounded-xl bg-zinc-800 text-white hover:bg-zinc-700 font-medium text-sm transition-colors">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Forms & Bot Modal -->
+    <div id="googleFormsBotModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl sm:rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="p-4 sm:p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-950/50 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-neon/10 border border-neon/30 flex items-center justify-center text-neon">
+                        <i data-lucide="bot" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-xl font-bold text-white">Central de Integração: Google Forms & Bot</h3>
+                        <p class="text-xs text-zinc-400">Automatize compras no cartão via Google Forms ou receba alertas no celular</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeGoogleFormsBotModal()" class="text-zinc-400 hover:text-white p-1 shrink-0"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+
+            <!-- Tabs Nav -->
+            <div class="flex items-center gap-2 p-3 sm:p-4 border-b border-zinc-800 bg-zinc-900 overflow-x-auto shrink-0">
+                <button type="button" onclick="switchFormsTab('guide')" class="forms-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-neon text-black transition-all shadow-sm whitespace-nowrap" data-tab="guide">
+                    📑 1. Guia Google Forms (Entrada)
+                </button>
+                <button type="button" onclick="switchFormsTab('simulate')" class="forms-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-zinc-800 text-zinc-400 hover:text-white transition-all whitespace-nowrap" data-tab="simulate">
+                    ⚡ 2. Testar no App (Simulador)
+                </button>
+                <button type="button" onclick="switchFormsTab('notifications')" class="forms-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-zinc-800 text-zinc-400 hover:text-white transition-all whitespace-nowrap" data-tab="notifications">
+                    📲 3. Bot & Alertas (Retorno)
+                </button>
+                <button type="button" onclick="switchFormsTab('rules')" class="forms-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-zinc-800 text-zinc-400 hover:text-white transition-all whitespace-nowrap" data-tab="rules">
+                    🛡️ 4. Regras do Firebase (Permissão)
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-6 text-zinc-300 text-xs sm:text-sm flex-1">
+                <!-- Tab 1: Guia & Script -->
+                <div id="forms-tab-guide" class="forms-tab-content space-y-5">
+                    <div class="bg-zinc-800/60 border border-zinc-700/60 p-4 rounded-2xl flex items-start gap-3">
+                        <i data-lucide="info" class="w-5 h-5 text-neon shrink-0 mt-0.5"></i>
+                        <div>
+                            <h4 class="font-bold text-white text-sm mb-1">Por que o Google Forms é a maneira mais simples no nosso ambiente?</h4>
+                            <p class="text-zinc-400 leading-relaxed">Você cria um atalho do formulário na tela inicial do celular. Ao comprar algo na rua, responde em 3 segundos. O Google Apps Script envia o dado em tempo real para o banco da sua conta no app <b class="text-white">sem custos e sem servidores intermediários</b>!</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-neon text-black font-extrabold flex items-center justify-center text-xs">1</span>
+                            Crie seu Google Forms com estas 5 perguntas exatas:
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+                            <div class="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800">
+                                <span class="text-[11px] font-bold text-neon uppercase tracking-wider block mb-0.5">Pergunta 1 (Lista Suspensa)</span>
+                                <b class="text-white">Cartão</b> <span class="text-zinc-400">-> Nomes dos cartões (ex: Nubank, Inter)</span>
+                            </div>
+                            <div class="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800">
+                                <span class="text-[11px] font-bold text-neon uppercase tracking-wider block mb-0.5">Pergunta 2 (Resposta Curta)</span>
+                                <b class="text-white">Nome da Compra</b> <span class="text-zinc-400">-> Ex: Tênis Nike, Almoço</span>
+                            </div>
+                            <div class="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800">
+                                <span class="text-[11px] font-bold text-neon uppercase tracking-wider block mb-0.5">Pergunta 3 (Número/Texto)</span>
+                                <b class="text-white">Valor ou Valor (R$)</b> <span class="text-zinc-400">-> Ex: 150.00 ou 150,00 (pode chamar apenas de "Valor")</span>
+                            </div>
+                            <div class="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800">
+                                <span class="text-[11px] font-bold text-neon uppercase tracking-wider block mb-0.5">Pergunta 4 (Lista Suspensa)</span>
+                                <b class="text-white">Parcelas</b> <span class="text-zinc-400">-> Ex: 1, 2, 3, 4, 5, 6, 10, 12</span>
+                            </div>
+                            <div class="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800 sm:col-span-2">
+                                <span class="text-[11px] font-bold text-neon uppercase tracking-wider block mb-0.5">Pergunta 5 (Data)</span>
+                                <b class="text-white">Data</b> <span class="text-zinc-400">-> Data da realização da compra</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center flex-wrap gap-2">
+                            <h4 class="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-neon text-black font-extrabold flex items-center justify-center text-xs">2</span>
+                                Cole o Script Prontinho na Planilha de Respostas:
+                            </h4>
+                            <button id="btnCopyAppsScript" type="button" onclick="copyAppsScriptCode()" class="bg-neon hover:bg-neon/90 text-black px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm">
+                                <i data-lucide="copy" class="w-4 h-4"></i>
+                                <span>Copiar Script Prontinho</span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-zinc-400">Na planilha do Google Forms, vá em <b class="text-zinc-200">Extensões > Apps Script</b>, apague tudo e cole o código abaixo. Depois, clique no ícone de relógio (<b class="text-zinc-200">Acionadores</b>) > Adicionar acionador > Selecione a função <b class="text-neon">onFormSubmit</b> no evento <b class="text-zinc-200">No envio do formulário</b> e salve!</p>
+                        
+                        <div class="relative bg-zinc-950 border border-zinc-800 rounded-2xl p-4 overflow-x-auto max-h-64 font-mono text-xs text-emerald-400 shadow-inner">
+                            <pre><code id="appsScriptCodeBlock" class="whitespace-pre">Carregando script personalizado...</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Simulador -->
+                <div id="forms-tab-simulate" class="forms-tab-content hidden space-y-5">
+                    <div class="bg-zinc-800/60 border border-zinc-700/60 p-4 rounded-2xl">
+                        <h4 class="font-bold text-white text-sm mb-1 flex items-center gap-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-neon"></i> Simulador de Webhook Rápido
+                        </h4>
+                        <p class="text-zinc-400 text-xs">Teste a injeção instantânea de compras no seu cartão sem precisar abrir o Google Forms agora. Veja a sincronização em tempo real acontecendo aqui mesmo no sistema!</p>
+                    </div>
+
+                    <form onsubmit="window.simulateGoogleFormsSubmit(event)" class="space-y-4 bg-zinc-950 p-5 rounded-2xl border border-zinc-800">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-zinc-400 font-bold mb-1">Selecione o Cartão Destino</label>
+                                <select required id="simCardSelect" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-white font-medium text-sm focus:border-neon outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-zinc-400 font-bold mb-1">Nome da Compra (ex: Tênis Nike)</label>
+                                <input required type="text" id="simPurchaseName" placeholder="Ex: Jantar em Família" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-white font-medium text-sm focus:border-neon outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs text-zinc-400 font-bold mb-1">Valor Total (R$)</label>
+                                <input required type="number" step="0.01" min="0.01" id="simPurchaseVal" placeholder="150.00" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-white font-bold text-sm focus:border-neon outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-zinc-400 font-bold mb-1">Parcelas</label>
+                                <select id="simInstallments" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-white font-medium text-sm focus:border-neon outline-none">
+                                    <option value="1">1x (À vista)</option>
+                                    <option value="2">2x</option>
+                                    <option value="3">3x</option>
+                                    <option value="4">4x</option>
+                                    <option value="5">5x</option>
+                                    <option value="6">6x</option>
+                                    <option value="10">10x</option>
+                                    <option value="12">12x</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-zinc-400 font-bold mb-1">Data da Compra</label>
+                                <input required type="date" id="simPurchaseDate" class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-white font-medium text-sm focus:border-neon outline-none">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-3 rounded-xl bg-neon text-black font-bold hover-bg-neon transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(57,255,20,0.2)] text-sm">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>⚡ Testar Envio (Simular Google Forms Agora)</span>
+                        </button>
+                    </form>
+
+                    <div id="simFeedback"></div>
+                </div>
+
+                <!-- Tab 3: Notificações & Bot Retorno -->
+                <div id="forms-tab-notifications" class="forms-tab-content hidden space-y-5">
+                    <div class="bg-zinc-800/60 border border-zinc-700/60 p-4 rounded-2xl">
+                        <h4 class="font-bold text-white text-sm mb-1 flex items-center gap-2">
+                            <i data-lucide="bell" class="w-4 h-4 text-neon"></i> Alertas de Retorno no Bot / Celular
+                        </h4>
+                        <p class="text-zinc-400 text-xs">Quando você registra uma compra pelo Google Forms ou direto pelos botões no app, aqui estão as 3 maneiras mais simples de receber o retorno no seu dia a dia:</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="p-4 bg-zinc-950 rounded-2xl border border-zinc-800 space-y-1.5">
+                            <div class="flex items-center gap-2 font-bold text-white text-sm">
+                                <span class="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/30"><i data-lucide="send" class="w-4 h-4"></i></span>
+                                <span>Opção A: Bot Gratuito do Telegram (Mensagem Instantânea)</span>
+                            </div>
+                            <p class="text-zinc-400 text-xs leading-relaxed">
+                                No app do Telegram, busque por <b class="text-white">@BotFather</b> e digite <code class="text-neon bg-zinc-900 px-1 py-0.5 rounded">/newbot</code> para criar o seu assistente. Ele te dará um <b class="text-white">Token de Acesso</b>. No próprio Apps Script do seu Google Forms, adicione a chamada <code class="text-sky-300">UrlFetchApp.fetch('https://api.telegram.org/botTOKEN/sendMessage?chat_id=SEU_ID&text=🛒 Compra registrada com sucesso!')</code> para receber um aviso instantâneo no celular a cada nova compra!
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-zinc-950 rounded-2xl border border-zinc-800 space-y-1.5">
+                            <div class="flex items-center gap-2 font-bold text-white text-sm">
+                                <span class="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30"><i data-lucide="mail" class="w-4 h-4"></i></span>
+                                <span>Opção B: Resumo por E-mail (Google Workspace / Gmail)</span>
+                            </div>
+                            <p class="text-zinc-400 text-xs leading-relaxed">
+                                No mesmo Google Apps Script da sua planilha, você pode ativar o envio gratuito por e-mail adicionando a linha <code class="text-amber-300">MailApp.sendEmail(seuEmail, "🛒 Nova Compra no Cartão", "Sua compra foi cadastrada no FinanceUP!")</code>.
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-zinc-950 rounded-2xl border border-zinc-800 space-y-1.5">
+                            <div class="flex items-center gap-2 font-bold text-white text-sm">
+                                <span class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"><i data-lucide="table" class="w-4 h-4"></i></span>
+                                <span>Opção C: Planilha Espelho no Google Drive</span>
+                            </div>
+                            <p class="text-zinc-400 text-xs leading-relaxed">
+                                Todas as respostas enviadas ficam automaticamente salvas e organizadas na aba "Respostas > Planilha" do seu Google Forms, servindo como um backup em Excel em tempo real para auditorias lado a lado com o app!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Regras do Firebase -->
+                <div id="forms-tab-rules" class="forms-tab-content hidden space-y-5">
+                    <div class="bg-zinc-800/60 border border-zinc-700/60 p-4 rounded-2xl flex items-start gap-3">
+                        <i data-lucide="shield-alert" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5"></i>
+                        <div>
+                            <h4 class="font-bold text-white text-sm mb-1">Permissão do Google Forms no Firebase</h4>
+                            <p class="text-zinc-400 leading-relaxed">Se o Google Forms retornou erro <code class="text-red-400 font-mono">403 Permission Denied</code>, significa que o Firestore está bloqueando o script externo. Copie as regras abaixo e cole no seu <a href="https://console.firebase.google.com/project/financeup-392ae/firestore/rules" target="_blank" class="text-neon underline font-semibold">Console do Firebase > Firestore Database > Regras</a>:</p>
+                        </div>
+                    </div>
+
+                    <div class="relative group">
+                        <pre id="modalFirebaseRulesCode" class="bg-black/90 border border-zinc-800 rounded-2xl p-4 text-xs text-emerald-400 font-mono overflow-x-auto select-all leading-relaxed">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permite que o Google Forms / Apps Script envie transações diretamente
+    match /transactions/{txId} {
+      allow read, write, create: if true;
+    }
+    
+    function isAllowedUser() {
+      return request.auth != null && (
+        request.auth.uid == '2UP0Q0zULZVIS0M0qhXCRRRuzY63' ||
+        request.auth.uid == 'oV78H7LwVjXo3tGq0LqS5Xw9s123' ||
+        request.auth.token.email == 'marcioes411@gmail.com' ||
+        request.auth.token.email == 'sousaleidiane242025@gmail.com'
+      );
+    }
+
+    match /users/{userId} {
+      allow read, write: if isAllowedUser();
+    }
+    match /transactions/{txId} {
+      allow read, write, create, update, delete: if isAllowedUser() || resource.data.userId == request.auth.uid || request.resource.data.userId == request.auth.uid;
+    }
+    match /cards/{cardId} {
+      allow read, write, create, update, delete: if isAllowedUser() || resource.data.userId == request.auth.uid || request.resource.data.userId == request.auth.uid;
+    }
+    match /categories/{catId} {
+      allow read, write, create, update, delete: if isAllowedUser();
+    }
+  }
+}</pre>
+                        <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('modalFirebaseRulesCode').innerText); this.innerText = 'Copiado!'; setTimeout(() => this.innerText = 'Copiar Regras', 2000);" class="absolute top-3 right-3 bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-zinc-700 transition shadow">Copiar Regras</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 sm:p-6 border-t border-zinc-800 bg-zinc-950 flex justify-end gap-3 shrink-0">
+                <button type="button" onclick="closeGoogleFormsBotModal()" class="px-6 py-2.5 rounded-xl bg-zinc-800 text-white font-bold hover:bg-zinc-700 transition-colors text-xs sm:text-sm">
+                    Fechar Central
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Consultant -->
     <button onclick="toggleAI()" class="fixed bottom-6 right-6 bg-neon text-black p-4 rounded-full shadow-lg hover-bg-neon z-40">
         <i data-lucide="message-square" class="w-6 h-6"></i>
@@ -845,19 +1221,33 @@
                 if (!hasCardTx) {
                     const dueDayStr = String(c.dueDay || 10).padStart(2, '0');
                     const dueDateStr = `${curPeriod}-${dueDayStr}`;
+                    
+                    let cardPurchasesSum = 0;
+                    let cardPurchasesList = [];
+                    (window.transactions || []).forEach(tx => {
+                        if ((tx.cardId === c.id || (!tx.cardId && window.cards.length === 1)) && tx.purchases && Array.isArray(tx.purchases)) {
+                            tx.purchases.forEach(p => {
+                                if (p.month === curPeriod) {
+                                    cardPurchasesSum += (p.value || 0);
+                                    cardPurchasesList.push(p);
+                                }
+                            });
+                        }
+                    });
+
                     txsList.push({
                         id: `virtual-card-${c.id}-${curPeriod}`,
                         cardId: c.id,
                         description: `Fatura ${c.name}`,
                         category: 'Cartão de Credito',
                         type: 'Saída',
-                        value: 0,
+                        value: cardPurchasesSum,
                         date: dueDateStr,
                         dueDate: dueDateStr,
                         displayDate: dueDateStr,
                         isPaid: false,
                         isRecurring: false,
-                        purchases: [],
+                        purchases: cardPurchasesList,
                         isVirtualCardTx: true
                     });
                 }
@@ -921,7 +1311,7 @@
                         const avail = Math.max(0, limit - spent);
 
                         return `
-                            <div class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 relative overflow-hidden flex flex-col justify-between shadow-xl transition-all hover:border-zinc-700" style="border-left: 4px solid ${c.color || '#39FF14'}">
+                            <div onclick="openCardPurchasesModal('${c.id}')" class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 relative overflow-hidden flex flex-col justify-between shadow-xl transition-all hover:border-zinc-700 cursor-pointer group" style="border-left: 4px solid ${c.color || '#39FF14'}">
                                 <div>
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
@@ -929,8 +1319,8 @@
                                             <h3 class="text-xl font-bold text-white mt-1.5 flex items-center gap-2">${c.name}</h3>
                                         </div>
                                         <div class="flex items-center gap-1">
-                                            <button onclick="openCardModal('${c.id}')" title="Editar Cartão" class="p-1.5 text-zinc-400 hover:text-white bg-zinc-800/80 rounded-lg"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                                            <button onclick="deleteCard('${c.id}')" title="Excluir Cartão" class="p-1.5 text-zinc-400 hover:text-red-500 bg-zinc-800/80 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                            <button onclick="event.stopPropagation(); openCardModal('${c.id}')" title="Editar Cartão" class="p-1.5 text-zinc-400 hover:text-white bg-zinc-800/80 rounded-lg"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                            <button onclick="event.stopPropagation(); deleteCard('${c.id}')" title="Excluir Cartão" class="p-1.5 text-zinc-400 hover:text-red-500 bg-zinc-800/80 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                         </div>
                                     </div>
                                     
@@ -952,12 +1342,12 @@
                                 <div class="pt-4 border-t border-zinc-800/80 flex justify-between items-center text-xs text-zinc-400">
                                     <div class="flex items-center gap-1.5" title="Dia de Fechamento">
                                         <i data-lucide="calendar" class="w-3.5 h-3.5 text-zinc-500"></i>
-                                        <span>Fechamento: <strong>dia ${c.closingDay || '25'}</strong></span>
+                                        <span>Fech.: <strong>dia ${c.closingDay || '25'}</strong></span>
                                     </div>
-                                    <div class="flex items-center gap-1.5 text-zinc-300" title="Dia de Vencimento">
-                                        <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-500"></i>
-                                        <span>Vence: <strong class="text-white">dia ${c.dueDay || '05'}</strong></span>
-                                    </div>
+                                    <button onclick="event.stopPropagation(); openCardPurchasesModal('${c.id}')" class="bg-neon/10 hover:bg-neon hover:text-black text-neon border border-neon/30 px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+                                        <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
+                                        <span>Ver Compras</span>
+                                    </button>
                                 </div>
                             </div>
                         `;
@@ -1226,6 +1616,349 @@
 
         window.closeAddPurchaseModal = () => document.getElementById('addPurchaseModal').classList.remove('active');
 
+        window.openGoogleFormsBotModal = () => {
+            document.getElementById('googleFormsBotModal').classList.add('active');
+            window.switchFormsTab('guide');
+            window.populateSimulateCards();
+            window.generateAppsScriptCode();
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.closeGoogleFormsBotModal = () => {
+            document.getElementById('googleFormsBotModal').classList.remove('active');
+        };
+
+        window.switchFormsTab = (tab) => {
+            document.querySelectorAll('.forms-tab-btn').forEach(btn => {
+                if (btn.dataset.tab === tab) {
+                    btn.className = 'forms-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-neon text-black transition-all shadow-sm whitespace-nowrap';
+                } else {
+                    btn.className = 'forms-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-zinc-800 text-zinc-400 hover:text-white transition-all whitespace-nowrap';
+                }
+            });
+            document.querySelectorAll('.forms-tab-content').forEach(content => {
+                if (content.id === `forms-tab-${tab}`) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        };
+
+        window.populateSimulateCards = () => {
+            const selectEl = document.getElementById('simCardSelect');
+            if (!selectEl) return;
+            const cards = window.cards || [];
+            if (cards.length === 0) {
+                selectEl.innerHTML = '<option value="">Nenhum cartão cadastrado</option>';
+            } else {
+                selectEl.innerHTML = cards.map(c => `<option value="${c.id}">${c.name} (Fechamento dia ${c.closingDay || 1})</option>`).join('');
+            }
+        };
+
+        window.generateAppsScriptCode = () => {
+            const codeEl = document.getElementById('appsScriptCodeBlock');
+            if (!codeEl) return;
+            const uid = (window.currentUser && window.currentUser.uid) ? window.currentUser.uid : 'SEU_USER_ID_AQUI';
+            
+            const cardsList = (window.cards || []).map(c => ({
+                name: c.name || 'Cartão',
+                id: c.id || '',
+                closingDay: c.closingDay || 1,
+                dueDay: c.dueDay || 10
+            }));
+            const cardsJson = JSON.stringify(cardsList, null, 2);
+
+            const script = `/**
+ * INTEGRACAO GOOGLE FORMS -> FINANCEUP (FIRESTORE)
+ * Cole este código no editor do Google Apps Script do seu Google Forms/Planilha
+ * (Acesse: Extensões > Apps Script na planilha de respostas do Forms)
+ */
+
+const PROJECT_ID = "financeup-392ae";
+const USER_ID = "${uid}";
+
+// Seus cartões cadastrados automaticamente vinculados no sistema
+const CARDS_CONFIG = ${cardsJson};
+
+function onFormSubmit(e) {
+  try {
+    const responses = (e && e.namedValues) ? e.namedValues : {
+      "Cartão": [CARDS_CONFIG.length > 0 ? CARDS_CONFIG[0].name : "Atacadão"],
+      "Nome da Compra": ["Teste Manual Forms"],
+      "Valor": ["120.50"],
+      "Parcelas": ["1"],
+      "Data": [Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy")]
+    };
+    
+    // Busca inteligente de respostas (independente de acentos, maiúsculas ou títulos exatos)
+    const getVal = (keywords, defaultVal) => {
+      const keys = Object.keys(responses);
+      for (let i = 0; i < keywords.length; i++) {
+        const kw = keywords[i];
+        const foundKey = keys.find(k => k.toLowerCase().trim().includes(kw.toLowerCase()));
+        if (foundKey && responses[foundKey] && responses[foundKey][0] !== undefined) {
+          const val = String(responses[foundKey][0]).trim();
+          if (val !== "") return val;
+        }
+      }
+      return defaultVal;
+    };
+
+    const cardName = getVal(["cartão", "cartao", "banco", "card"], "");
+    const purchaseName = getVal(["compra", "nome", "descrição", "descricao", "item", "estabelecimento"], "Compra via Forms");
+    const valueStr = getVal(["valor", "r$", "preço", "preco", "quantia"], "0");
+    const installmentsStr = getVal(["parcela", "vezes", "dividir"], "1");
+    const rawDateStr = getVal(["data", "dia", "quando"], "");
+
+    const value = parseFloat(String(valueStr).replace(/[R$\\s]/g, "").replace(",", ".")) || 0;
+    const installments = parseInt(String(installmentsStr).replace(/[^0-9]/g, "")) || 1;
+    const instVal = Math.floor((value / installments) * 100) / 100;
+
+    // 1. Identifica o cartão no seu cadastro
+    let cardObj = CARDS_CONFIG.find(c => c.name.toLowerCase().trim() === cardName.toLowerCase().trim());
+    if (!cardObj && CARDS_CONFIG.length > 0) {
+      cardObj = CARDS_CONFIG.find(c => cardName.toLowerCase().includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(cardName.toLowerCase()));
+    }
+    if (!cardObj && CARDS_CONFIG.length > 0) {
+      cardObj = CARDS_CONFIG[0]; // Fallback inteligente para o primeiro cartão
+    }
+    const cardId = cardObj ? cardObj.id : "";
+    const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
+    const dueDay = cardObj ? (cardObj.dueDay || 10) : 10;
+
+    // 2. Converte a Data (DD/MM/AAAA para AAAA-MM-DD)
+    let purchaseDate = new Date().toISOString().split("T")[0];
+    if (rawDateStr) {
+      if (rawDateStr.includes("/")) {
+        const parts = rawDateStr.split("/");
+        if (parts.length === 3) {
+          const dayStr = parts[0].padStart(2, "0");
+          const monthStr = parts[1].padStart(2, "0");
+          const yearStr = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+          purchaseDate = yearStr + "-" + monthStr + "-" + dayStr;
+        }
+      } else if (rawDateStr.includes("-")) {
+        purchaseDate = rawDateStr.split("T")[0];
+      }
+    }
+
+    const dateParts = purchaseDate.split("-");
+    let year = parseInt(dateParts[0]) || new Date().getFullYear();
+    let month = parseInt(dateParts[1]) || (new Date().getMonth() + 1);
+    const day = parseInt(dateParts[2]) || 1;
+
+    // 3. Lança cada parcela no respectivo mês de fatura
+    const url = "https://firestore.googleapis.com/v1/projects/" + PROJECT_ID + "/databases/(default)/documents/transactions";
+
+    for (let i = 1; i <= installments; i++) {
+      let instYear = year;
+      let instMonth = month + (i - 1);
+      while (instMonth > 12) {
+        instMonth -= 12;
+        instYear++;
+      }
+
+      // Vira a fatura para o mês seguinte se comprou no ou após o dia de fechamento
+      if (day >= closingDay && i === 1) {
+        instMonth++;
+        if (instMonth > 12) {
+          instMonth = 1;
+          instYear++;
+        }
+      } else if (i > 1 && day >= closingDay) {
+        instMonth++;
+        if (instMonth > 12) {
+          instMonth = 1;
+          instYear++;
+        }
+      }
+
+      const monthStr = instYear + "-" + String(instMonth).padStart(2, "0");
+      const dueDate = monthStr + "-" + String(dueDay).padStart(2, "0");
+      const instName = installments > 1 ? purchaseName + " (" + i + "/" + installments + ")" : purchaseName;
+      const instText = installments > 1 ? i + "/" + installments : "";
+
+      const payload = {
+        fields: {
+          userId: { stringValue: USER_ID },
+          description: { stringValue: "Fatura " + (cardObj ? cardObj.name : cardName || "Cartão") },
+          category: { stringValue: "Cartão de Credito" },
+          type: { stringValue: "Saída" },
+          value: { doubleValue: instVal },
+          cardId: { stringValue: cardId },
+          date: { stringValue: dueDate },
+          dueDate: { stringValue: dueDate },
+          isPaid: { booleanValue: false },
+          isRecurring: { booleanValue: false },
+          createdAt: { integerValue: Date.now() + i },
+          purchases: {
+            arrayValue: {
+              values: [
+                {
+                  mapValue: {
+                    fields: {
+                      id: { stringValue: String(Date.now() + i) },
+                      name: { stringValue: instName },
+                      value: { doubleValue: instVal },
+                      installmentText: { stringValue: instText },
+                      month: { stringValue: monthStr },
+                      date: { stringValue: purchaseDate },
+                      addedAt: { integerValue: Date.now() + i }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      };
+
+      const options = {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+
+      const res = UrlFetchApp.fetch(url, options);
+      Logger.log("Parcela " + i + "/" + installments + " enviada: " + res.getContentText());
+    }
+  } catch (err) {
+    Logger.log("Erro FinanceUP: " + err.toString());
+  }
+}
+
+// Função para testar diretamente no editor do Apps Script sem precisar preencher o Forms
+function testarEnvioManual() {
+  const mockEvent = {
+    namedValues: {
+      "Cartão": [CARDS_CONFIG.length > 0 ? CARDS_CONFIG[0].name : "Atacadão"],
+      "Nome da Compra": ["Teste Manual Forms"],
+      "Valor": ["120.50"],
+      "Parcelas": ["2"],
+      "Data": [Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy")]
+    }
+  };
+  onFormSubmit(mockEvent);
+  Logger.log("Teste manual executado! Verifique no seu app FinanceUP.");
+}`;
+            codeEl.innerText = script;
+        };
+
+        window.copyAppsScriptCode = () => {
+            const codeEl = document.getElementById('appsScriptCodeBlock');
+            if (codeEl) {
+                navigator.clipboard.writeText(codeEl.innerText);
+                const btn = document.getElementById('btnCopyAppsScript');
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i><span>Copiado com Sucesso!</span>';
+                    btn.classList.replace('bg-neon', 'bg-emerald-500');
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.replace('bg-emerald-500', 'bg-neon');
+                    }, 2500);
+                }
+            }
+        };
+
+        window.simulateGoogleFormsSubmit = async (e) => {
+            e.preventDefault();
+            const cardId = document.getElementById('simCardSelect').value;
+            const name = document.getElementById('simPurchaseName').value.trim();
+            const value = parseFloat(document.getElementById('simPurchaseVal').value) || 0;
+            const installments = parseInt(document.getElementById('simInstallments').value) || 1;
+            const dateVal = document.getElementById('simPurchaseDate').value || new Date().toISOString().split('T')[0];
+
+            if (!cardId || !name || value <= 0) {
+                alert('Preencha todos os campos corretamente para simular.');
+                return;
+            }
+
+            const card = (window.cards || []).find(c => c.id === cardId);
+            const dueDay = card ? (card.dueDay || 10) : 10;
+            const parts = dateVal.split('-');
+            let year = parseInt(parts[0]) || new Date().getFullYear();
+            let month = parseInt(parts[1]) || (new Date().getMonth() + 1);
+            
+            const closingDay = card ? (card.closingDay || 1) : 1;
+            const day = parseInt(parts[2]) || 1;
+            if (day >= closingDay) {
+                month++;
+                if (month > 12) {
+                    month = 1;
+                    year++;
+                }
+            }
+            const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+            const dueDate = `${monthStr}-${String(dueDay).padStart(2, '0')}`;
+            const instVal = Math.floor((value / installments) * 100) / 100;
+            const instText = installments > 1 ? `1/${installments}` : '';
+
+            const purchaseItem = {
+                id: String(Date.now()),
+                name: installments > 1 ? `${name} (${instText})` : name,
+                value: instVal,
+                installmentText: instText,
+                month: monthStr,
+                date: dateVal,
+                addedAt: Date.now()
+            };
+
+            let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && t.cardId === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
+
+            const feedbackEl = document.getElementById('simFeedback');
+            if (feedbackEl) {
+                feedbackEl.innerHTML = `<div class="p-3 rounded-xl bg-neon/10 border border-neon/30 text-neon font-bold text-xs sm:text-sm flex items-center gap-2 animate-pulse">
+                    <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Processando resposta do Google Forms...
+                </div>`;
+            }
+
+            try {
+                if (targetTx) {
+                    const curPurchases = targetTx.purchases || [];
+                    const newPurchases = curPurchases.concat([purchaseItem]);
+                    const newTotal = (targetTx.value || 0) + instVal;
+                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', targetTx.id), {
+                        value: newTotal,
+                        purchases: newPurchases
+                    });
+                } else {
+                    const newTxData = {
+                        userId: window.currentUser.uid,
+                        description: card ? `Fatura ${card.name}` : 'Fatura Cartão',
+                        value: instVal,
+                        type: 'Saída',
+                        category: 'Cartão de Credito',
+                        cardId: cardId,
+                        date: dueDate,
+                        dueDate: dueDate,
+                        isPaid: false,
+                        isRecurring: false,
+                        purchases: [purchaseItem],
+                        createdAt: Date.now()
+                    };
+                    await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
+                }
+
+                if (feedbackEl) {
+                    feedbackEl.innerHTML = `<div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 font-bold text-xs sm:text-sm flex items-center gap-2 animate-in fade-in mt-3">
+                        <i data-lucide="check-circle" class="w-5 h-5 shrink-0 text-emerald-400"></i>
+                        <span>✅ Sincronização em tempo real concluída! A compra "<b>${name}</b>" (R$ ${instVal.toFixed(2)}) foi inserida na fatura de <b>${monthStr}</b> do cartão <b>${card ? card.name : ''}</b>.</span>
+                    </div>`;
+                }
+                if (window.renderCardsView) window.renderCardsView();
+                if (window.lucide) window.lucide.createIcons();
+            } catch (err) {
+                if (feedbackEl) {
+                    feedbackEl.innerHTML = `<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 font-bold text-xs sm:text-sm flex items-center gap-2 mt-3">
+                        <i data-lucide="alert-circle" class="w-4 h-4"></i> Erro: ${err.message}
+                    </div>`;
+                }
+            }
+        };
+
         window.selectPurchaseMonths = (n) => {
             const inputs = document.querySelectorAll('input[name="purchaseMonth"]');
             inputs.forEach((cb, idx) => {
@@ -1341,17 +2074,281 @@
         };
 
         window.removePurchaseItem = async (txId, purchaseId) => {
-            if (!confirm('Deseja realmente remover esta compra da fatura?')) return;
-            const tx = (window.transactions || []).find(t => t.id === txId);
-            if (!tx || !tx.purchases) return;
-            const pToRemove = tx.purchases.find(p => p.id === purchaseId);
-            if (!pToRemove) return;
-            const newPurchases = tx.purchases.filter(p => p.id !== purchaseId);
-            const newTotal = Math.max(0, (tx.value || 0) - (pToRemove.value || 0));
-            await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', txId), {
-                value: newTotal,
-                purchases: newPurchases
+            try {
+                const tx = (window.transactions || []).find(t => String(t.id) === String(txId));
+                if (!tx || !tx.purchases) return;
+                const pToRemove = tx.purchases.find(p => String(p.id) === String(purchaseId));
+                if (!pToRemove) return;
+                const newPurchases = tx.purchases.filter(p => String(p.id) !== String(purchaseId));
+                const newTotal = Math.max(0, (tx.value || 0) - (pToRemove.value || 0));
+                
+                await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', String(txId)), {
+                    value: newTotal,
+                    purchases: newPurchases
+                });
+            } catch (err) {
+                console.error("Erro ao remover compra:", err);
+                alert("Erro ao remover compra: " + err.message);
+            }
+        };
+
+        window.activeCardPurchasesId = null;
+
+        window.openCardPurchasesModal = (cardId) => {
+            window.activeCardPurchasesId = cardId;
+            window.renderCardPurchasesModal();
+            document.getElementById('cardPurchasesModal').classList.add('active');
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.closeCardPurchasesModal = () => {
+            document.getElementById('cardPurchasesModal').classList.remove('active');
+        };
+
+        window.renderCardPurchasesModal = () => {
+            const cardId = window.activeCardPurchasesId;
+            const card = (window.cards || []).find(c => c.id === cardId);
+            const headerEl = document.getElementById('cardPurchasesHeader');
+            const tbodyEl = document.getElementById('cardPurchasesTableBody');
+            if (!card) return;
+
+            if (headerEl) {
+                headerEl.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-black" style="background-color: ${card.color || '#39FF14'}">
+                            <i data-lucide="credit-card" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">${card.name}</h3>
+                            <p class="text-xs text-zinc-400">Limite: ${formatMoney(card.limit || 0)} • Fechamento: dia ${card.closingDay || 25} • Vencimento: dia ${card.dueDay || 5}</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeCardPurchasesModal()" class="text-zinc-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+                `;
+            }
+
+            const cardTxs = (window.transactions || []).filter(t => t.cardId === cardId || (!t.cardId && window.cards.length === 1));
+            let allPurchases = [];
+            cardTxs.forEach(tx => {
+                if (tx.purchases && Array.isArray(tx.purchases)) {
+                    tx.purchases.forEach(p => {
+                        allPurchases.push({
+                            ...p,
+                            txId: tx.id,
+                            invoiceMonth: p.month || tx.dueDate || tx.date || '-'
+                        });
+                    });
+                }
             });
+
+            allPurchases.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+
+            if (tbodyEl) {
+                if (allPurchases.length === 0) {
+                    tbodyEl.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="p-8 text-center text-zinc-500 text-sm italic">
+                                Nenhuma compra cadastrada para este cartão ainda. Clique em "Nova Compra no Cartão" acima para adicionar.
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbodyEl.innerHTML = allPurchases.map(p => {
+                        const dateFormatted = p.date ? p.date.split('-').reverse().join('/') : '-';
+                        return `
+                            <tr class="border-b border-zinc-800/60 hover:bg-zinc-800/30 transition-colors">
+                                <td class="p-3.5 sm:p-4 text-sm font-bold text-white">${p.name || '-'}</td>
+                                <td class="p-3.5 sm:p-4 text-xs font-semibold text-neon">${p.installmentText || 'À vista'}</td>
+                                <td class="p-3.5 sm:p-4 text-xs text-zinc-300 font-medium">${p.invoiceMonth}</td>
+                                <td class="p-3.5 sm:p-4 text-xs text-zinc-400">${dateFormatted}</td>
+                                <td class="p-3.5 sm:p-4 text-right text-sm font-bold text-white">${formatMoney(p.value || 0)}</td>
+                                <td class="p-3.5 sm:p-4 text-center">
+                                    <button onclick="window.deleteCardPurchaseItem('${p.txId}', '${p.id}')" title="Excluir Compra" class="p-1.5 text-zinc-400 hover:text-red-500 bg-zinc-800/80 hover:bg-zinc-800 rounded-lg transition-colors">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.openAddPurchaseModalForActiveCard = () => {
+            const cardId = window.activeCardPurchasesId;
+            if (!cardId) return;
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const selMonth = mSel ? (parseInt(mSel.value) + 1).toString().padStart(2, '0') : '07';
+            const selYear = ySel ? ySel.value : '2026';
+            const curPeriod = `${selYear}-${selMonth}`;
+
+            let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && t.cardId === cardId && (t.dueDate || t.date || '').startsWith(curPeriod));
+            if (!targetTx) {
+                targetTx = (window.transactions || []).find(t => t.id === `virtual-card-${cardId}-${curPeriod}`);
+            }
+
+            const txId = targetTx ? targetTx.id : `virtual-card-${cardId}-${curPeriod}`;
+            window.openAddPurchaseModal(txId);
+        };
+
+        window.deleteCardPurchaseItem = async (txId, purchaseId) => {
+            if (!confirm('Deseja realmente excluir esta compra do cartão?')) return;
+            if (String(txId).startsWith('virtual-card-')) {
+                alert("Esta compra é virtual e ainda não foi salva no banco.");
+                return;
+            }
+            await window.removePurchaseItem(txId, purchaseId);
+            if (window.renderCardPurchasesModal) window.renderCardPurchasesModal();
+            if (window.renderCardsView) window.renderCardsView();
+            if (window.renderDashboard) window.renderDashboard();
+        };
+
+        window.openMobileQuickSenderModal = () => {
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('mobSimPurchaseDate');
+            if (dateInput) dateInput.value = today;
+
+            const sel = document.getElementById('mobSimCardSelect');
+            if (sel) {
+                sel.innerHTML = (window.cards || []).map(c => `<option value="${c.id}">${c.name} (Limite: ${formatMoney(c.limit || 0)})</option>`).join('');
+                if (window.cards && window.cards.length === 0) {
+                    sel.innerHTML = `<option value="">Nenhum cartão cadastrado</option>`;
+                }
+            }
+            const feedbackEl = document.getElementById('mobSimFeedback');
+            if (feedbackEl) feedbackEl.innerHTML = '';
+            document.getElementById('mobileQuickSenderModal').classList.add('active');
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.closeMobileQuickSenderModal = () => {
+            document.getElementById('mobileQuickSenderModal').classList.remove('active');
+        };
+
+        window.submitMobileQuickPurchase = async (e) => {
+            e.preventDefault();
+            const cardId = document.getElementById('mobSimCardSelect').value;
+            const name = document.getElementById('mobSimPurchaseName').value.trim();
+            const value = parseFloat(document.getElementById('mobSimPurchaseVal').value) || 0;
+            const installments = parseInt(document.getElementById('mobSimInstallments').value) || 1;
+            const dateVal = document.getElementById('mobSimPurchaseDate').value || new Date().toISOString().split('T')[0];
+
+            if (!cardId || !name || value <= 0) {
+                alert('Preencha todos os campos corretamente.');
+                return;
+            }
+
+            const card = (window.cards || []).find(c => c.id === cardId);
+            const dueDay = card ? (card.dueDay || 10) : 10;
+            const parts = dateVal.split('-');
+            let year = parseInt(parts[0]) || new Date().getFullYear();
+            let month = parseInt(parts[1]) || (new Date().getMonth() + 1);
+            
+            const closingDay = card ? (card.closingDay || 1) : 1;
+            const day = parseInt(parts[2]) || 1;
+            if (day >= closingDay) {
+                month++;
+                if (month > 12) {
+                    month = 1;
+                    year++;
+                }
+            }
+            const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+            const dueDate = `${monthStr}-${String(dueDay).padStart(2, '0')}`;
+            const instVal = Math.floor((value / installments) * 100) / 100;
+            const instText = installments > 1 ? `1/${installments}` : '';
+
+            const purchaseItem = {
+                id: String(Date.now()),
+                name: installments > 1 ? `${name} (${instText})` : name,
+                value: instVal,
+                installmentText: instText,
+                month: monthStr,
+                date: dateVal,
+                addedAt: Date.now()
+            };
+
+            let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && t.cardId === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
+
+            const feedbackEl = document.getElementById('mobSimFeedback');
+            if (feedbackEl) {
+                feedbackEl.innerHTML = `<div class="p-3 rounded-xl bg-neon/10 border border-neon/30 text-neon font-bold text-xs sm:text-sm flex items-center gap-2 animate-pulse mt-3">
+                    <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Enviando compra para o cartão...
+                </div>`;
+            }
+
+            try {
+                if (targetTx) {
+                    const curPurchases = targetTx.purchases || [];
+                    const newPurchases = curPurchases.concat([purchaseItem]);
+                    const newTotal = (targetTx.value || 0) + instVal;
+                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', targetTx.id), {
+                        value: newTotal,
+                        purchases: newPurchases
+                    });
+                } else {
+                    const newTxData = {
+                        userId: window.currentUser.uid,
+                        description: card ? `Fatura ${card.name}` : 'Fatura Cartão',
+                        value: instVal,
+                        type: 'Saída',
+                        category: 'Cartão de Credito',
+                        cardId: cardId,
+                        date: dueDate,
+                        dueDate: dueDate,
+                        isPaid: false,
+                        isRecurring: false,
+                        purchases: [purchaseItem],
+                        createdAt: Date.now()
+                    };
+                    await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
+                }
+
+                if (feedbackEl) {
+                    feedbackEl.innerHTML = `<div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 font-bold text-xs sm:text-sm flex items-center gap-2 animate-in fade-in mt-3">
+                        <i data-lucide="check-circle" class="w-5 h-5 shrink-0 text-emerald-400"></i>
+                        <span>✅ Compra "<b>${name}</b>" (R$ ${instVal.toFixed(2)}) enviada com sucesso para o cartão <b>${card ? card.name : ''}</b>!</span>
+                    </div>`;
+                }
+                document.getElementById('mobSimPurchaseName').value = '';
+                document.getElementById('mobSimPurchaseVal').value = '';
+                if (window.renderCardsView) window.renderCardsView();
+                if (window.renderDashboard) window.renderDashboard();
+                if (window.lucide) window.lucide.createIcons();
+            } catch (err) {
+                if (feedbackEl) {
+                    feedbackEl.innerHTML = `<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 font-bold text-xs sm:text-sm flex items-center gap-2 mt-3">
+                        <i data-lucide="alert-circle" class="w-4 h-4"></i> Erro: ${err.message}
+                    </div>`;
+                }
+            }
+        };
+
+        window.shareQuickSenderLink = async () => {
+            const shareUrl = window.location.href;
+            const shareData = {
+                title: 'Envio Rápido - FinanceUP',
+                text: 'Use este link otimizado para enviar compras direto para meu controle de cartão de crédito no FinanceUP!',
+                url: shareUrl
+            };
+
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                    return;
+                } catch (err) {
+                    // fallback to clipboard
+                }
+            }
+
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                alert('🔗 Link de envio copiado para a área de transferência! Compartilhe no WhatsApp com quem precisar.');
+            } catch (err) {
+                prompt('Copie o link abaixo para compartilhar:', shareUrl);
+            }
         };
         window.closeModal = () => document.getElementById('transactionModal').classList.remove('active');
         
@@ -2071,10 +3068,12 @@
             const m = parseInt(mSel.value);
             const y = parseInt(ySel.value);
             
+            const curPeriodStr = `${y}-${(m+1).toString().padStart(2, '0')}`;
             const filtered = window.transactions.filter(t => {
                 if (t.isTombstone) return false;
-                if (!t.date || typeof t.date !== 'string') return false;
-                const parts = t.date.split('-');
+                const dateStr = t.dueDate || t.date;
+                if (!dateStr || typeof dateStr !== 'string') return false;
+                const parts = dateStr.split('-');
                 if (parts.length < 2) return false;
                 const [ty, tm] = parts;
                 const txMonthTotal = parseInt(ty) * 12 + (parseInt(tm) - 1);
@@ -2107,7 +3106,6 @@
                 };
             });
 
-            const curPeriodStr = `${y}-${(m+1).toString().padStart(2, '0')}`;
             if (window.ensureCardTransactionsForPeriod) {
                 window.ensureCardTransactionsForPeriod(filtered, curPeriodStr);
             }
@@ -2327,32 +3325,6 @@
                             <td class="p-4 text-center flex justify-center gap-1">${actionsHtml}</td>
                         `;
                         tbody.appendChild(tr);
-                        if (t.purchases && t.purchases.length > 0) {
-                            const trP = document.createElement('tr');
-                            trP.className = "bg-zinc-950/50 border-b border-zinc-800/80";
-                            trP.innerHTML = `
-                                <td colspan="6" class="px-6 py-3">
-                                    <div class="text-xs text-zinc-400 mb-2 font-semibold flex items-center gap-1.5">
-                                        <i data-lucide="shopping-cart" class="w-3.5 h-3.5 text-neon"></i> Compras inclusas nesta fatura (${t.purchases.length}):
-                                    </div>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                        ${t.purchases.map(p => `
-                                            <div class="bg-zinc-900 border border-zinc-800 px-3 py-2 rounded-lg flex justify-between items-center text-xs shadow-sm">
-                                                <div>
-                                                    <span class="font-bold text-zinc-200">${p.name}</span>
-                                                    ${p.installmentText ? `<span class="text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded ml-1">${p.installmentText}</span>` : ''}
-                                                </div>
-                                                <div class="flex items-center gap-2">
-                                                    <span class="font-bold text-white">${formatMoney(p.value || 0)}</span>
-                                                    <button onclick="window.removePurchaseItem('${t.id}', '${p.id}')" title="Remover compra" class="text-zinc-500 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </td>
-                            `;
-                            tbody.appendChild(trP);
-                        }
                     }
                 });
             }
@@ -2784,22 +3756,18 @@
         }
 
         function safeJsonStringify(obj) {
-            const seen = new WeakSet();
             try {
-                return JSON.stringify(obj, (key, value) => {
-                    if (typeof value === 'object' && value !== null) {
-                        if (seen.has(value)) {
-                            return '[Circular Reference]';
-                        }
-                        seen.add(value);
-                    }
-                    if (typeof value === 'function') {
-                        return '[Function]';
-                    }
-                    return value;
+                return JSON.stringify({
+                    error: String(obj.error || 'Unknown error'),
+                    authInfo: obj.authInfo ? {
+                        userId: obj.authInfo.userId ? String(obj.authInfo.userId) : null,
+                        email: obj.authInfo.email ? String(obj.authInfo.email) : null
+                    } : null,
+                    operationType: String(obj.operationType || 'unknown'),
+                    path: String(obj.path || 'unknown')
                 });
             } catch (e) {
-                return '"[Error stringifying object]"';
+                return '{"error":"Error stringifying object"}';
             }
         }
 
@@ -2812,14 +3780,7 @@
                 error: errStr,
                 authInfo: {
                     userId: auth.currentUser?.uid ? String(auth.currentUser.uid) : null,
-                    email: auth.currentUser?.email ? String(auth.currentUser.email) : null,
-                    emailVerified: Boolean(auth.currentUser?.emailVerified),
-                    isAnonymous: Boolean(auth.currentUser?.isAnonymous),
-                    tenantId: auth.currentUser?.tenantId ? String(auth.currentUser.tenantId) : null,
-                    providerInfo: Array.isArray(auth.currentUser?.providerData) ? auth.currentUser.providerData.map(provider => ({
-                        providerId: provider?.providerId ? String(provider.providerId) : null,
-                        email: provider?.email ? String(provider.email) : null,
-                    })) : []
+                    email: auth.currentUser?.email ? String(auth.currentUser.email) : null
                 },
                 operationType: safeOpStr,
                 path: safePathStr
@@ -2890,6 +3851,11 @@
                             <pre id="firebaseRulesCode" class="bg-black/90 border border-gray-800 rounded-lg p-4 text-xs text-green-400 font-mono overflow-x-auto select-all leading-relaxed">rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Permite que o Google Forms / Apps Script envie transações diretamente
+    match /transactions/{txId} {
+      allow read, write, create: if true;
+    }
+    
     function isAllowedUser() {
       return request.auth != null && (
         request.auth.uid == '2UP0Q0zULZVIS0M0qhXCRRRuzY63' ||
