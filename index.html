@@ -85,11 +85,7 @@
                 </nav>
             </div>
             <div class="flex items-center gap-2 sm:gap-3">
-                <button onclick="openMobileQuickSenderModal()" title="Envio Rápido para Celular" class="bg-neon/10 hover:bg-neon/20 text-neon border border-neon/40 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(57,255,20,0.2)]">
-                    <i data-lucide="smartphone" class="w-4 h-4"></i>
-                    <span class="hidden sm:inline">📱 Envio Celular</span>
-                </button>
-                <button onclick="openGoogleFormsBotModal()" title="Central de Integração: Google Forms & Bot" class="bg-zinc-900 hover:bg-zinc-800 text-neon border border-neon/30 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(57,255,20,0.15)]">
+                <button id="googleFormsBotHeaderBtn" onclick="openGoogleFormsBotModal()" title="Central de Integração: Google Forms & Bot" class="hidden bg-zinc-900 hover:bg-zinc-800 text-neon border border-neon/30 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(57,255,20,0.15)]">
                     <i data-lucide="bot" class="w-4 h-4"></i>
                     <span class="hidden md:inline">Google Forms & Bot</span>
                 </button>
@@ -327,6 +323,9 @@
                         </h4>
                         <button onclick="openCardTransactionModal()" class="bg-neon/10 text-neon border border-neon/30 hover:bg-neon hover:text-black px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i> Novo Lançamento
+                        </button>
+                        <button onclick="clearTestPurchases()" class="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Limpar Testes
                         </button>
                     </div>
                     <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800">
@@ -599,7 +598,11 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex gap-3 sm:gap-4 p-4 sm:p-6 border-t border-zinc-800 bg-zinc-900/95 shrink-0">
+                <div class="flex items-center gap-2 sm:gap-3 p-4 sm:p-6 border-t border-zinc-800 bg-zinc-900/95 shrink-0">
+                    <button type="button" id="cardModalDeleteBtn" onclick="const id = document.getElementById('cardId').value; if(id) { closeCardModal(); deleteCard(id); }" class="hidden px-4 py-2.5 sm:py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-bold text-xs sm:text-sm transition-all items-center gap-1.5">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>Excluir</span>
+                    </button>
                     <button type="button" onclick="closeCardModal()" class="flex-1 py-2.5 sm:py-3 rounded-xl bg-zinc-800 text-white hover:bg-zinc-700 font-medium text-sm sm:text-base transition-colors">Cancelar</button>
                     <button type="submit" class="flex-1 py-2.5 sm:py-3 rounded-xl bg-neon text-black hover-bg-neon font-bold shadow-[0_0_15px_rgba(57,255,20,0.2)] text-sm sm:text-base transition-all">Salvar Cartão</button>
                 </div>
@@ -850,6 +853,9 @@
                 <button type="button" onclick="switchFormsTab('rules')" class="forms-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-zinc-800 text-zinc-400 hover:text-white transition-all whitespace-nowrap" data-tab="rules">
                     🛡️ 4. Regras do Firebase (Permissão)
                 </button>
+                <button type="button" onclick="switchFormsTab('troubleshoot')" class="forms-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-zinc-800 text-zinc-400 hover:text-white transition-all whitespace-nowrap" data-tab="troubleshoot">
+                    🔍 5. Diagnóstico (Não Salvou?)
+                </button>
             </div>
 
             <!-- Content Area -->
@@ -1053,6 +1059,58 @@ service cloud.firestore {
                         <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('modalFirebaseRulesCode').innerText); this.innerText = 'Copiado!'; setTimeout(() => this.innerText = 'Copiar Regras', 2000);" class="absolute top-3 right-3 bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-zinc-700 transition shadow">Copiar Regras</button>
                     </div>
                 </div>
+
+                <!-- Tab 5: Diagnóstico / O que aconteceu? -->
+                <div id="forms-tab-troubleshoot" class="forms-tab-content hidden space-y-5">
+                    <div class="bg-zinc-800/60 border border-zinc-700/60 p-4 rounded-2xl">
+                        <h4 class="font-bold text-white text-sm mb-1 flex items-center gap-2">
+                            <i data-lucide="help-circle" class="w-4 h-4 text-neon"></i> Por que o teste ou o Forms pode não ter gravado?
+                        </h4>
+                        <p class="text-zinc-400 text-xs">Siga este passo a passo rápido para descobrir exatamente o que aconteceu e resolver em segundos.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-3">
+                            <h5 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 text-neon">
+                                <span class="w-5 h-5 rounded-full bg-neon/20 text-neon font-bold flex items-center justify-center text-xs">1</span>
+                                Verifique os Logs de Execução no Apps Script
+                            </h5>
+                            <p class="text-xs text-zinc-300">
+                                No editor do Google Apps Script (onde você colou o código), clique no ícone de <b class="text-white">Execuções</b> (um relógio/cronômetro no menu lateral esquerdo). Lá você verá todas as tentativas de envio, se houve erro (como 403, 400) ou se foi bem-sucedido.
+                            </p>
+                        </div>
+
+                        <div class="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-3">
+                            <h5 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 text-neon">
+                                <span class="w-5 h-5 rounded-full bg-neon/20 text-neon font-bold flex items-center justify-center text-xs">2</span>
+                                Teste Manualmente com a função <code class="bg-zinc-900 text-neon px-1.5 py-0.5 rounded">testarEnvioManual</code>
+                            </h5>
+                            <p class="text-xs text-zinc-300">
+                                No topo do editor do Apps Script, selecione a função <code class="text-white font-mono">testarEnvioManual</code> no menu suspenso e clique no botão <b class="text-white">Executar</b>. Verifique nos Logs se apareceu <code class="text-emerald-400 font-mono">Status Code: 200</code>.
+                            </p>
+                        </div>
+
+                        <div class="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-3">
+                            <h5 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 text-neon">
+                                <span class="w-5 h-5 rounded-full bg-neon/20 text-neon font-bold flex items-center justify-center text-xs">3</span>
+                                Erro 403 (Permissão Negada)?
+                            </h5>
+                            <p class="text-xs text-zinc-300">
+                                Se o log mostrar <b class="text-red-400">Status Code: 403</b>, significa que as regras do Firestore estão bloqueando requisições externas sem login. Vá na aba <b class="text-white">🛡️ 4. Regras do Firebase</b> acima, copie as regras atualizadas e cole no seu Console do Firebase (Firestore Database > Rules) e clique em Publicar.
+                            </p>
+                        </div>
+
+                        <div class="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-3">
+                            <h5 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 text-neon">
+                                <span class="w-5 h-5 rounded-full bg-neon/20 text-neon font-bold flex items-center justify-center text-xs">4</span>
+                                Acionador (Trigger) Configurado?
+                            </h5>
+                            <p class="text-xs text-zinc-300">
+                                Se o Forms foi preenchido mas não disparou, verifique se você criou o acionador: No Apps Script, clique no ícone de <b class="text-white">Acionadores</b> (relógio) > Adicionar acionador > Função: <code class="text-white">onFormSubmit</code> > Evento: <b class="text-white">No envio do formulário</b>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Footer -->
@@ -1108,6 +1166,7 @@ service cloud.firestore {
             if (!modal || !form) return;
             form.reset();
 
+            const deleteBtn = document.getElementById('cardModalDeleteBtn');
             if (id) {
                 const c = window.cards.find(x => x.id === id);
                 if (c) {
@@ -1120,11 +1179,14 @@ service cloud.firestore {
                     const rad = document.querySelector(`input[name="cardColor"][value="${c.color}"]`);
                     if (rad) rad.checked = true;
                 }
+                if (deleteBtn) deleteBtn.classList.remove('hidden');
             } else {
                 title.innerText = 'Novo Cartão de Crédito';
                 document.getElementById('cardId').value = '';
+                if (deleteBtn) deleteBtn.classList.add('hidden');
             }
             modal.classList.add('active');
+            if (window.lucide) window.lucide.createIcons();
         };
 
         window.closeCardModal = () => {
@@ -1402,7 +1464,7 @@ service cloud.firestore {
                                     </div>
                                 </td>
                             </tr>
-                            ${hasPurchases ? `
+                            ${false ? `
                             <tr class="bg-zinc-950/50 border-b border-zinc-800/80">
                                 <td colspan="6" class="px-6 py-3">
                                     <div class="text-xs text-zinc-400 mb-2 font-semibold flex items-center gap-1.5">
@@ -1532,6 +1594,9 @@ service cloud.firestore {
         };
 
         window.openAddPurchaseModal = (txId) => {
+            const cardPurchasesModal = document.getElementById('cardPurchasesModal');
+            if (cardPurchasesModal) cardPurchasesModal.classList.remove('active');
+
             let tx = (window.transactions || []).find(t => t.id === txId);
             if (!tx && typeof txId === 'string' && txId.startsWith('virtual-card-')) {
                 const parts = txId.split('-');
@@ -1683,33 +1748,99 @@ const CARDS_CONFIG = ${cardsJson};
 
 function onFormSubmit(e) {
   try {
-    const responses = (e && e.namedValues) ? e.namedValues : {
-      "Cartão": [CARDS_CONFIG.length > 0 ? CARDS_CONFIG[0].name : "Atacadão"],
-      "Nome da Compra": ["Teste Manual Forms"],
-      "Valor": ["120.50"],
-      "Parcelas": ["1"],
-      "Data": [Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy")]
-    };
-    
-    // Busca inteligente de respostas (independente de acentos, maiúsculas ou títulos exatos)
-    const getVal = (keywords, defaultVal) => {
-      const keys = Object.keys(responses);
-      for (let i = 0; i < keywords.length; i++) {
-        const kw = keywords[i];
-        const foundKey = keys.find(k => k.toLowerCase().trim().includes(kw.toLowerCase()));
-        if (foundKey && responses[foundKey] && responses[foundKey][0] !== undefined) {
-          const val = String(responses[foundKey][0]).trim();
-          if (val !== "") return val;
-        }
-      }
-      return defaultVal;
-    };
+    let cardName = "";
+    let purchaseName = "";
+    let valueStr = "0";
+    let installmentsStr = "1";
+    let rawDateStr = "";
 
-    const cardName = getVal(["cartão", "cartao", "banco", "card"], "");
-    const purchaseName = getVal(["compra", "nome", "descrição", "descricao", "item", "estabelecimento"], "Compra via Forms");
-    const valueStr = getVal(["valor", "r$", "preço", "preco", "quantia"], "0");
-    const installmentsStr = getVal(["parcela", "vezes", "dividir"], "1");
-    const rawDateStr = getVal(["data", "dia", "quando"], "");
+    // 1. Acionamento direto pelo Formulário (e.namedValues)
+    if (e && e.namedValues) {
+      const keys = Object.keys(e.namedValues);
+      const getVal = (keywords, defaultVal) => {
+        for (let i = 0; i < keywords.length; i++) {
+          const foundKey = keys.find(k => k.toLowerCase().trim().includes(keywords[i]));
+          if (foundKey && e.namedValues[foundKey] && e.namedValues[foundKey][0]) {
+            const v = String(e.namedValues[foundKey][0]).trim();
+            if (v !== "") return v;
+          }
+        }
+        return defaultVal;
+      };
+      cardName = getVal(["cartão", "cartao", "banco", "card"], "");
+      purchaseName = getVal(["compra", "nome", "descrição", "descricao", "item", "estabelecimento"], "Compra via Forms");
+      valueStr = getVal(["valor", "r$", "preço", "preco", "quantia"], "0");
+      installmentsStr = getVal(["parcela", "vezes", "dividir"], "1");
+      rawDateStr = getVal(["data", "dia", "quando"], "");
+    }
+    // 2. Acionamento vinculado à Planilha Google (e.values)
+    else if (e && e.values) {
+      const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).toLowerCase());
+      const values = e.values;
+
+      const getColVal = (keywords, defaultVal) => {
+        for (let i = 0; i < keywords.length; i++) {
+          const idx = headers.findIndex(h => h.includes(keywords[i]));
+          if (idx !== -1 && values[idx] !== undefined) {
+            const v = String(values[idx]).trim();
+            if (v !== "") return v;
+          }
+        }
+        if (keywords.includes("cartao") && values[1]) return String(values[1]);
+        if (keywords.includes("compra") && values[2]) return String(values[2]);
+        if (keywords.includes("valor") && values[3]) return String(values[3]);
+        if (keywords.includes("parcela") && values[4]) return String(values[4]);
+        if (keywords.includes("data") && values[5]) return String(values[5]);
+        return defaultVal;
+      };
+
+      cardName = getColVal(["cartão", "cartao", "banco", "card"], "");
+      purchaseName = getColVal(["compra", "nome", "descrição", "descricao", "item", "estabelecimento"], "Compra via Forms");
+      valueStr = getColVal(["valor", "r$", "preço", "preco", "quantia"], "0");
+      installmentsStr = getColVal(["parcela", "vezes", "dividir"], "1");
+      rawDateStr = getColVal(["data", "dia", "quando"], "");
+    }
+    // 3. Execução manual de teste no editor do Apps Script (sem objeto e)
+    else {
+      try {
+        const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+        const lastRow = sheet.getLastRow();
+        if (lastRow > 1) {
+          const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).toLowerCase());
+          const lastRowValues = sheet.getRange(lastRow, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+          const getRowVal = (keywords, defaultVal) => {
+            for (let i = 0; i < keywords.length; i++) {
+              const idx = headers.findIndex(h => h.includes(keywords[i]));
+              if (idx !== -1 && lastRowValues[idx] !== undefined) {
+                const v = String(lastRowValues[idx]).trim();
+                if (v !== "") return v;
+              }
+            }
+            if (keywords.includes("cartao") && lastRowValues[1]) return String(lastRowValues[1]);
+            if (keywords.includes("compra") && lastRowValues[2]) return String(lastRowValues[2]);
+            if (keywords.includes("valor") && lastRowValues[3]) return String(lastRowValues[3]);
+            if (keywords.includes("parcela") && lastRowValues[4]) return String(lastRowValues[4]);
+            if (keywords.includes("data") && lastRowValues[5]) return String(lastRowValues[5]);
+            return defaultVal;
+          };
+
+          cardName = getRowVal(["cartão", "cartao", "banco", "card"], "");
+          purchaseName = getRowVal(["compra", "nome", "descrição", "descricao", "item", "estabelecimento"], "Teste Planilha");
+          valueStr = getRowVal(["valor", "r$", "preço", "preco", "quantia"], "100.00");
+          installmentsStr = getRowVal(["parcela", "vezes", "dividir"], "1");
+          rawDateStr = getRowVal(["data", "dia", "quando"], "");
+        } else {
+          throw new Error("Planilha vazia");
+        }
+      } catch (errSheet) {
+        cardName = CARDS_CONFIG.length > 0 ? CARDS_CONFIG[0].name : "Cartão";
+        purchaseName = "Teste Manual Editor";
+        valueStr = "120.50";
+        installmentsStr = "1";
+      }
+    }
 
     const value = parseFloat(String(valueStr).replace(/[R$\\s]/g, "").replace(",", ".")) || 0;
     const installments = parseInt(String(installmentsStr).replace(/[^0-9]/g, "")) || 1;
@@ -1822,7 +1953,8 @@ function onFormSubmit(e) {
       };
 
       const res = UrlFetchApp.fetch(url, options);
-      Logger.log("Parcela " + i + "/" + installments + " enviada: " + res.getContentText());
+      Logger.log("Status Code: " + res.getResponseCode());
+      Logger.log("Resposta Firestore: " + res.getContentText());
     }
   } catch (err) {
     Logger.log("Erro FinanceUP: " + err.toString());
@@ -2194,12 +2326,38 @@ function testarEnvioManual() {
         };
 
         window.deleteCardPurchaseItem = async (txId, purchaseId) => {
-            if (!confirm('Deseja realmente excluir esta compra do cartão?')) return;
             if (String(txId).startsWith('virtual-card-')) {
                 alert("Esta compra é virtual e ainda não foi salva no banco.");
                 return;
             }
             await window.removePurchaseItem(txId, purchaseId);
+            if (window.renderCardPurchasesModal) window.renderCardPurchasesModal();
+            if (window.renderCardsView) window.renderCardsView();
+            if (window.renderDashboard) window.renderDashboard();
+        };
+
+        window.clearTestPurchases = async () => {
+            if (!confirm('Deseja realmente remover todas as compras de teste ("Teste Manual Forms")?')) return;
+            const txs = window.transactions || [];
+            for (const t of txs) {
+                if (t.description && (t.description.includes('Teste') || t.description.includes('Forms'))) {
+                    await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', t.id));
+                } else if (t.purchases && Array.isArray(t.purchases)) {
+                    const cleanPurchases = t.purchases.filter(p => !p.name || (!p.name.includes('Teste') && !p.name.includes('Forms')));
+                    if (cleanPurchases.length !== t.purchases.length) {
+                        if (cleanPurchases.length === 0) {
+                            await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', t.id));
+                        } else {
+                            const newTotal = cleanPurchases.reduce((acc, p) => acc + (p.value || 0), 0);
+                            await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', t.id), {
+                                purchases: cleanPurchases,
+                                value: newTotal
+                            });
+                        }
+                    }
+                }
+            }
+            alert('Compras de teste removidas com sucesso!');
             if (window.renderCardPurchasesModal) window.renderCardPurchasesModal();
             if (window.renderCardsView) window.renderCardsView();
             if (window.renderDashboard) window.renderDashboard();
@@ -3958,6 +4116,15 @@ service cloud.firestore {
                 if (mob) {
                     mob.classList.add('text-neon');
                     mob.classList.remove('text-zinc-500');
+                }
+            }
+
+            const formsBotBtn = document.getElementById('googleFormsBotHeaderBtn');
+            if (formsBotBtn) {
+                if (view === 'cards') {
+                    formsBotBtn.classList.remove('hidden');
+                } else {
+                    formsBotBtn.classList.add('hidden');
                 }
             }
 
