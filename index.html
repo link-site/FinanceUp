@@ -263,92 +263,144 @@
 
             <!-- Cards View -->
             <div id="viewCards" class="hidden animate-in fade-in duration-500">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                <!-- Cards Main Content (List of cards & general summary) -->
+                <div id="cardsMainContent" class="space-y-8">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white flex items-center gap-2.5">
+                                <i data-lucide="credit-card" class="w-7 h-7 text-neon"></i> Meus Cartões de Crédito
+                            </h3>
+                            <p class="text-sm text-zinc-400 mt-1">Gerencie seus limites, datas de fechamento e acompanhe suas faturas mês a mês.</p>
+                        </div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <button onclick="openGoogleFormsBotModal()" class="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 px-4 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm text-xs sm:text-sm">
+                                <i data-lucide="bot" class="w-5 h-5 text-neon"></i>
+                                <span>Conectar Google Forms / Bot</span>
+                            </button>
+                            <button onclick="openCardModal()" class="bg-neon text-black font-bold px-6 py-3 rounded-xl flex items-center gap-2 hover-bg-neon transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)] text-xs sm:text-sm">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                <span>Novo Cartão</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Top Metrics Banner -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-neon flex justify-between items-center shadow-lg">
+                            <div>
+                                <p class="text-zinc-400 text-sm mb-1 font-medium">Fatura Total (Mês Atual)</p>
+                                <h3 id="cardsMonthTotal" class="text-2xl font-black text-white">R$ 0,00</h3>
+                            </div>
+                            <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="file-text" class="w-6 h-6 text-neon"></i></div>
+                        </div>
+                        <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-emerald-500 flex justify-between items-center shadow-lg">
+                            <div>
+                                <p class="text-zinc-400 text-sm mb-1 font-medium">Fatura Paga no Mês</p>
+                                <h3 id="cardsMonthPaid" class="text-2xl font-black text-white">R$ 0,00</h3>
+                            </div>
+                            <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-500"></i></div>
+                        </div>
+                        <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-amber-500 flex justify-between items-center shadow-lg">
+                            <div>
+                                <p class="text-zinc-400 text-sm mb-1 font-medium">Restante em Aberto</p>
+                                <h3 id="cardsMonthPending" class="text-2xl font-black text-white">R$ 0,00</h3>
+                            </div>
+                            <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="alert-circle" class="w-6 h-6 text-amber-500"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Cards Grid -->
                     <div>
-                        <h3 class="text-2xl font-bold text-white flex items-center gap-2.5">
-                            <i data-lucide="credit-card" class="w-7 h-7 text-neon"></i> Meus Cartões de Crédito
-                        </h3>
-                        <p class="text-sm text-zinc-400 mt-1">Gerencie seus limites, datas de fechamento e acompanhe suas faturas mês a mês.</p>
-                    </div>
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <button onclick="openGoogleFormsBotModal()" class="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 px-4 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm text-xs sm:text-sm">
-                            <i data-lucide="bot" class="w-5 h-5 text-neon"></i>
-                            <span>Conectar Google Forms / Bot</span>
-                        </button>
-                        <button onclick="openCardModal()" class="bg-neon text-black font-bold px-6 py-3 rounded-xl flex items-center gap-2 hover-bg-neon transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)] text-xs sm:text-sm">
-                            <i data-lucide="plus" class="w-5 h-5"></i>
-                            <span>Novo Cartão</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Top Metrics Banner -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-neon flex justify-between items-center shadow-lg">
-                        <div>
-                            <p class="text-zinc-400 text-sm mb-1 font-medium">Fatura Total (Mês Atual)</p>
-                            <h3 id="cardsMonthTotal" class="text-2xl font-black text-white">R$ 0,00</h3>
-                        </div>
-                        <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="file-text" class="w-6 h-6 text-neon"></i></div>
-                    </div>
-                    <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-emerald-500 flex justify-between items-center shadow-lg">
-                        <div>
-                            <p class="text-zinc-400 text-sm mb-1 font-medium">Fatura Paga no Mês</p>
-                            <h3 id="cardsMonthPaid" class="text-2xl font-black text-white">R$ 0,00</h3>
-                        </div>
-                        <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-500"></i></div>
-                    </div>
-                    <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-amber-500 flex justify-between items-center shadow-lg">
-                        <div>
-                            <p class="text-zinc-400 text-sm mb-1 font-medium">Restante em Aberto</p>
-                            <h3 id="cardsMonthPending" class="text-2xl font-black text-white">R$ 0,00</h3>
-                        </div>
-                        <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="alert-circle" class="w-6 h-6 text-amber-500"></i></div>
-                    </div>
-                </div>
-
-                <!-- Cards Grid -->
-                <h4 class="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
-                    <i data-lucide="wallet" class="w-5 h-5 text-neon"></i> Cartões Cadastrados
-                </h4>
-                <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                    <!-- Dynamic cards -->
-                </div>
-
-                <!-- Transactions Table for Cards -->
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                    <div class="flex items-center gap-3">
-                        <h4 class="text-lg font-bold text-zinc-200 flex items-center gap-2">
-                            <i data-lucide="list" class="w-5 h-5 text-neon"></i> Movimentações dos Cartões (Mês Selecionado)
+                        <h4 class="text-lg font-bold text-zinc-200 mb-4 flex items-center gap-2">
+                            <i data-lucide="wallet" class="w-5 h-5 text-neon"></i> Cartões Cadastrados
                         </h4>
-                        <button onclick="openCardTransactionModal()" class="bg-neon/10 text-neon border border-neon/30 hover:bg-neon hover:text-black px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Novo Lançamento
-                        </button>
-                        <button onclick="clearTestPurchases()" class="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Limpar Testes
-                        </button>
+                        <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Dynamic cards -->
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800">
-                        <i data-lucide="filter" class="w-4 h-4 text-neon"></i>
-                        <select id="filterCardSelect" onchange="renderCardsView()" class="bg-transparent text-sm text-zinc-300 font-medium outline-none border-none">
-                            <option value="all">Todos os Cartões</option>
-                        </select>
+
+                    <!-- Transactions Table for Cards -->
+                    <div class="space-y-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div class="flex items-center gap-3">
+                                <h4 class="text-lg font-bold text-zinc-200 flex items-center gap-2">
+                                    <i data-lucide="list" class="w-5 h-5 text-neon"></i> Movimentações dos Cartões (Mês Selecionado)
+                                </h4>
+                                <button onclick="openCardTransactionModal()" class="bg-neon/10 text-neon border border-neon/30 hover:bg-neon hover:text-black px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Novo Lançamento
+                                </button>
+                                <button onclick="clearTestPurchases()" class="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Limpar Testes
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800">
+                                <i data-lucide="filter" class="w-4 h-4 text-neon"></i>
+                                <select id="filterCardSelect" onchange="renderCardsView()" class="bg-transparent text-sm text-zinc-300 font-medium outline-none border-none">
+                                    <option value="all">Todos os Cartões</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="bg-zinc-950/50 border-b border-zinc-800 text-sm text-zinc-400">
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4">Data / Vencimento</th>
+                                        <th class="p-4">Descrição</th>
+                                        <th class="p-4">Cartão / Categoria</th>
+                                        <th class="p-4 text-right">Valor</th>
+                                        <th class="p-4 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cardsTransactionsTable"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="bg-zinc-950/50 border-b border-zinc-800 text-sm text-zinc-400">
-                                <th class="p-4">Status</th>
-                                <th class="p-4">Data / Vencimento</th>
-                                <th class="p-4">Descrição</th>
-                                <th class="p-4">Cartão / Categoria</th>
-                                <th class="p-4 text-right">Valor</th>
-                                <th class="p-4 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cardsTransactionsTable"></tbody>
-                    </table>
+
+                <!-- Cards Detail Content (Inline Page View for Card Purchases) -->
+                <div id="cardsDetailContent" class="hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <button type="button" onclick="closeCardPurchasesModal()" class="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 shadow-sm">
+                            <i data-lucide="arrow-left" class="w-4 h-4 text-neon"></i>
+                            <span>Voltar para Meus Cartões</span>
+                        </button>
+                    </div>
+
+                    <div id="cardPurchasesHeader" class="p-4 sm:p-6 border border-zinc-800 rounded-3xl flex justify-between items-center bg-zinc-900 shadow-xl">
+                        <!-- Filled dynamically -->
+                    </div>
+
+                    <div class="bg-zinc-950 p-4 sm:p-6 rounded-3xl border border-zinc-800 space-y-4 shadow-xl">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div>
+                                <h4 class="text-white font-bold text-base">Movimentações de Compras do Cartão</h4>
+                                <p class="text-xs text-zinc-400">Lista exclusiva de compras realizadas neste cartão de crédito</p>
+                            </div>
+                            <button type="button" onclick="window.openAddPurchaseModalForActiveCard()" class="bg-neon text-black px-4 py-2 rounded-xl text-xs sm:text-sm font-bold hover:bg-neon/90 transition shadow flex items-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>Nova Compra no Cartão</span>
+                            </button>
+                        </div>
+
+                        <div class="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-zinc-800 text-xs font-bold text-zinc-400 uppercase tracking-wider bg-zinc-950/50">
+                                        <th class="p-3.5 sm:p-4">Compra / Estabelecimento</th>
+                                        <th class="p-3.5 sm:p-4">Parcela</th>
+                                        <th class="p-3.5 sm:p-4">Mês da Fatura</th>
+                                        <th class="p-3.5 sm:p-4">Data</th>
+                                        <th class="p-3.5 sm:p-4 text-right">Valor</th>
+                                        <th class="p-3.5 sm:p-4 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cardPurchasesTableBody">
+                                    <!-- Filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -703,47 +755,7 @@
         </div>
     </div>
 
-    <!-- Card Purchases Screen / Modal -->
-    <div id="cardPurchasesModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
-        <div class="bg-zinc-950 w-full max-w-4xl rounded-3xl border border-zinc-800 overflow-hidden shadow-2xl max-h-[92vh] flex flex-col my-auto">
-            <div id="cardPurchasesHeader" class="p-4 sm:p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900 shrink-0">
-                <!-- Filled dynamically -->
-            </div>
-            <div class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div>
-                        <h4 class="text-white font-bold text-base">Movimentações de Compras do Cartão</h4>
-                        <p class="text-xs text-zinc-400">Lista exclusiva de compras realizadas neste cartão de crédito</p>
-                    </div>
-                    <button type="button" onclick="window.openAddPurchaseModalForActiveCard()" class="bg-neon text-black px-4 py-2 rounded-xl text-xs sm:text-sm font-bold hover:bg-neon/90 transition shadow flex items-center gap-2">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
-                        <span>Nova Compra no Cartão</span>
-                    </button>
-                </div>
 
-                <div class="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-zinc-800 text-xs font-bold text-zinc-400 uppercase tracking-wider bg-zinc-950/50">
-                                <th class="p-3.5 sm:p-4">Compra / Estabelecimento</th>
-                                <th class="p-3.5 sm:p-4">Parcela</th>
-                                <th class="p-3.5 sm:p-4">Mês da Fatura</th>
-                                <th class="p-3.5 sm:p-4">Data</th>
-                                <th class="p-3.5 sm:p-4 text-right">Valor</th>
-                                <th class="p-3.5 sm:p-4 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cardPurchasesTableBody">
-                            <!-- Filled dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="p-4 border-t border-zinc-800 bg-zinc-900 flex justify-end shrink-0">
-                <button type="button" onclick="closeCardPurchasesModal()" class="px-5 py-2.5 rounded-xl bg-zinc-800 text-white hover:bg-zinc-700 font-medium text-sm transition-colors">Fechar</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Mobile Quick Purchase Sender Modal / Page -->
     <div id="mobileQuickSenderModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/90 backdrop-blur-md p-3 sm:p-4 overflow-y-auto">
@@ -1086,9 +1098,11 @@ service cloud.firestore {
                                 Teste Manualmente com a função <code class="bg-zinc-900 text-neon px-1.5 py-0.5 rounded">testarEnvioManual</code>
                             </h5>
                             <p class="text-xs text-zinc-300">
-                                No topo do editor do Apps Script, selecione a função <code class="text-white font-mono">testarEnvioManual</code> no menu suspenso e clique no botão <b class="text-white">Executar</b>. Verifique nos Logs se apareceu <code class="text-emerald-400 font-mono">Status Code: 200</code>.
+                                No topo do editor do Apps Script, selecione a função <code class="text-white font-mono">testarEnvioManual</code> no menu suspenso e clique no botão <b class="text-white">Executar</b>. Isso testará instantaneamente o envio (ex: Mercado Pago, 99Pop, R$ 27,00) para verificar se tudo está sincronizando corretamente.
                             </p>
                         </div>
+
+
 
                         <div class="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-3">
                             <h5 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 text-neon">
@@ -1594,9 +1608,6 @@ service cloud.firestore {
         };
 
         window.openAddPurchaseModal = (txId) => {
-            const cardPurchasesModal = document.getElementById('cardPurchasesModal');
-            if (cardPurchasesModal) cardPurchasesModal.classList.remove('active');
-
             let tx = (window.transactions || []).find(t => t.id === txId);
             if (!tx && typeof txId === 'string' && txId.startsWith('virtual-card-')) {
                 const parts = txId.split('-');
@@ -1835,10 +1846,11 @@ function onFormSubmit(e) {
           throw new Error("Planilha vazia");
         }
       } catch (errSheet) {
-        cardName = CARDS_CONFIG.length > 0 ? CARDS_CONFIG[0].name : "Cartão";
-        purchaseName = "Teste Manual Editor";
-        valueStr = "120.50";
+        cardName = "Mercado Pago";
+        purchaseName = "99Pop";
+        valueStr = "27";
         installmentsStr = "1";
+        rawDateStr = "11/07/2026";
       }
     }
 
@@ -1965,11 +1977,11 @@ function onFormSubmit(e) {
 function testarEnvioManual() {
   const mockEvent = {
     namedValues: {
-      "Cartão": [CARDS_CONFIG.length > 0 ? CARDS_CONFIG[0].name : "Atacadão"],
-      "Nome da Compra": ["Teste Manual Forms"],
-      "Valor": ["120.50"],
-      "Parcelas": ["2"],
-      "Data": [Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy")]
+      "Cartão": ["Mercado Pago"],
+      "Nome da Compra": ["99Pop"],
+      "Valor": ["27"],
+      "Parcelas": ["1"],
+      "Data": ["11/07/2026"]
     }
   };
   onFormSubmit(mockEvent);
@@ -2023,22 +2035,9 @@ function testarEnvioManual() {
                     year++;
                 }
             }
-            const monthStr = `${year}-${String(month).padStart(2, '0')}`;
-            const dueDate = `${monthStr}-${String(dueDay).padStart(2, '0')}`;
+
             const instVal = Math.floor((value / installments) * 100) / 100;
-            const instText = installments > 1 ? `1/${installments}` : '';
-
-            const purchaseItem = {
-                id: String(Date.now()),
-                name: installments > 1 ? `${name} (${instText})` : name,
-                value: instVal,
-                installmentText: instText,
-                month: monthStr,
-                date: dateVal,
-                addedAt: Date.now()
-            };
-
-            let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && t.cardId === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
+            const remainder = Math.round((value - (instVal * installments)) * 100) / 100;
 
             const feedbackEl = document.getElementById('simFeedback');
             if (feedbackEl) {
@@ -2048,39 +2047,65 @@ function testarEnvioManual() {
             }
 
             try {
-                if (targetTx) {
-                    const curPurchases = targetTx.purchases || [];
-                    const newPurchases = curPurchases.concat([purchaseItem]);
-                    const newTotal = (targetTx.value || 0) + instVal;
-                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', targetTx.id), {
-                        value: newTotal,
-                        purchases: newPurchases
-                    });
-                } else {
-                    const newTxData = {
-                        userId: window.currentUser.uid,
-                        description: card ? `Fatura ${card.name}` : 'Fatura Cartão',
-                        value: instVal,
-                        type: 'Saída',
-                        category: 'Cartão de Credito',
-                        cardId: cardId,
-                        date: dueDate,
-                        dueDate: dueDate,
-                        isPaid: false,
-                        isRecurring: false,
-                        purchases: [purchaseItem],
-                        createdAt: Date.now()
+                for (let i = 0; i < installments; i++) {
+                    let instYear = year;
+                    let instMonth = month + i;
+                    while (instMonth > 12) {
+                        instMonth -= 12;
+                        instYear++;
+                    }
+                    const monthStr = `${instYear}-${String(instMonth).padStart(2, '0')}`;
+                    const dueDate = `${monthStr}-${String(dueDay).padStart(2, '0')}`;
+                    const valThisMonth = instVal + (i === 0 ? remainder : 0);
+                    const instText = installments > 1 ? `${i + 1}/${installments}` : '';
+
+                    const purchaseItem = {
+                        id: String(Date.now() + i),
+                        name: installments > 1 ? `${name} (${instText})` : name,
+                        value: valThisMonth,
+                        installmentText: instText,
+                        month: monthStr,
+                        date: dateVal,
+                        addedAt: Date.now()
                     };
-                    await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
+
+                    let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && t.cardId === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
+
+                    if (targetTx) {
+                        const curPurchases = targetTx.purchases || [];
+                        const newPurchases = curPurchases.concat([purchaseItem]);
+                        const newTotal = (targetTx.value || 0) + valThisMonth;
+                        await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', targetTx.id), {
+                            value: newTotal,
+                            purchases: newPurchases
+                        });
+                    } else {
+                        const newTxData = {
+                            userId: window.currentUser.uid,
+                            description: card ? `Fatura ${card.name}` : 'Fatura Cartão',
+                            value: valThisMonth,
+                            type: 'Saída',
+                            category: 'Cartão de Credito',
+                            cardId: cardId,
+                            date: dueDate,
+                            dueDate: dueDate,
+                            isPaid: false,
+                            isRecurring: false,
+                            purchases: [purchaseItem],
+                            createdAt: Date.now() + i
+                        };
+                        await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
+                    }
                 }
 
                 if (feedbackEl) {
                     feedbackEl.innerHTML = `<div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 font-bold text-xs sm:text-sm flex items-center gap-2 animate-in fade-in mt-3">
                         <i data-lucide="check-circle" class="w-5 h-5 shrink-0 text-emerald-400"></i>
-                        <span>✅ Sincronização em tempo real concluída! A compra "<b>${name}</b>" (R$ ${instVal.toFixed(2)}) foi inserida na fatura de <b>${monthStr}</b> do cartão <b>${card ? card.name : ''}</b>.</span>
+                        <span>✅ Sincronização em tempo real concluída! A compra "<b>${name}</b>" (${installments}x) foi inserida com sucesso no cartão <b>${card ? card.name : ''}</b>.</span>
                     </div>`;
                 }
                 if (window.renderCardsView) window.renderCardsView();
+                if (window.renderDashboard) window.renderDashboard();
                 if (window.lucide) window.lucide.createIcons();
             } catch (err) {
                 if (feedbackEl) {
@@ -2228,13 +2253,24 @@ function testarEnvioManual() {
 
         window.openCardPurchasesModal = (cardId) => {
             window.activeCardPurchasesId = cardId;
+            const mainContent = document.getElementById('cardsMainContent');
+            const detailContent = document.getElementById('cardsDetailContent');
+            if (mainContent) mainContent.classList.add('hidden');
+            if (detailContent) detailContent.classList.remove('hidden');
             window.renderCardPurchasesModal();
-            document.getElementById('cardPurchasesModal').classList.add('active');
             if (window.lucide) window.lucide.createIcons();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         window.closeCardPurchasesModal = () => {
-            document.getElementById('cardPurchasesModal').classList.remove('active');
+            const mainContent = document.getElementById('cardsMainContent');
+            const detailContent = document.getElementById('cardsDetailContent');
+            if (detailContent) detailContent.classList.add('hidden');
+            if (mainContent) mainContent.classList.remove('hidden');
+            window.activeCardPurchasesId = null;
+            if (window.renderCardsView) window.renderCardsView();
+            if (window.lucide) window.lucide.createIcons();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         window.renderCardPurchasesModal = () => {
@@ -4165,6 +4201,11 @@ service cloud.firestore {
                 sections.reports.classList.add('hidden');
                 if (sections.cards) sections.cards.classList.remove('hidden');
                 sections.summary.classList.add('hidden');
+                const mainContent = document.getElementById('cardsMainContent');
+                const detailContent = document.getElementById('cardsDetailContent');
+                if (mainContent) mainContent.classList.remove('hidden');
+                if (detailContent) detailContent.classList.add('hidden');
+                window.activeCardPurchasesId = null;
                 if (window.renderCardsView) window.renderCardsView();
             }
 
