@@ -329,9 +329,6 @@
                                 <button onclick="openCardTransactionModal()" class="bg-neon/10 text-neon border border-neon/30 hover:bg-neon hover:text-black px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
                                     <i data-lucide="plus" class="w-3.5 h-3.5"></i> Novo Lançamento
                                 </button>
-                                <button onclick="clearTestPurchases()" class="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
-                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Limpar Testes
-                                </button>
                             </div>
                             <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800">
                                 <i data-lucide="filter" class="w-4 h-4 text-neon"></i>
@@ -1095,22 +1092,21 @@ service cloud.firestore {
                         <div class="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-3">
                             <h5 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 text-neon">
                                 <span class="w-5 h-5 rounded-full bg-neon/20 text-neon font-bold flex items-center justify-center text-xs">2</span>
-                                Teste Manualmente com a função <code class="bg-zinc-900 text-neon px-1.5 py-0.5 rounded">testarEnvioManual</code>
-                            </h5>
-                            <p class="text-xs text-zinc-300">
-                                No topo do editor do Apps Script, selecione a função <code class="text-white font-mono">testarEnvioManual</code> no menu suspenso e clique no botão <b class="text-white">Executar</b>. Isso testará instantaneamente o envio (ex: Mercado Pago, 99Pop, R$ 27,00) para verificar se tudo está sincronizando corretamente.
-                            </p>
-                        </div>
-
-
-
-                        <div class="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-3">
-                            <h5 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 text-neon">
-                                <span class="w-5 h-5 rounded-full bg-neon/20 text-neon font-bold flex items-center justify-center text-xs">3</span>
                                 Erro 403 (Permissão Negada)?
                             </h5>
                             <p class="text-xs text-zinc-300">
                                 Se o log mostrar <b class="text-red-400">Status Code: 403</b>, significa que as regras do Firestore estão bloqueando requisições externas sem login. Vá na aba <b class="text-white">🛡️ 4. Regras do Firebase</b> acima, copie as regras atualizadas e cole no seu Console do Firebase (Firestore Database > Rules) e clique em Publicar.
+                            </p>
+                        </div>
+
+                        <div class="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 space-y-3">
+                            <h5 class="font-bold text-white text-xs sm:text-sm flex items-center gap-2 text-neon">
+                                <span class="w-5 h-5 rounded-full bg-neon/20 text-neon font-bold flex items-center justify-center text-xs">!</span>
+                                Apareceu "Teste de Conexão" ao invés da compra real?
+                            </h5>
+                            <p class="text-xs text-zinc-300">
+                                Isso acontece se você clicar no botão <b class="text-white">Executar</b> diretamente dentro do editor do Apps Script. O script não tem como ler as informações do formulário dessa forma, então ele envia dados de teste apenas para provar que a conexão funciona.<br><br>
+                                <b>Para testar com dados reais:</b> Não clique em Executar! Preencha e envie o seu Google Forms de verdade (modo de visualização normal) e certifique-se de que o <b class="text-white">Acionador</b> está ativado.
                             </p>
                         </div>
 
@@ -1286,7 +1282,23 @@ service cloud.firestore {
         window.ensureCardTransactionsForPeriod = (txsList, curPeriod) => {
             if (!window.cards || !Array.isArray(window.cards) || window.cards.length === 0) return;
             window.cards.forEach(c => {
-                const hasCardTx = txsList.some(t => {
+                let cardPurchasesSum = 0;
+                let cardPurchasesList = [];
+                let hasPurchasesGlobally = false;
+                
+                (window.transactions || []).forEach(tx => {
+                    if ((tx.cardId === c.id || (!tx.cardId && window.cards.length === 1)) && tx.purchases && Array.isArray(tx.purchases)) {
+                        tx.purchases.forEach(p => {
+                            if (p.month === curPeriod) {
+                                cardPurchasesSum += (p.value || 0);
+                                cardPurchasesList.push(p);
+                                hasPurchasesGlobally = true;
+                            }
+                        });
+                    }
+                });
+
+                let existingTxIndex = txsList.findIndex(t => {
                     if (t.isTombstone) return false;
                     if (!window.isCardExpense(t) && !t.isVirtualCardTx) return false;
                     if (t.cardId === c.id) return true;
@@ -1294,38 +1306,44 @@ service cloud.firestore {
                     if (t.description && typeof t.description === 'string' && t.description.toLowerCase().includes(c.name.toLowerCase())) return true;
                     return false;
                 });
-                if (!hasCardTx) {
-                    const dueDayStr = String(c.dueDay || 10).padStart(2, '0');
-                    const dueDateStr = `${curPeriod}-${dueDayStr}`;
-                    
-                    let cardPurchasesSum = 0;
-                    let cardPurchasesList = [];
-                    (window.transactions || []).forEach(tx => {
-                        if ((tx.cardId === c.id || (!tx.cardId && window.cards.length === 1)) && tx.purchases && Array.isArray(tx.purchases)) {
-                            tx.purchases.forEach(p => {
-                                if (p.month === curPeriod) {
-                                    cardPurchasesSum += (p.value || 0);
-                                    cardPurchasesList.push(p);
-                                }
-                            });
-                        }
-                    });
 
-                    txsList.push({
-                        id: `virtual-card-${c.id}-${curPeriod}`,
-                        cardId: c.id,
-                        description: `Fatura ${c.name}`,
-                        category: 'Cartão de Credito',
-                        type: 'Saída',
-                        value: cardPurchasesSum,
-                        date: dueDateStr,
-                        dueDate: dueDateStr,
-                        displayDate: dueDateStr,
-                        isPaid: false,
-                        isRecurring: false,
-                        purchases: cardPurchasesList,
-                        isVirtualCardTx: true
-                    });
+                if (existingTxIndex !== -1) {
+                    if (hasPurchasesGlobally) {
+                        const existingTx = txsList[existingTxIndex];
+                        txsList[existingTxIndex] = {
+                            ...existingTx,
+                            value: cardPurchasesSum,
+                            purchases: cardPurchasesList
+                        };
+                        
+                        // Remove any other duplicate real transactions for this card from txsList so we don't double count
+                        for (let i = txsList.length - 1; i > existingTxIndex; i--) {
+                            const t = txsList[i];
+                            if (!t.isTombstone && (window.isCardExpense(t) || t.isVirtualCardTx) && (t.cardId === c.id || (!t.cardId && window.cards.length === 1))) {
+                                txsList.splice(i, 1);
+                            }
+                        }
+                    }
+                } else {
+                    if (hasPurchasesGlobally || cardPurchasesSum > 0) {
+                        const dueDayStr = String(c.dueDay || 10).padStart(2, '0');
+                        const dueDateStr = `${curPeriod}-${dueDayStr}`;
+                        txsList.push({
+                            id: `virtual-card-${c.id}-${curPeriod}`,
+                            cardId: c.id,
+                            description: `Fatura ${c.name}`,
+                            category: 'Cartão de Credito',
+                            type: 'Saída',
+                            value: cardPurchasesSum,
+                            date: dueDateStr,
+                            dueDate: dueDateStr,
+                            displayDate: dueDateStr,
+                            isPaid: false,
+                            isRecurring: false,
+                            purchases: cardPurchasesList,
+                            isVirtualCardTx: true
+                        });
+                    }
                 }
             });
         };
@@ -1350,11 +1368,40 @@ service cloud.firestore {
             let paidMonth = 0;
             let pendingMonth = 0;
 
-            cardTxs.forEach(t => {
-                totalMonth += (t.value || 0);
-                if (t.isPaid) paidMonth += (t.value || 0);
-                else pendingMonth += (t.value || 0);
-            });
+            if (window.cards && window.cards.length > 0) {
+                window.cards.forEach(c => {
+                    let spent = 0;
+                    let hasPurchasesInPeriod = false;
+
+                    (window.transactions || []).forEach(tx => {
+                        if ((tx.cardId === c.id || (!tx.cardId && window.cards.length === 1)) && tx.purchases && Array.isArray(tx.purchases)) {
+                            tx.purchases.forEach(p => {
+                                if (p.month === curPeriod) {
+                                    spent += (p.value || 0);
+                                    hasPurchasesInPeriod = true;
+                                }
+                            });
+                        }
+                    });
+
+                    const cTxs = cardTxs.filter(t => t.cardId === c.id || (!t.cardId && window.cards.length === 1));
+                    if (!hasPurchasesInPeriod) {
+                        spent = cTxs.reduce((acc, curr) => acc + (curr.value || 0), 0);
+                    }
+                    
+                    totalMonth += spent;
+                    // Determine if the card is paid this month based on the transactions in cardTxs
+                    const isPaid = cTxs.length > 0 && cTxs.every(t => t.isPaid);
+                    if (isPaid && spent > 0) paidMonth += spent;
+                    else pendingMonth += spent;
+                });
+            } else {
+                cardTxs.forEach(t => {
+                    totalMonth += (t.value || 0);
+                    if (t.isPaid) paidMonth += (t.value || 0);
+                    else pendingMonth += (t.value || 0);
+                });
+            }
 
             const elTotal = document.getElementById('cardsMonthTotal');
             const elPaid = document.getElementById('cardsMonthPaid');
@@ -1380,8 +1427,27 @@ service cloud.firestore {
                     `;
                 } else {
                     grid.innerHTML = window.cards.map(c => {
-                        const cTxs = cardTxs.filter(t => t.cardId === c.id || (!t.cardId && window.cards.length === 1));
-                        const spent = cTxs.reduce((acc, curr) => acc + (curr.value || 0), 0);
+                        let spent = 0;
+                        let hasPurchasesInPeriod = false;
+
+                        // 1. Sum purchases from ALL transactions globally for this card & period
+                        (window.transactions || []).forEach(tx => {
+                            if ((tx.cardId === c.id || (!tx.cardId && window.cards.length === 1)) && tx.purchases && Array.isArray(tx.purchases)) {
+                                tx.purchases.forEach(p => {
+                                    if (p.month === curPeriod) {
+                                        spent += (p.value || 0);
+                                        hasPurchasesInPeriod = true;
+                                    }
+                                });
+                            }
+                        });
+
+                        // 2. If no purchases at all for this period, fallback to legacy transaction values
+                        if (!hasPurchasesInPeriod) {
+                            const cTxs = cardTxs.filter(t => t.cardId === c.id || (!t.cardId && window.cards.length === 1));
+                            spent = cTxs.reduce((acc, curr) => acc + (curr.value || 0), 0);
+                        }
+
                         const limit = c.limit || 0;
                         const perc = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
                         const avail = Math.max(0, limit - spent);
@@ -1812,6 +1878,25 @@ function onFormSubmit(e) {
       installmentsStr = getColVal(["parcela", "vezes", "dividir"], "1");
       rawDateStr = getColVal(["data", "dia", "quando"], "");
     }
+    // 3. Acionamento vinculado diretamente ao Google Forms (e.response)
+    else if (e && e.response) {
+      const itemResponses = e.response.getItemResponses();
+      const getFormVal = (keywords, defaultVal) => {
+        for (let i = 0; i < keywords.length; i++) {
+          const item = itemResponses.find(ir => ir.getItem().getTitle().toLowerCase().trim().includes(keywords[i]));
+          if (item) {
+            const v = String(item.getResponse()).trim();
+            if (v !== "") return v;
+          }
+        }
+        return defaultVal;
+      };
+      cardName = getFormVal(["cartão", "cartao", "banco", "card"], "");
+      purchaseName = getFormVal(["compra", "nome", "descrição", "descricao", "item", "estabelecimento"], "Compra via Forms");
+      valueStr = getFormVal(["valor", "r$", "preço", "preco", "quantia"], "0");
+      installmentsStr = getFormVal(["parcela", "vezes", "dividir"], "1");
+      rawDateStr = getFormVal(["data", "dia", "quando"], "");
+    }
     // 3. Execução manual de teste no editor do Apps Script (sem objeto e)
     else {
       try {
@@ -1838,7 +1923,7 @@ function onFormSubmit(e) {
           };
 
           cardName = getRowVal(["cartão", "cartao", "banco", "card"], "");
-          purchaseName = getRowVal(["compra", "nome", "descrição", "descricao", "item", "estabelecimento"], "Teste Planilha");
+          purchaseName = getRowVal(["compra", "nome", "descrição", "descricao", "item", "estabelecimento"], "Compra via Planilha");
           valueStr = getRowVal(["valor", "r$", "preço", "preco", "quantia"], "100.00");
           installmentsStr = getRowVal(["parcela", "vezes", "dividir"], "1");
           rawDateStr = getRowVal(["data", "dia", "quando"], "");
@@ -1846,11 +1931,12 @@ function onFormSubmit(e) {
           throw new Error("Planilha vazia");
         }
       } catch (errSheet) {
-        cardName = "Mercado Pago";
-        purchaseName = "99Pop";
-        valueStr = "27";
+        cardName = CARDS_CONFIG.length > 0 ? CARDS_CONFIG[0].name : "Cartão Teste";
+        purchaseName = "Teste de Conexão (Execução Manual)";
+        valueStr = "1.00";
         installmentsStr = "1";
-        rawDateStr = "11/07/2026";
+        var d = new Date();
+        rawDateStr = ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + d.getFullYear();
       }
     }
 
@@ -1971,21 +2057,6 @@ function onFormSubmit(e) {
   } catch (err) {
     Logger.log("Erro FinanceUP: " + err.toString());
   }
-}
-
-// Função para testar diretamente no editor do Apps Script sem precisar preencher o Forms
-function testarEnvioManual() {
-  const mockEvent = {
-    namedValues: {
-      "Cartão": ["Mercado Pago"],
-      "Nome da Compra": ["99Pop"],
-      "Valor": ["27"],
-      "Parcelas": ["1"],
-      "Data": ["11/07/2026"]
-    }
-  };
-  onFormSubmit(mockEvent);
-  Logger.log("Teste manual executado! Verifique no seu app FinanceUP.");
 }`;
             codeEl.innerText = script;
         };
@@ -2280,20 +2351,11 @@ function testarEnvioManual() {
             const tbodyEl = document.getElementById('cardPurchasesTableBody');
             if (!card) return;
 
-            if (headerEl) {
-                headerEl.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-black" style="background-color: ${card.color || '#39FF14'}">
-                            <i data-lucide="credit-card" class="w-5 h-5"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">${card.name}</h3>
-                            <p class="text-xs text-zinc-400">Limite: ${formatMoney(card.limit || 0)} • Fechamento: dia ${card.closingDay || 25} • Vencimento: dia ${card.dueDay || 5}</p>
-                        </div>
-                    </div>
-                    <button type="button" onclick="closeCardPurchasesModal()" class="text-zinc-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
-                `;
-            }
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const selMonth = mSel ? (parseInt(mSel.value) + 1).toString().padStart(2, '0') : '07';
+            const selYear = ySel ? ySel.value : '2026';
+            const curPeriod = `${selYear}-${selMonth}`;
 
             const cardTxs = (window.transactions || []).filter(t => t.cardId === cardId || (!t.cardId && window.cards.length === 1));
             let allPurchases = [];
@@ -2310,6 +2372,30 @@ function testarEnvioManual() {
             });
 
             allPurchases.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+
+            const usedTotal = allPurchases
+                .filter(p => p.invoiceMonth.startsWith(curPeriod))
+                .reduce((acc, curr) => acc + (curr.value || 0), 0);
+
+            if (headerEl) {
+                headerEl.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-black" style="background-color: ${card.color || '#39FF14'}">
+                            <i data-lucide="credit-card" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">${card.name}</h3>
+                            <p class="text-xs text-zinc-400">Limite: ${formatMoney(card.limit || 0)} • Fechamento: dia ${card.closingDay || 25} • Vencimento: dia ${card.dueDay || 5}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 mt-4 sm:mt-0">
+                        <div class="text-right bg-zinc-950 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-zinc-800">
+                            <p class="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-zinc-400">Fatura Atual (Usado)</p>
+                            <p class="text-base sm:text-lg font-black text-neon">${formatMoney(usedTotal)}</p>
+                        </div>
+                    </div>
+                `;
+            }
 
             if (tbodyEl) {
                 if (allPurchases.length === 0) {
@@ -2367,33 +2453,6 @@ function testarEnvioManual() {
                 return;
             }
             await window.removePurchaseItem(txId, purchaseId);
-            if (window.renderCardPurchasesModal) window.renderCardPurchasesModal();
-            if (window.renderCardsView) window.renderCardsView();
-            if (window.renderDashboard) window.renderDashboard();
-        };
-
-        window.clearTestPurchases = async () => {
-            if (!confirm('Deseja realmente remover todas as compras de teste ("Teste Manual Forms")?')) return;
-            const txs = window.transactions || [];
-            for (const t of txs) {
-                if (t.description && (t.description.includes('Teste') || t.description.includes('Forms'))) {
-                    await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', t.id));
-                } else if (t.purchases && Array.isArray(t.purchases)) {
-                    const cleanPurchases = t.purchases.filter(p => !p.name || (!p.name.includes('Teste') && !p.name.includes('Forms')));
-                    if (cleanPurchases.length !== t.purchases.length) {
-                        if (cleanPurchases.length === 0) {
-                            await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', t.id));
-                        } else {
-                            const newTotal = cleanPurchases.reduce((acc, p) => acc + (p.value || 0), 0);
-                            await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', t.id), {
-                                purchases: cleanPurchases,
-                                value: newTotal
-                            });
-                        }
-                    }
-                }
-            }
-            alert('Compras de teste removidas com sucesso!');
             if (window.renderCardPurchasesModal) window.renderCardPurchasesModal();
             if (window.renderCardsView) window.renderCardsView();
             if (window.renderDashboard) window.renderDashboard();
