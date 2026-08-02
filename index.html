@@ -320,7 +320,7 @@
                     </div>
 
                     <!-- Transactions Table for Cards -->
-                    <div class="space-y-4">
+                    <div id="cardsTransactionsTableSection" class="space-y-4">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div class="flex items-center gap-3">
                                 <h4 class="text-lg font-bold text-zinc-200 flex items-center gap-2">
@@ -512,6 +512,25 @@
             <div class="flex gap-4">
                 <button onclick="closeDeleteModal()" class="flex-1 py-2 rounded-lg bg-zinc-800 text-white hover:bg-zinc-700 font-medium">Cancelar</button>
                 <button onclick="confirmDeleteTx()" class="flex-1 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 font-bold shadow-[0_0_15px_rgba(239,68,68,0.3)]">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Purchase Item Confirmation Modal -->
+    <div id="deletePurchaseItemModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-zinc-900 w-full max-w-sm rounded-2xl border border-zinc-800 p-6 shadow-2xl">
+            <div class="flex items-center gap-3 mb-4 text-red-500">
+                <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white">Excluir Compra</h2>
+            </div>
+            <p class="text-zinc-400 mb-6 text-sm leading-relaxed">
+                Tem certeza que deseja excluir esta compra do cartão? O valor total da fatura deste mês será atualizado automaticamente.
+            </p>
+            <div class="flex gap-4">
+                <button onclick="window.closeDeletePurchaseItemModal()" class="flex-1 py-2.5 rounded-xl bg-zinc-800 text-white hover:bg-zinc-700 font-bold text-sm transition-colors">Cancelar</button>
+                <button onclick="window.confirmDeletePurchaseItem()" class="flex-1 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 font-bold text-sm shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-colors">Excluir</button>
             </div>
         </div>
     </div>
@@ -972,6 +991,14 @@
                             </div>
                         </div>
 
+                        <!-- Opção de usar o mês selecionado no filtro -->
+                        <div class="flex items-center gap-2.5 bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/80">
+                            <input type="checkbox" id="simUseSelectedMonth" onchange="window.toggleSimDateInput()" class="w-4 h-4 rounded bg-zinc-800 border-zinc-700 text-neon focus:ring-0 cursor-pointer">
+                            <label for="simUseSelectedMonth" class="text-xs text-zinc-300 font-semibold cursor-pointer">
+                                Salvar exatamente no mês selecionado no filtro (atualmente: <span id="simSelectedMonthLabel" class="text-neon font-bold">...</span>)
+                            </label>
+                        </div>
+
                         <button type="submit" class="w-full py-3 rounded-xl bg-neon text-black font-bold hover-bg-neon transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(57,255,20,0.2)] text-sm">
                             <i data-lucide="send" class="w-4 h-4"></i>
                             <span>⚡ Testar Envio (Simular Google Forms Agora)</span>
@@ -1279,53 +1306,99 @@ service cloud.firestore {
             return cat.includes('cartão') && (cat.includes('credito') || cat.includes('crédito'));
         };
 
+         window.getCardForTransaction = (t) => {
+            if (!t || !window.cards || window.cards.length === 0) return null;
+            if (t.cardId && window.cards.some(c => c.id === t.cardId)) {
+                return window.cards.find(c => c.id === t.cardId);
+            }
+            if (t.description && typeof t.description === 'string') {
+                const descStr = t.description.toLowerCase();
+                const matched = window.cards.find(c => descStr.includes(c.name.toLowerCase()));
+                if (matched) return matched;
+            }
+            const cartaoVal = t.cartao || t['cartão'] || '';
+            if (cartaoVal && typeof cartaoVal === 'string') {
+                const cardStr = cartaoVal.toLowerCase().trim();
+                const matched = window.cards.find(c => c.name.toLowerCase().includes(cardStr) || cardStr.includes(c.name.toLowerCase()));
+                if (matched) return matched;
+            }
+            return null;
+        };
+
+        window.getCardInvoiceDetails = (cardId, curPeriod) => {
+            let cardPurchasesSum = 0;
+            let cardPurchasesList = [];
+            let hasPurchasesGlobally = false;
+
+            (window.transactions || []).forEach(tx => {
+                if (tx.isTombstone) return;
+                const matchedCard = window.getCardForTransaction(tx);
+                if (matchedCard && matchedCard.id === cardId && tx.purchases && Array.isArray(tx.purchases)) {
+                    tx.purchases.forEach(p => {
+                        if (p.id && String(p.id).endsWith('-p') && !tx.isAlternativeFormsSchema) return;
+                        const pDateMonth = (p.date || '').substring(0, 7);
+                        const pInvoiceMonth = p.month || (tx.dueDate || tx.date || '').substring(0, 7);
+                        if (pInvoiceMonth === curPeriod || pDateMonth === curPeriod) {
+                            cardPurchasesSum += (Number(p.value) || 0);
+                            cardPurchasesList.push(p);
+                            hasPurchasesGlobally = true;
+                        }
+                    });
+                }
+            });
+
+            if (!hasPurchasesGlobally) {
+                const monthTxs = (window.transactions || []).filter(t => {
+                    if (t.isTombstone || t.isVirtualCardTx) return false;
+                    const dateStr = t.dueDate || t.date || '';
+                    return dateStr.startsWith(curPeriod);
+                });
+                const cTxs = monthTxs.filter(t => {
+                    const matchedCard = window.getCardForTransaction(t);
+                    return matchedCard && matchedCard.id === cardId;
+                });
+                if (cTxs.length > 0) {
+                    cardPurchasesSum = cTxs.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+                }
+            }
+
+            return {
+                sum: cardPurchasesSum,
+                purchases: cardPurchasesList,
+                hasPurchases: hasPurchasesGlobally
+            };
+        };
+
         window.ensureCardTransactionsForPeriod = (txsList, curPeriod) => {
             if (!window.cards || !Array.isArray(window.cards) || window.cards.length === 0) return;
             window.cards.forEach(c => {
-                let cardPurchasesSum = 0;
-                let cardPurchasesList = [];
-                let hasPurchasesGlobally = false;
-                
-                (window.transactions || []).forEach(tx => {
-                    if ((tx.cardId === c.id || (!tx.cardId && window.cards.length === 1)) && tx.purchases && Array.isArray(tx.purchases)) {
-                        tx.purchases.forEach(p => {
-                            if (p.month === curPeriod) {
-                                cardPurchasesSum += (p.value || 0);
-                                cardPurchasesList.push(p);
-                                hasPurchasesGlobally = true;
-                            }
-                        });
-                    }
-                });
+                const details = window.getCardInvoiceDetails(c.id, curPeriod);
 
                 let existingTxIndex = txsList.findIndex(t => {
                     if (t.isTombstone) return false;
                     if (!window.isCardExpense(t) && !t.isVirtualCardTx) return false;
-                    if (t.cardId === c.id) return true;
-                    if (!t.cardId && window.cards.length === 1) return true;
-                    if (t.description && typeof t.description === 'string' && t.description.toLowerCase().includes(c.name.toLowerCase())) return true;
-                    return false;
+                    const matchedCard = window.getCardForTransaction(t);
+                    return matchedCard && matchedCard.id === c.id;
                 });
 
                 if (existingTxIndex !== -1) {
-                    if (hasPurchasesGlobally) {
-                        const existingTx = txsList[existingTxIndex];
-                        txsList[existingTxIndex] = {
-                            ...existingTx,
-                            value: cardPurchasesSum,
-                            purchases: cardPurchasesList
-                        };
-                        
-                        // Remove any other duplicate real transactions for this card from txsList so we don't double count
-                        for (let i = txsList.length - 1; i > existingTxIndex; i--) {
-                            const t = txsList[i];
-                            if (!t.isTombstone && (window.isCardExpense(t) || t.isVirtualCardTx) && (t.cardId === c.id || (!t.cardId && window.cards.length === 1))) {
-                                txsList.splice(i, 1);
-                            }
+                    const existingTx = txsList[existingTxIndex];
+                    txsList[existingTxIndex] = {
+                        ...existingTx,
+                        value: details.sum,
+                        purchases: details.purchases
+                    };
+                    
+                    // Remove any other duplicate real transactions for this card from txsList so we don't double count
+                    for (let i = txsList.length - 1; i > existingTxIndex; i--) {
+                        const t = txsList[i];
+                        const tCard = window.getCardForTransaction(t);
+                        if (!t.isTombstone && (window.isCardExpense(t) || t.isVirtualCardTx) && tCard && tCard.id === c.id) {
+                            txsList.splice(i, 1);
                         }
                     }
                 } else {
-                    if (hasPurchasesGlobally || cardPurchasesSum > 0) {
+                    if (details.hasPurchases || details.sum > 0) {
                         const dueDayStr = String(c.dueDay || 10).padStart(2, '0');
                         const dueDateStr = `${curPeriod}-${dueDayStr}`;
                         txsList.push({
@@ -1334,13 +1407,13 @@ service cloud.firestore {
                             description: `Fatura ${c.name}`,
                             category: 'Cartão de Credito',
                             type: 'Saída',
-                            value: cardPurchasesSum,
+                            value: details.sum,
                             date: dueDateStr,
                             dueDate: dueDateStr,
                             displayDate: dueDateStr,
                             isPaid: false,
                             isRecurring: false,
-                            purchases: cardPurchasesList,
+                            purchases: details.purchases,
                             isVirtualCardTx: true
                         });
                     }
@@ -1370,27 +1443,14 @@ service cloud.firestore {
 
             if (window.cards && window.cards.length > 0) {
                 window.cards.forEach(c => {
-                    let spent = 0;
-                    let hasPurchasesInPeriod = false;
-
-                    (window.transactions || []).forEach(tx => {
-                        if ((tx.cardId === c.id || (!tx.cardId && window.cards.length === 1)) && tx.purchases && Array.isArray(tx.purchases)) {
-                            tx.purchases.forEach(p => {
-                                if (p.month === curPeriod) {
-                                    spent += (p.value || 0);
-                                    hasPurchasesInPeriod = true;
-                                }
-                            });
-                        }
-                    });
-
-                    const cTxs = cardTxs.filter(t => t.cardId === c.id || (!t.cardId && window.cards.length === 1));
-                    if (!hasPurchasesInPeriod) {
-                        spent = cTxs.reduce((acc, curr) => acc + (curr.value || 0), 0);
-                    }
-                    
+                    const details = window.getCardInvoiceDetails(c.id, curPeriod);
+                    const spent = details.sum;
                     totalMonth += spent;
-                    // Determine if the card is paid this month based on the transactions in cardTxs
+
+                    const cTxs = cardTxs.filter(t => {
+                        const matchedCard = window.getCardForTransaction(t);
+                        return matchedCard && matchedCard.id === c.id;
+                    });
                     const isPaid = cTxs.length > 0 && cTxs.every(t => t.isPaid);
                     if (isPaid && spent > 0) paidMonth += spent;
                     else pendingMonth += spent;
@@ -1427,33 +1487,15 @@ service cloud.firestore {
                     `;
                 } else {
                     grid.innerHTML = window.cards.map(c => {
-                        let spent = 0;
-                        let hasPurchasesInPeriod = false;
-
-                        // 1. Sum purchases from ALL transactions globally for this card & period
-                        (window.transactions || []).forEach(tx => {
-                            if ((tx.cardId === c.id || (!tx.cardId && window.cards.length === 1)) && tx.purchases && Array.isArray(tx.purchases)) {
-                                tx.purchases.forEach(p => {
-                                    if (p.month === curPeriod) {
-                                        spent += (p.value || 0);
-                                        hasPurchasesInPeriod = true;
-                                    }
-                                });
-                            }
-                        });
-
-                        // 2. If no purchases at all for this period, fallback to legacy transaction values
-                        if (!hasPurchasesInPeriod) {
-                            const cTxs = cardTxs.filter(t => t.cardId === c.id || (!t.cardId && window.cards.length === 1));
-                            spent = cTxs.reduce((acc, curr) => acc + (curr.value || 0), 0);
-                        }
+                        const details = window.getCardInvoiceDetails(c.id, curPeriod);
+                        const spent = details.sum;
 
                         const limit = c.limit || 0;
                         const perc = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
                         const avail = Math.max(0, limit - spent);
 
                         return `
-                            <div onclick="openCardPurchasesModal('${c.id}')" class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 relative overflow-hidden flex flex-col justify-between shadow-xl transition-all hover:border-zinc-700 cursor-pointer group" style="border-left: 4px solid ${c.color || '#39FF14'}">
+                            <div onclick="window.selectCardFilter('${c.id}')" class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 relative overflow-hidden flex flex-col justify-between shadow-xl transition-all hover:border-zinc-700 cursor-pointer group" style="border-left: 4px solid ${c.color || '#39FF14'}">
                                 <div>
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
@@ -1501,72 +1543,112 @@ service cloud.firestore {
             const filterVal = filterEl ? filterEl.value : 'all';
             const tbody = document.getElementById('cardsTransactionsTable');
             if (tbody) {
-                const tableTxs = filterVal === 'all' 
-                    ? cardTxs 
-                    : cardTxs.filter(t => t.cardId === filterVal || (!t.cardId && filterVal === 'all'));
+                const allCardTxs = (window.transactions || []).filter(t => {
+                    if (!window.isCardExpense(t) && !t.isVirtualCardTx && !window.getCardForTransaction(t)) return false;
+                    if (filterVal !== 'all') {
+                        const matchedCard = window.getCardForTransaction(t);
+                        return matchedCard && matchedCard.id === filterVal;
+                    }
+                    return true;
+                });
 
-                if (tableTxs.length === 0) {
+                const tableRows = [];
+                const addedKeys = new Set();
+
+                allCardTxs.forEach(t => {
+                    const cardObj = window.getCardForTransaction(t);
+                    if (t.purchases && Array.isArray(t.purchases) && t.purchases.length > 0) {
+                        t.purchases.forEach(p => {
+                            if (p.id && String(p.id).endsWith('-p') && !t.isAlternativeFormsSchema) return;
+                            const pDateMonth = (p.date || '').substring(0, 7);
+                            const pInvoiceMonth = p.month || (t.dueDate || t.date || '').substring(0, 7);
+                            if (pDateMonth === curPeriod || pInvoiceMonth === curPeriod) {
+                                const key = `${t.id}_${p.id}`;
+                                if (!addedKeys.has(key)) {
+                                    addedKeys.add(key);
+                                    tableRows.push({
+                                        id: t.id,
+                                        purchaseId: p.id,
+                                        isPaid: !!t.isPaid,
+                                        date: p.date || t.date || t.dueDate || '',
+                                        description: p.name || t.description,
+                                        cardObj: cardObj,
+                                        value: p.value || 0,
+                                        isPurchase: true,
+                                        installmentText: p.installmentText || ''
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+
+                // Sort purchases chronologically (newest first)
+                tableRows.sort((a, b) => {
+                    const dateA = a.date || '';
+                    const dateB = b.date || '';
+                    return dateB.localeCompare(dateA);
+                });
+
+                if (tableRows.length === 0) {
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="6" class="p-8 text-center text-zinc-500 text-sm italic">
-                                Nenhuma despesa de cartão de crédito encontrada para este período.
+                                Nenhuma despesa ou compra de cartão de crédito encontrada para este período.
                             </td>
                         </tr>
                     `;
                 } else {
-                    tbody.innerHTML = tableTxs.map(t => {
-                        const dateVal = t.dueDate || t.date || '';
-                        const formattedDate = dateVal ? dateVal.split('-').reverse().join('/') : '-';
-                        const cardObj = window.cards ? window.cards.find(c => c.id === t.cardId) : null;
-                        const cardBadge = cardObj ? `<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-zinc-800 font-medium" style="color: ${cardObj.color || '#39FF14'}"><span class="w-1.5 h-1.5 rounded-full" style="background-color: ${cardObj.color || '#39FF14'}"></span>${cardObj.name}</span>` : `<span class="text-xs text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-md">${t.category || 'Cartão de Crédito'}</span>`;
+                    tbody.innerHTML = tableRows.map(row => {
+                        const dateFormatted = row.date ? row.date.split('-').reverse().join('/') : '-';
+                        const cardBadge = row.cardObj 
+                            ? `<span class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-zinc-800 font-bold" style="color: ${row.cardObj.color || '#39FF14'}"><span class="w-1.5 h-1.5 rounded-full" style="background-color: ${row.cardObj.color || '#39FF14'}"></span>${row.cardObj.name}</span>` 
+                            : `<span class="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-1 rounded-lg font-bold">Cartão de Crédito</span>`;
 
-                        const hasPurchases = t.purchases && t.purchases.length > 0;
+                        const badgeText = row.installmentText 
+                            ? `<span class="text-[10px] text-neon bg-neon/10 border border-neon/20 px-2 py-0.5 rounded-md ml-2 font-bold whitespace-nowrap">${row.installmentText}</span>` 
+                            : '';
+
+                        let actionsHtml = '';
+                        if (row.isPurchase) {
+                            actionsHtml = `
+                                <button onclick="window.deleteCardPurchaseItem('${row.id}', '${row.purchaseId}')" title="Excluir Compra" class="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            `;
+                        } else {
+                            actionsHtml = `
+                                <button onclick="window.openAddPurchaseModal('${row.id}')" title="Adicionar Compras" class="bg-neon/10 text-neon border border-neon/30 p-1.5 rounded-lg hover:bg-neon hover:text-black transition-all">
+                                    <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="openEditTxModal('${row.id}')" title="Editar" class="p-1.5 text-zinc-400 hover:text-white bg-zinc-800 rounded-lg transition-all"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                <button onclick="deleteTx('${row.id}')" title="Excluir" class="p-1.5 text-zinc-400 hover:text-red-500 bg-zinc-800 rounded-lg transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            `;
+                        }
+
                         return `
                             <tr class="border-b border-zinc-800/60 hover:bg-zinc-800/30 transition-colors">
                                 <td class="p-4">
-                                    <button onclick="togglePaid('${t.id}', ${!!t.isPaid})" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all ${t.isPaid ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}">
-                                        <i data-lucide="${t.isPaid ? 'check-circle-2' : 'clock'}" class="w-3.5 h-3.5"></i>
-                                        <span>${t.isPaid ? 'Pago' : 'Pendente'}</span>
+                                    <button onclick="togglePaid('${row.id}', ${row.isPaid})" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all ${row.isPaid ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}">
+                                        <i data-lucide="${row.isPaid ? 'check-circle-2' : 'clock'}" class="w-3.5 h-3.5"></i>
+                                        <span>${row.isPaid ? 'Pago' : 'Pendente'}</span>
                                     </button>
                                 </td>
-                                <td class="p-4 text-sm font-medium text-zinc-300">${formattedDate}</td>
-                                <td class="p-4 font-bold text-white">${t.description || '-'}</td>
+                                <td class="p-4 text-sm font-medium text-zinc-300">${dateFormatted}</td>
+                                <td class="p-4 font-bold text-white">
+                                    <div class="flex items-center gap-1">
+                                        <span class="truncate max-w-[180px] sm:max-w-xs">${row.description || '-'}</span>
+                                        ${badgeText}
+                                    </div>
+                                </td>
                                 <td class="p-4">${cardBadge}</td>
-                                <td class="p-4 text-right font-bold text-white">${formatMoney(t.value || 0)}</td>
+                                <td class="p-4 text-right font-bold text-white">${formatMoney(row.value)}</td>
                                 <td class="p-4 text-center">
-                                    <div class="inline-flex items-center gap-2">
-                                        <button onclick="window.openAddPurchaseModal('${t.id}')" class="bg-neon/10 text-neon border border-neon/30 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-neon hover:text-black transition-all flex items-center gap-1.5 shadow-sm">
-                                            <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
-                                            <span>+ Adicionar Compras</span>
-                                        </button>
-                                        <button onclick="openEditTxModal('${t.id}')" title="Editar" class="p-1.5 text-zinc-400 hover:text-white bg-zinc-800 rounded-lg"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                                        <button onclick="deleteTx('${t.id}')" title="Excluir" class="p-1.5 text-zinc-400 hover:text-red-500 bg-zinc-800 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    <div class="inline-flex items-center gap-1.5 justify-center">
+                                        ${actionsHtml}
                                     </div>
                                 </td>
                             </tr>
-                            ${false ? `
-                            <tr class="bg-zinc-950/50 border-b border-zinc-800/80">
-                                <td colspan="6" class="px-6 py-3">
-                                    <div class="text-xs text-zinc-400 mb-2 font-semibold flex items-center gap-1.5">
-                                        <i data-lucide="shopping-cart" class="w-3.5 h-3.5 text-neon"></i> Compras inclusas nesta fatura (${t.purchases.length}):
-                                    </div>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                        ${t.purchases.map(p => `
-                                            <div class="bg-zinc-900 border border-zinc-800 px-3 py-2 rounded-lg flex justify-between items-center text-xs shadow-sm">
-                                                <div>
-                                                    <span class="font-bold text-zinc-200">${p.name}</span>
-                                                    ${p.installmentText ? `<span class="text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded ml-1">${p.installmentText}</span>` : ''}
-                                                </div>
-                                                <div class="flex items-center gap-2">
-                                                    <span class="font-bold text-white">${formatMoney(p.value || 0)}</span>
-                                                    <button onclick="window.removePurchaseItem('${t.id}', '${p.id}')" title="Remover compra" class="text-zinc-500 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </td>
-                            </tr>
-                            ` : ''}
                         `;
                     }).join('');
                 }
@@ -1796,6 +1878,35 @@ service cloud.firestore {
             } else {
                 selectEl.innerHTML = cards.map(c => `<option value="${c.id}">${c.name} (Fechamento dia ${c.closingDay || 1})</option>`).join('');
             }
+
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const labelEl = document.getElementById('simSelectedMonthLabel');
+            if (mSel && ySel && labelEl) {
+                const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                labelEl.innerText = `${months[parseInt(mSel.value)]}/${ySel.value}`;
+            }
+            
+            const dateInput = document.getElementById('simPurchaseDate');
+            if (dateInput && !dateInput.value) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+        };
+
+        window.toggleSimDateInput = () => {
+            const chk = document.getElementById('simUseSelectedMonth');
+            const dateInput = document.getElementById('simPurchaseDate');
+            if (chk && dateInput) {
+                if (chk.checked) {
+                    dateInput.disabled = true;
+                    dateInput.required = false;
+                    dateInput.classList.add('opacity-50');
+                } else {
+                    dateInput.disabled = false;
+                    dateInput.required = true;
+                    dateInput.classList.remove('opacity-50');
+                }
+            }
         };
 
         window.generateAppsScriptCode = () => {
@@ -2020,7 +2131,7 @@ function onFormSubmit(e) {
           dueDate: { stringValue: dueDate },
           isPaid: { booleanValue: false },
           isRecurring: { booleanValue: false },
-          createdAt: { integerValue: Date.now() + i },
+          createdAt: { integerValue: String(Date.now() + i) },
           purchases: {
             arrayValue: {
               values: [
@@ -2033,7 +2144,7 @@ function onFormSubmit(e) {
                       installmentText: { stringValue: instText },
                       month: { stringValue: monthStr },
                       date: { stringValue: purchaseDate },
-                      addedAt: { integerValue: Date.now() + i }
+                      addedAt: { integerValue: String(Date.now() + i) }
                     }
                   }
                 }
@@ -2084,7 +2195,24 @@ function onFormSubmit(e) {
             const name = document.getElementById('simPurchaseName').value.trim();
             const value = parseFloat(document.getElementById('simPurchaseVal').value) || 0;
             const installments = parseInt(document.getElementById('simInstallments').value) || 1;
-            const dateVal = document.getElementById('simPurchaseDate').value || new Date().toISOString().split('T')[0];
+            
+            const useSelectedMonth = document.getElementById('simUseSelectedMonth')?.checked;
+            let year, month, day, dateVal;
+
+            if (useSelectedMonth) {
+                const mSel = document.getElementById('monthSelect');
+                const ySel = document.getElementById('yearSelect');
+                year = parseInt(ySel.value);
+                month = parseInt(mSel.value) + 1; // Converter 0-indexed para 1-indexed
+                day = 1; // Garante o primeiro dia do mês para não rodar fatura acidentalmente
+                dateVal = `${year}-${String(month).padStart(2, '0')}-01`;
+            } else {
+                dateVal = document.getElementById('simPurchaseDate').value || new Date().toISOString().split('T')[0];
+                const parts = dateVal.split('-');
+                year = parseInt(parts[0]) || new Date().getFullYear();
+                month = parseInt(parts[1]) || (new Date().getMonth() + 1);
+                day = parseInt(parts[2]) || 1;
+            }
 
             if (!cardId || !name || value <= 0) {
                 alert('Preencha todos os campos corretamente para simular.');
@@ -2093,13 +2221,10 @@ function onFormSubmit(e) {
 
             const card = (window.cards || []).find(c => c.id === cardId);
             const dueDay = card ? (card.dueDay || 10) : 10;
-            const parts = dateVal.split('-');
-            let year = parseInt(parts[0]) || new Date().getFullYear();
-            let month = parseInt(parts[1]) || (new Date().getMonth() + 1);
-            
             const closingDay = card ? (card.closingDay || 1) : 1;
-            const day = parseInt(parts[2]) || 1;
-            if (day >= closingDay) {
+            
+            // Apenas gira a fatura se não estiver forçando o mês selecionado
+            if (!useSelectedMonth && day >= closingDay) {
                 month++;
                 if (month > 12) {
                     month = 1;
@@ -2140,7 +2265,7 @@ function onFormSubmit(e) {
                         addedAt: Date.now()
                     };
 
-                    let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && t.cardId === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
+                    let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && window.getCardForTransaction(t)?.id === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
 
                     if (targetTx) {
                         const curPurchases = targetTx.purchases || [];
@@ -2262,7 +2387,7 @@ function onFormSubmit(e) {
 
                 let targetTx = (window.transactions || []).find(t => t.id === txId && !t.isVirtualCardTx && !String(t.id).startsWith('virtual-card-') && (t.dueDate || t.date || '').startsWith(monthStr));
                 if (!targetTx) {
-                    targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && !String(t.id).startsWith('virtual-card-') && t.cardId === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
+                    targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && !String(t.id).startsWith('virtual-card-') && window.getCardForTransaction(t)?.id === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
                 }
 
                 if (targetTx) {
@@ -2308,15 +2433,40 @@ function onFormSubmit(e) {
                 const pToRemove = tx.purchases.find(p => String(p.id) === String(purchaseId));
                 if (!pToRemove) return;
                 const newPurchases = tx.purchases.filter(p => String(p.id) !== String(purchaseId));
-                const newTotal = Math.max(0, (tx.value || 0) - (pToRemove.value || 0));
                 
-                await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', String(txId)), {
-                    value: newTotal,
-                    purchases: newPurchases
-                });
+                const newTotal = Math.max(0, (tx.value || 0) - (pToRemove.value || 0));
+
+                // Atualização otimista do estado local para feedback instantâneo na UI
+                if (newPurchases.length === 0) {
+                    window.transactions = (window.transactions || []).filter(t => String(t.id) !== String(txId));
+                } else {
+                    tx.purchases = newPurchases;
+                    tx.value = newTotal;
+                }
+
+                if (newPurchases.length === 0) {
+                    await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', String(txId)));
+                } else {
+                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', String(txId)), {
+                        value: newTotal,
+                        purchases: newPurchases
+                    });
+                }
             } catch (err) {
                 console.error("Erro ao remover compra:", err);
                 alert("Erro ao remover compra: " + err.message);
+            }
+        };
+
+        window.selectCardFilter = (cardId) => {
+            const filterEl = document.getElementById('filterCardSelect');
+            if (filterEl) {
+                filterEl.value = cardId;
+                window.renderCardsView();
+                const tableSection = document.getElementById('cardsTransactionsTableSection');
+                if (tableSection) {
+                    tableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
         };
 
@@ -2357,11 +2507,15 @@ function onFormSubmit(e) {
             const selYear = ySel ? ySel.value : '2026';
             const curPeriod = `${selYear}-${selMonth}`;
 
-            const cardTxs = (window.transactions || []).filter(t => t.cardId === cardId || (!t.cardId && window.cards.length === 1));
+            const cardTxs = (window.transactions || []).filter(t => {
+                const matchedCard = window.getCardForTransaction(t);
+                return matchedCard && matchedCard.id === cardId;
+            });
             let allPurchases = [];
             cardTxs.forEach(tx => {
                 if (tx.purchases && Array.isArray(tx.purchases)) {
                     tx.purchases.forEach(p => {
+                        if (p.id && String(p.id).endsWith('-p') && !tx.isAlternativeFormsSchema) return;
                         allPurchases.push({
                             ...p,
                             txId: tx.id,
@@ -2438,7 +2592,7 @@ function onFormSubmit(e) {
             const selYear = ySel ? ySel.value : '2026';
             const curPeriod = `${selYear}-${selMonth}`;
 
-            let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && t.cardId === cardId && (t.dueDate || t.date || '').startsWith(curPeriod));
+            let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && window.getCardForTransaction(t)?.id === cardId && (t.dueDate || t.date || '').startsWith(curPeriod));
             if (!targetTx) {
                 targetTx = (window.transactions || []).find(t => t.id === `virtual-card-${cardId}-${curPeriod}`);
             }
@@ -2447,12 +2601,36 @@ function onFormSubmit(e) {
             window.openAddPurchaseModal(txId);
         };
 
-        window.deleteCardPurchaseItem = async (txId, purchaseId) => {
+        window.activeDeletePurchase = { txId: null, purchaseId: null };
+
+        window.deleteCardPurchaseItem = (txId, purchaseId) => {
             if (String(txId).startsWith('virtual-card-')) {
                 alert("Esta compra é virtual e ainda não foi salva no banco.");
                 return;
             }
+            window.activeDeletePurchase = { txId, purchaseId };
+            const modal = document.getElementById('deletePurchaseItemModal');
+            if (modal) {
+                modal.classList.add('active');
+                if (window.lucide) window.lucide.createIcons();
+            }
+        };
+
+        window.closeDeletePurchaseItemModal = () => {
+            window.activeDeletePurchase = { txId: null, purchaseId: null };
+            const modal = document.getElementById('deletePurchaseItemModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        };
+
+        window.confirmDeletePurchaseItem = async () => {
+            const { txId, purchaseId } = window.activeDeletePurchase;
+            if (!txId || !purchaseId) return;
+
+            window.closeDeletePurchaseItemModal();
             await window.removePurchaseItem(txId, purchaseId);
+            
             if (window.renderCardPurchasesModal) window.renderCardPurchasesModal();
             if (window.renderCardsView) window.renderCardsView();
             if (window.renderDashboard) window.renderDashboard();
@@ -2523,7 +2701,7 @@ function onFormSubmit(e) {
                 addedAt: Date.now()
             };
 
-            let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && t.cardId === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
+            let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && window.getCardForTransaction(t)?.id === cardId && (t.dueDate || t.date || '').startsWith(monthStr));
 
             const feedbackEl = document.getElementById('mobSimFeedback');
             if (feedbackEl) {
@@ -3534,11 +3712,9 @@ function onFormSubmit(e) {
                     
                     if (tbody) {
                         let catExtra = '';
-                        if (t.cardId) {
-                            const cObj = (window.cards || []).find(c => c.id === t.cardId);
-                            if (cObj) {
-                                catExtra += `<div class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-zinc-800 font-medium mt-1" style="color: ${cObj.color || '#39FF14'}"><span class="w-1.5 h-1.5 rounded-full" style="background-color: ${cObj.color || '#39FF14'}"></span>${cObj.name}</div>`;
-                            }
+                        const cObj = window.getCardForTransaction(t);
+                        if (cObj) {
+                            catExtra += `<div class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-zinc-800 font-medium mt-1" style="color: ${cObj.color || '#39FF14'}"><span class="w-1.5 h-1.5 rounded-full" style="background-color: ${cObj.color || '#39FF14'}"></span>${cObj.name}</div>`;
                         }
                         let dateLabel = '';
                         const needsDueDateCats = ['Cartão de Credito', 'Cartão de Crédito', 'Serviços', 'Transporte', 'Assinaturas', 'Emprestimo', 'Empréstimo'];
@@ -4337,27 +4513,22 @@ service cloud.firestore {
                 const allDocsQuery = collection(db, colName);
                 
                 if (canSeeAll) {
-                    const multiQuery = query(collection(db, colName), where('userId', 'in', allowedUids));
-                    onSnapshot(multiQuery, (snap) => {
+                    onSnapshot(allDocsQuery, (snap) => {
                         onData(snap);
                     }, (err) => {
                         const isPermErr = err && (err.code === 'permission-denied' || String(err).includes('permission-denied') || String(err).includes('permission'));
                         if (isPermErr) {
-                            console.warn(`[FinanceUp] Query in(allowedUids) for ${colName} denied. Trying unfiltered collection query...`);
-                            onSnapshot(allDocsQuery, (snap) => {
-                                onData(snap);
+                            console.warn(`[FinanceUp] Unfiltered query for ${colName} denied. Falling back to multiQuery...`);
+                            const multiQuery = query(collection(db, colName), where('userId', 'in', allowedUids));
+                            onSnapshot(multiQuery, (snap2) => {
+                                onData(snap2);
                             }, (err2) => {
-                                const isPermErr2 = err2 && (err2.code === 'permission-denied' || String(err2).includes('permission-denied') || String(err2).includes('permission'));
-                                if (isPermErr2) {
-                                    console.warn(`[FinanceUp] Unfiltered query for ${colName} denied. Falling back to single user query...`);
-                                    onSnapshot(singleUserQuery, (snap) => {
-                                        onData(snap);
-                                    }, (err3) => {
-                                        handleFirestoreError(err3, OperationType.LIST, colName);
-                                    });
-                                } else {
-                                    handleFirestoreError(err2, OperationType.LIST, colName);
-                                }
+                                console.warn(`[FinanceUp] falling back to single user query for ${colName}...`);
+                                onSnapshot(singleUserQuery, (snap3) => {
+                                    onData(snap3);
+                                }, (err3) => {
+                                    handleFirestoreError(err3, OperationType.LIST, colName);
+                                });
                             });
                         } else {
                             handleFirestoreError(err, OperationType.LIST, colName);
@@ -4398,10 +4569,103 @@ service cloud.firestore {
                 if (window.updateCardSelects) window.updateCardSelects();
                 if (window.currentView === 'cards' && window.renderCardsView) window.renderCardsView();
                 if (window.renderDashboard) window.renderDashboard();
+                if (window.generateAppsScriptCode) window.generateAppsScriptCode();
+                if (window.populateSimulateCards) window.populateSimulateCards();
             });
 
             setupListener('transactions', (snap) => {
-                window.transactions = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
+                const normalizeFormsDate = (dVal) => {
+                    if (!dVal) return '';
+                    if (dVal && typeof dVal.toDate === 'function') {
+                        dVal = dVal.toDate();
+                    } else if (dVal && typeof dVal.seconds === 'number') {
+                        dVal = new Date(dVal.seconds * 1000);
+                    }
+                    if (dVal instanceof Date) {
+                        const y = dVal.getFullYear();
+                        const m = String(dVal.getMonth() + 1).padStart(2, '0');
+                        const d = String(dVal.getDate()).padStart(2, '0');
+                        return `${y}-${m}-${d}`;
+                    }
+                    if (typeof dVal === 'string') {
+                        dVal = dVal.trim();
+                        if (dVal.includes('/')) {
+                            const parts = dVal.split(' ')[0].split('/');
+                            if (parts.length === 3) {
+                                const day = parts[0].padStart(2, '0');
+                                const month = parts[1].padStart(2, '0');
+                                const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+                                return `${year}-${month}-${day}`;
+                            }
+                        }
+                        if (dVal.includes('-')) {
+                            return dVal.split(' ')[0];
+                        }
+                    }
+                    return String(dVal || '');
+                };
+
+                const rawList = snap.docs.map(d => {
+                    const data = d.data();
+                    const tx = { id: d.id, ...data };
+                    
+                    // Se o documento veio do Forms com o esquema alternativo (valorTotal, nome, etc.)
+                    const isAlternativeFormsSchema = tx.valorTotal !== undefined || tx.nome !== undefined || tx.valorParcela !== undefined;
+                    if (isAlternativeFormsSchema) {
+                        tx.description = tx.nome || tx.description || 'Compra via Forms';
+                        tx.value = Number(tx.valorParcela) || Number(tx.valorTotal) || tx.value || 0;
+                        tx.type = 'Saída';
+                        tx.category = 'Cartão de Credito';
+                        
+                        const normalizedDate = normalizeFormsDate(tx.data || tx.date || '');
+                        tx.date = normalizedDate;
+                        tx.dueDate = normalizedDate;
+                        tx.isPaid = tx.isPaid !== undefined ? tx.isPaid : false;
+                        tx.isRecurring = false;
+                        
+                        // Determinar o cartão correto
+                        const card = window.getCardForTransaction(tx);
+                        if (card) {
+                            tx.cardId = card.id;
+                        }
+                    }
+                    
+                    if (!tx.userId && window.currentUser) {
+                        tx.userId = window.currentUser.uid;
+                    }
+                    
+                    if (tx.value !== undefined) {
+                        tx.value = Number(tx.value) || 0;
+                    }
+                    
+                    if (window.isCardExpense && window.isCardExpense(tx)) {
+                        const defaultPeriod = (tx.dueDate || tx.date || '').substring(0, 7);
+                        if (isAlternativeFormsSchema) {
+                            if (tx.purchases === undefined || tx.purchases === null) {
+                                tx.purchases = [
+                                    {
+                                        id: tx.id + '-forms',
+                                        name: tx.description || tx.nome || 'Compra via Forms',
+                                        value: tx.value || 0,
+                                        installmentText: tx.parcela ? String(tx.parcela) : '',
+                                        month: defaultPeriod,
+                                        date: tx.date || tx.dueDate || '',
+                                        addedAt: tx.createdAt || Date.now()
+                                    }
+                                ];
+                            }
+                        } else if (tx.purchases && Array.isArray(tx.purchases)) {
+                            tx.purchases = tx.purchases.map(p => ({
+                                ...p,
+                                value: Number(p.value) || 0,
+                                month: p.month || defaultPeriod
+                            }));
+                        }
+                    }
+                    return tx;
+                });
+
+                window.transactions = rawList.sort((a, b) => {
                     // First sort by type: Entrada comes before Saída
                     if (a.type !== b.type) {
                         return a.type === 'Entrada' ? -1 : 1;
@@ -4440,6 +4704,9 @@ service cloud.firestore {
                 });
                 window.renderDashboard();
                 if (window.currentView === 'cards' && window.renderCardsView) window.renderCardsView();
+                if (window.activeCardPurchasesId && window.renderCardPurchasesModal) {
+                    window.renderCardPurchasesModal();
+                }
             });
         }
     </script>
