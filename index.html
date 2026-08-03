@@ -1325,6 +1325,46 @@ service cloud.firestore {
             return null;
         };
 
+        window.isParceladoItem = (p, tx) => {
+            if (!p) return false;
+            const instText = p.installmentText || (p.parcela ? String(p.parcela) : '');
+            if (instText) {
+                const match = instText.match(/(\d+)\/(\d+)/);
+                if (match) {
+                    const total = parseInt(match[2]);
+                    if (total > 1) return true;
+                } else if (/^\d+x$/i.test(instText) && instText.toLowerCase() !== '1x') {
+                    return true;
+                }
+            }
+            const nameStr = (p.name || (tx ? tx.description : '') || '');
+            const nameMatch = nameStr.match(/\((\d+)\/(\d+)\)/);
+            if (nameMatch) {
+                const total = parseInt(nameMatch[2]);
+                if (total > 1) return true;
+            }
+            if (p.installments && Number(p.installments) > 1) return true;
+            if (p.totalInstallments && Number(p.totalInstallments) > 1) return true;
+            return false;
+        };
+
+        window.isPurchaseInPeriod = (p, curPeriod, tx) => {
+            if (!p) return false;
+            if (p.id && String(p.id).endsWith('-p') && tx && !tx.isAlternativeFormsSchema) return false;
+
+            const pDateMonth = (p.date || '').substring(0, 7);
+            const pInvoiceMonth = p.month || (tx && (tx.dueDate || tx.date) ? (tx.dueDate || tx.date).substring(0, 7) : pDateMonth);
+
+            const isParcelado = window.isParceladoItem(p, tx);
+
+            if (isParcelado) {
+                return pInvoiceMonth === curPeriod;
+            } else {
+                const creationMonth = pDateMonth || pInvoiceMonth;
+                return creationMonth === curPeriod;
+            }
+        };
+
         window.getCardInvoiceDetails = (cardId, curPeriod) => {
             let cardPurchasesSum = 0;
             let cardPurchasesList = [];
@@ -1335,10 +1375,7 @@ service cloud.firestore {
                 const matchedCard = window.getCardForTransaction(tx);
                 if (matchedCard && matchedCard.id === cardId && tx.purchases && Array.isArray(tx.purchases)) {
                     tx.purchases.forEach(p => {
-                        if (p.id && String(p.id).endsWith('-p') && !tx.isAlternativeFormsSchema) return;
-                        const pDateMonth = (p.date || '').substring(0, 7);
-                        const pInvoiceMonth = p.month || (tx.dueDate || tx.date || '').substring(0, 7);
-                        if (pInvoiceMonth === curPeriod || pDateMonth === curPeriod) {
+                        if (window.isPurchaseInPeriod(p, curPeriod, tx)) {
                             cardPurchasesSum += (Number(p.value) || 0);
                             cardPurchasesList.push(p);
                             hasPurchasesGlobally = true;
@@ -1559,10 +1596,7 @@ service cloud.firestore {
                     const cardObj = window.getCardForTransaction(t);
                     if (t.purchases && Array.isArray(t.purchases) && t.purchases.length > 0) {
                         t.purchases.forEach(p => {
-                            if (p.id && String(p.id).endsWith('-p') && !t.isAlternativeFormsSchema) return;
-                            const pDateMonth = (p.date || '').substring(0, 7);
-                            const pInvoiceMonth = p.month || (t.dueDate || t.date || '').substring(0, 7);
-                            if (pDateMonth === curPeriod || pInvoiceMonth === curPeriod) {
+                            if (window.isPurchaseInPeriod(p, curPeriod, t)) {
                                 const key = `${t.id}_${p.id}`;
                                 if (!addedKeys.has(key)) {
                                     addedKeys.add(key);
@@ -2428,26 +2462,30 @@ function onFormSubmit(e) {
 
         window.removePurchaseItem = async (txId, purchaseId) => {
             try {
-                const tx = (window.transactions || []).find(t => String(t.id) === String(txId));
+                let tx = (window.transactions || []).find(t => t.purchases && Array.isArray(t.purchases) && t.purchases.some(p => String(p.id) === String(purchaseId)));
+                if (!tx) {
+                    tx = (window.transactions || []).find(t => String(t.id) === String(txId));
+                }
                 if (!tx || !tx.purchases) return;
+
                 const pToRemove = tx.purchases.find(p => String(p.id) === String(purchaseId));
                 if (!pToRemove) return;
+
                 const newPurchases = tx.purchases.filter(p => String(p.id) !== String(purchaseId));
-                
-                const newTotal = Math.max(0, (tx.value || 0) - (pToRemove.value || 0));
+                const newTotal = newPurchases.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
 
                 // Atualização otimista do estado local para feedback instantâneo na UI
                 if (newPurchases.length === 0) {
-                    window.transactions = (window.transactions || []).filter(t => String(t.id) !== String(txId));
+                    window.transactions = (window.transactions || []).filter(t => String(t.id) !== String(tx.id));
                 } else {
                     tx.purchases = newPurchases;
                     tx.value = newTotal;
                 }
 
                 if (newPurchases.length === 0) {
-                    await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', String(txId)));
+                    await window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', String(tx.id)));
                 } else {
-                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', String(txId)), {
+                    await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', String(tx.id)), {
                         value: newTotal,
                         purchases: newPurchases
                     });
@@ -2508,28 +2546,28 @@ function onFormSubmit(e) {
             const curPeriod = `${selYear}-${selMonth}`;
 
             const cardTxs = (window.transactions || []).filter(t => {
+                if (t.isTombstone) return false;
                 const matchedCard = window.getCardForTransaction(t);
                 return matchedCard && matchedCard.id === cardId;
             });
-            let allPurchases = [];
+            let periodPurchases = [];
             cardTxs.forEach(tx => {
                 if (tx.purchases && Array.isArray(tx.purchases)) {
                     tx.purchases.forEach(p => {
-                        if (p.id && String(p.id).endsWith('-p') && !tx.isAlternativeFormsSchema) return;
-                        allPurchases.push({
-                            ...p,
-                            txId: tx.id,
-                            invoiceMonth: p.month || tx.dueDate || tx.date || '-'
-                        });
+                        if (window.isPurchaseInPeriod(p, curPeriod, tx)) {
+                            periodPurchases.push({
+                                ...p,
+                                txId: tx.id,
+                                invoiceMonth: p.month || (tx.dueDate || tx.date || '').substring(0, 7) || curPeriod
+                            });
+                        }
                     });
                 }
             });
 
-            allPurchases.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+            periodPurchases.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
 
-            const usedTotal = allPurchases
-                .filter(p => p.invoiceMonth.startsWith(curPeriod))
-                .reduce((acc, curr) => acc + (curr.value || 0), 0);
+            const usedTotal = periodPurchases.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
 
             if (headerEl) {
                 headerEl.innerHTML = `
@@ -2544,7 +2582,7 @@ function onFormSubmit(e) {
                     </div>
                     <div class="flex items-center gap-4 mt-4 sm:mt-0">
                         <div class="text-right bg-zinc-950 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-zinc-800">
-                            <p class="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-zinc-400">Fatura Atual (Usado)</p>
+                            <p class="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-zinc-400">Fatura Atual (${selMonth}/${selYear})</p>
                             <p class="text-base sm:text-lg font-black text-neon">${formatMoney(usedTotal)}</p>
                         </div>
                     </div>
@@ -2552,16 +2590,16 @@ function onFormSubmit(e) {
             }
 
             if (tbodyEl) {
-                if (allPurchases.length === 0) {
+                if (periodPurchases.length === 0) {
                     tbodyEl.innerHTML = `
                         <tr>
                             <td colspan="6" class="p-8 text-center text-zinc-500 text-sm italic">
-                                Nenhuma compra cadastrada para este cartão ainda. Clique em "Nova Compra no Cartão" acima para adicionar.
+                                Nenhuma compra cadastrada para este cartão neste mês (${selMonth}/${selYear}). Clique em "Nova Compra no Cartão" acima para adicionar.
                             </td>
                         </tr>
                     `;
                 } else {
-                    tbodyEl.innerHTML = allPurchases.map(p => {
+                    tbodyEl.innerHTML = periodPurchases.map(p => {
                         const dateFormatted = p.date ? p.date.split('-').reverse().join('/') : '-';
                         return `
                             <tr class="border-b border-zinc-800/60 hover:bg-zinc-800/30 transition-colors">
@@ -2925,18 +2963,40 @@ function onFormSubmit(e) {
 
         window.togglePaid = async (id, current) => {
             if (!window.dbInstance || !window.currentUser) return;
-            const tx = window.transactions.find(t => t.id === id);
-            if (!tx && typeof id === 'string' && id.startsWith('virtual-card-')) {
+            let tx = window.transactions.find(t => t.id === id);
+
+            if (tx && window.isCardExpense(tx)) {
+                const card = window.getCardForTransaction(tx);
+                if (card) {
+                    const period = (tx.dueDate || tx.date || '').substring(0, 7);
+                    const cardTxs = (window.transactions || []).filter(t => window.isCardExpense(t) && window.getCardForTransaction(t)?.id === card.id && (t.dueDate || t.date || '').startsWith(period));
+                    for (const cTx of cardTxs) {
+                        await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', cTx.id), { isPaid: !current });
+                    }
+                    return;
+                }
+            } else if (!tx && typeof id === 'string' && id.startsWith('virtual-card-')) {
                 const parts = id.split('-');
                 const cardId = parts[2];
                 const curPeriod = `${parts[3]}-${parts[4]}`;
                 const card = (window.cards || []).find(c => c.id === cardId);
+
+                const existingRealTxs = (window.transactions || []).filter(t => window.isCardExpense(t) && !t.isVirtualCardTx && window.getCardForTransaction(t)?.id === cardId && (t.dueDate || t.date || '').startsWith(curPeriod));
+                if (existingRealTxs.length > 0) {
+                    for (const realTx of existingRealTxs) {
+                        await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', realTx.id), { isPaid: !current });
+                    }
+                    return;
+                }
+
                 const dueDay = card ? (card.dueDay || 10) : 10;
                 const dueDate = `${curPeriod}-${String(dueDay).padStart(2, '0')}`;
+                const details = window.getCardInvoiceDetails ? window.getCardInvoiceDetails(cardId, curPeriod) : { sum: 0, purchases: [] };
+
                 const newTxData = {
                     userId: window.currentUser.uid,
                     description: card ? `Fatura ${card.name}` : 'Fatura Cartão',
-                    value: 0,
+                    value: details.sum || 0,
                     type: 'Saída',
                     category: 'Cartão de Credito',
                     cardId: cardId,
@@ -2944,7 +3004,7 @@ function onFormSubmit(e) {
                     dueDate: dueDate,
                     isPaid: !current,
                     isRecurring: false,
-                    purchases: [],
+                    purchases: details.purchases || [],
                     createdAt: Date.now()
                 };
                 await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
@@ -4090,8 +4150,65 @@ function onFormSubmit(e) {
                         isPaid: false,
                         createdAt: Date.now()
                     };
-                    if (['Cartão de Credito', 'Cartão de Crédito'].includes(cat)) {
-                        baseData.purchases = [];
+                    if (['Cartão de Credito', 'Cartão de Crédito'].includes(cat) && baseData.cardId) {
+                        const card = (window.cards || []).find(c => c.id === baseData.cardId);
+                        const cardClosingDay = card ? (card.closingDay || 1) : 1;
+                        const dateParts = date.split('-');
+                        let cYear = parseInt(dateParts[0]) || new Date().getFullYear();
+                        let cMonth = parseInt(dateParts[1]) || (new Date().getMonth() + 1);
+                        const cDay = parseInt(dateParts[2]) || 1;
+
+                        if (cDay >= cardClosingDay) {
+                            cMonth++;
+                            if (cMonth > 12) { cMonth = 1; cYear++; }
+                        }
+                        const monthStr = `${cYear}-${String(cMonth).padStart(2, '0')}`;
+                        const dueDay = card ? (card.dueDay || 10) : 10;
+                        const dueDateStr = `${monthStr}-${String(dueDay).padStart(2, '0')}`;
+
+                        const purchaseItem = {
+                            id: String(Date.now()),
+                            name: baseData.description || 'Compra no Cartão',
+                            value: baseData.value || 0,
+                            installmentText: '',
+                            month: monthStr,
+                            date: date,
+                            addedAt: Date.now()
+                        };
+
+                        let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && window.getCardForTransaction(t)?.id === baseData.cardId && (t.dueDate || t.date || '').startsWith(monthStr));
+
+                        if (targetTx) {
+                            const curPurchases = targetTx.purchases || [];
+                            const newPurchases = curPurchases.concat([purchaseItem]);
+                            const newTotal = newPurchases.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+                            await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', targetTx.id), {
+                                value: newTotal,
+                                purchases: newPurchases
+                            });
+                        } else {
+                            const newTxData = {
+                                userId: window.currentUser.uid,
+                                description: card ? `Fatura ${card.name}` : 'Fatura Cartão',
+                                value: baseData.value,
+                                type: 'Saída',
+                                category: 'Cartão de Credito',
+                                cardId: baseData.cardId,
+                                date: dueDateStr,
+                                dueDate: dueDateStr,
+                                isPaid: false,
+                                isRecurring: false,
+                                purchases: [purchaseItem],
+                                createdAt: Date.now()
+                            };
+                            await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
+                        }
+
+                        window.closeModal();
+                        e.target.reset();
+                        document.getElementById('installmentMonthsDiv').style.display = 'none';
+                        document.getElementById('installmentMonthsList').innerHTML = '';
+                        return;
                     }
 
                     // Criar lançamento principal
@@ -4660,12 +4777,86 @@ service cloud.firestore {
                                 value: Number(p.value) || 0,
                                 month: p.month || defaultPeriod
                             }));
+                        } else if (!tx.purchases) {
+                            tx.purchases = [];
                         }
                     }
                     return tx;
                 });
 
-                window.transactions = rawList.sort((a, b) => {
+                // Consolidate duplicate card transaction documents per card and month
+                const cardTxGroups = {};
+                const nonCardTxs = [];
+
+                rawList.forEach(tx => {
+                    if (tx.isTombstone || tx.isVirtualCardTx) {
+                        nonCardTxs.push(tx);
+                        return;
+                    }
+                    const matchedCard = window.getCardForTransaction ? window.getCardForTransaction(tx) : null;
+                    if (window.isCardExpense && window.isCardExpense(tx) && matchedCard) {
+                        const period = (tx.dueDate || tx.date || '').substring(0, 7);
+                        const groupKey = `${matchedCard.id}_${period}`;
+                        if (!cardTxGroups[groupKey]) {
+                            cardTxGroups[groupKey] = [];
+                        }
+                        cardTxGroups[groupKey].push(tx);
+                    } else {
+                        nonCardTxs.push(tx);
+                    }
+                });
+
+                const consolidatedCardTxs = [];
+                Object.keys(cardTxGroups).forEach(groupKey => {
+                    const group = cardTxGroups[groupKey];
+                    if (group.length === 1) {
+                        consolidatedCardTxs.push(group[0]);
+                    } else if (group.length > 1) {
+                        const mainTx = group[0];
+                        const secondaryTxs = group.slice(1);
+
+                        let allPurchases = [];
+                        const seenPIds = new Set();
+
+                        group.forEach(gtx => {
+                            if (gtx.purchases && Array.isArray(gtx.purchases)) {
+                                gtx.purchases.forEach(p => {
+                                    if (!seenPIds.has(String(p.id))) {
+                                        seenPIds.add(String(p.id));
+                                        allPurchases.push(p);
+                                    }
+                                });
+                            }
+                        });
+
+                        const totalValue = allPurchases.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+                        const isAnyPaid = group.some(gtx => gtx.isPaid);
+
+                        mainTx.purchases = allPurchases;
+                        mainTx.value = totalValue;
+                        if (isAnyPaid) mainTx.isPaid = true;
+
+                        consolidatedCardTxs.push(mainTx);
+
+                        // Asynchronously update main document and clean up duplicate documents in Firestore
+                        if (window.firebaseFns && window.dbInstance) {
+                            window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', mainTx.id), {
+                                value: totalValue,
+                                purchases: allPurchases,
+                                isPaid: mainTx.isPaid
+                            }).catch(err => console.warn('Consolidation update warning:', err));
+
+                            secondaryTxs.forEach(stx => {
+                                window.firebaseFns.deleteDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', stx.id))
+                                    .catch(err => console.warn('Consolidation delete warning:', err));
+                            });
+                        }
+                    }
+                });
+
+                const consolidatedList = nonCardTxs.concat(consolidatedCardTxs);
+
+                window.transactions = consolidatedList.sort((a, b) => {
                     // First sort by type: Entrada comes before Saída
                     if (a.type !== b.type) {
                         return a.type === 'Entrada' ? -1 : 1;
