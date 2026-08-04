@@ -1306,6 +1306,15 @@ service cloud.firestore {
             return cat.includes('cartão') && (cat.includes('credito') || cat.includes('crédito'));
         };
 
+        window.isCardData = (t) => {
+            if (!t) return false;
+            if (t.isVirtualCardTx) return true;
+            if (t.cardId && t.cardId !== '') return true;
+            if (window.isCardExpense && window.isCardExpense(t)) return true;
+            if (window.getCardForTransaction && window.getCardForTransaction(t)) return true;
+            return false;
+        };
+
          window.getCardForTransaction = (t) => {
             if (!t || !window.cards || window.cards.length === 0) return null;
             if (t.cardId && window.cards.some(c => c.id === t.cardId)) {
@@ -1355,14 +1364,7 @@ service cloud.firestore {
             const pDateMonth = (p.date || '').substring(0, 7);
             const pInvoiceMonth = p.month || (tx && (tx.dueDate || tx.date) ? (tx.dueDate || tx.date).substring(0, 7) : pDateMonth);
 
-            const isParcelado = window.isParceladoItem(p, tx);
-
-            if (isParcelado) {
-                return pInvoiceMonth === curPeriod;
-            } else {
-                const creationMonth = pDateMonth || pInvoiceMonth;
-                return creationMonth === curPeriod;
-            }
+            return pInvoiceMonth === curPeriod;
         };
 
         window.getCardInvoiceDetails = (cardId, curPeriod) => {
@@ -3562,6 +3564,7 @@ function onFormSubmit(e) {
             const curPeriodStr = `${y}-${(m+1).toString().padStart(2, '0')}`;
             const filtered = window.transactions.filter(t => {
                 if (t.isTombstone) return false;
+                if (window.isCardData && window.isCardData(t)) return false;
                 const dateStr = t.dueDate || t.date;
                 if (!dateStr || typeof dateStr !== 'string') return false;
                 const parts = dateStr.split('-');
@@ -3596,10 +3599,6 @@ function onFormSubmit(e) {
                     displayDate
                 };
             });
-
-            if (window.ensureCardTransactionsForPeriod) {
-                window.ensureCardTransactionsForPeriod(filtered, curPeriodStr);
-            }
 
             // Organize list:
             // 1. First by Type: 'Entrada' comes before 'Saída'
@@ -3659,7 +3658,7 @@ function onFormSubmit(e) {
 
             // Annual Calculation Logic
             window.transactions.forEach(t => {
-                if (t.isTombstone || t.parentId) return; // Skip tombstones and overrides (they are handled via template logic or direct count)
+                if (t.isTombstone || t.parentId || (window.isCardData && window.isCardData(t))) return; // Skip tombstones, overrides, and card data
 
                 const parts = (t.date || "").split('-');
                 if (parts.length < 2) return;
@@ -3727,7 +3726,7 @@ function onFormSubmit(e) {
             // Better: just loop all non-recurring non-template items (overrides are recurring templates' children).
             
             // Re-check overrides loop for anything missed:
-            window.transactions.filter(t => t.parentId && !t.isTombstone).forEach(t => {
+            window.transactions.filter(t => t.parentId && !t.isTombstone && (!window.isCardData || !window.isCardData(t))).forEach(t => {
                 // If the parent template was already processed in the annual loop, it already counted this override.
                 const parent = window.transactions.find(pt => pt.id === t.parentId);
                 if (parent) {
