@@ -1708,10 +1708,13 @@ service cloud.firestore {
                 btnSaida.innerText = 'Saída';
                 btnSaida.className = 'flex-1 py-2 text-sm rounded-md text-zinc-400';
             }
-            const cardIdLabel = document.getElementById('txCardIdLabel');
-            if (cardIdLabel) cardIdLabel.innerText = 'Vincular a um Cartão (opcional)';
+            const cardDiv = document.getElementById('txCardDiv');
+            if (cardDiv) cardDiv.style.display = 'none';
             const cardSelect = document.getElementById('txCardId');
-            if (cardSelect) cardSelect.required = false;
+            if (cardSelect) {
+                cardSelect.required = false;
+                cardSelect.value = '';
+            }
 
             document.getElementById('transactionModal').classList.add('active'); 
             setType('Entrada'); 
@@ -2851,9 +2854,8 @@ function onFormSubmit(e) {
             document.getElementById('receiptDateDiv').style.display = isSalario ? 'block' : 'none';
             document.getElementById('dueDateDiv').style.display = (isSaida && needsDueDate) ? 'block' : 'none';
             document.getElementById('parcelaDiv').style.display = (isSaida && isBudgetView) ? 'block' : 'none';
-            const isCardCat = ['Cartão de Credito', 'Cartão de Crédito'].includes(cat) || (isSaida && window.cards && window.cards.length > 0);
             const cardDiv = document.getElementById('txCardDiv');
-            if (cardDiv) cardDiv.style.display = isCardCat ? 'block' : 'none';
+            if (cardDiv) cardDiv.style.display = 'none';
             
             if (!isSaida || !isBudgetView) {
                 document.getElementById('txParcela').checked = false;
@@ -3374,9 +3376,8 @@ function onFormSubmit(e) {
 
             document.getElementById('editReceiptDateDiv').style.display = isSalario ? 'block' : 'none';
             document.getElementById('editDueDateDiv').style.display = (isSaida && needsDueDate) ? 'block' : 'none';
-            const isCardCat = ['Cartão de Credito', 'Cartão de Crédito'].includes(cat) || (isSaida && window.cards && window.cards.length > 0);
             const editCardDiv = document.getElementById('editTxCardDiv');
-            if (editCardDiv) editCardDiv.style.display = isCardCat ? 'block' : 'none';
+            if (editCardDiv) editCardDiv.style.display = 'none';
             
             const dateDiv = document.getElementById('editDateFieldDiv');
             const dateInput = document.getElementById('editTxDate');
