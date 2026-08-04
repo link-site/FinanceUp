@@ -284,30 +284,7 @@
                         </div>
                     </div>
 
-                    <!-- Top Metrics Banner -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-neon flex justify-between items-center shadow-lg">
-                            <div>
-                                <p class="text-zinc-400 text-sm mb-1 font-medium">Fatura Total (Mês Atual)</p>
-                                <h3 id="cardsMonthTotal" class="text-2xl font-black text-white">R$ 0,00</h3>
-                            </div>
-                            <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="file-text" class="w-6 h-6 text-neon"></i></div>
-                        </div>
-                        <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-emerald-500 flex justify-between items-center shadow-lg">
-                            <div>
-                                <p class="text-zinc-400 text-sm mb-1 font-medium">Fatura Paga no Mês</p>
-                                <h3 id="cardsMonthPaid" class="text-2xl font-black text-white">R$ 0,00</h3>
-                            </div>
-                            <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-500"></i></div>
-                        </div>
-                        <div class="bg-zinc-900 p-6 rounded-2xl border-l-4 border-amber-500 flex justify-between items-center shadow-lg">
-                            <div>
-                                <p class="text-zinc-400 text-sm mb-1 font-medium">Restante em Aberto</p>
-                                <h3 id="cardsMonthPending" class="text-2xl font-black text-white">R$ 0,00</h3>
-                            </div>
-                            <div class="p-3 bg-zinc-800 rounded-full"><i data-lucide="alert-circle" class="w-6 h-6 text-amber-500"></i></div>
-                        </div>
-                    </div>
+
 
                     <!-- Cards Grid -->
                     <div>
@@ -1309,9 +1286,7 @@ service cloud.firestore {
         window.isCardData = (t) => {
             if (!t) return false;
             if (t.isVirtualCardTx) return true;
-            if (t.cardId && t.cardId !== '') return true;
-            if (window.isCardExpense && window.isCardExpense(t)) return true;
-            if (window.getCardForTransaction && window.getCardForTransaction(t)) return true;
+            if (t.purchases && Array.isArray(t.purchases) && t.purchases.length > 0) return true;
             return false;
         };
 
@@ -4150,66 +4125,6 @@ function onFormSubmit(e) {
                         isPaid: false,
                         createdAt: Date.now()
                     };
-                    if (['Cartão de Credito', 'Cartão de Crédito'].includes(cat) && baseData.cardId) {
-                        const card = (window.cards || []).find(c => c.id === baseData.cardId);
-                        const cardClosingDay = card ? (card.closingDay || 1) : 1;
-                        const dateParts = date.split('-');
-                        let cYear = parseInt(dateParts[0]) || new Date().getFullYear();
-                        let cMonth = parseInt(dateParts[1]) || (new Date().getMonth() + 1);
-                        const cDay = parseInt(dateParts[2]) || 1;
-
-                        if (cDay >= cardClosingDay) {
-                            cMonth++;
-                            if (cMonth > 12) { cMonth = 1; cYear++; }
-                        }
-                        const monthStr = `${cYear}-${String(cMonth).padStart(2, '0')}`;
-                        const dueDay = card ? (card.dueDay || 10) : 10;
-                        const dueDateStr = `${monthStr}-${String(dueDay).padStart(2, '0')}`;
-
-                        const purchaseItem = {
-                            id: String(Date.now()),
-                            name: baseData.description || 'Compra no Cartão',
-                            value: baseData.value || 0,
-                            installmentText: '',
-                            month: monthStr,
-                            date: date,
-                            addedAt: Date.now()
-                        };
-
-                        let targetTx = (window.transactions || []).find(t => window.isCardExpense(t) && !t.isVirtualCardTx && window.getCardForTransaction(t)?.id === baseData.cardId && (t.dueDate || t.date || '').startsWith(monthStr));
-
-                        if (targetTx) {
-                            const curPurchases = targetTx.purchases || [];
-                            const newPurchases = curPurchases.concat([purchaseItem]);
-                            const newTotal = newPurchases.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
-                            await window.firebaseFns.updateDoc(window.firebaseFns.doc(window.dbInstance, 'transactions', targetTx.id), {
-                                value: newTotal,
-                                purchases: newPurchases
-                            });
-                        } else {
-                            const newTxData = {
-                                userId: window.currentUser.uid,
-                                description: card ? `Fatura ${card.name}` : 'Fatura Cartão',
-                                value: baseData.value,
-                                type: 'Saída',
-                                category: 'Cartão de Credito',
-                                cardId: baseData.cardId,
-                                date: dueDateStr,
-                                dueDate: dueDateStr,
-                                isPaid: false,
-                                isRecurring: false,
-                                purchases: [purchaseItem],
-                                createdAt: Date.now()
-                            };
-                            await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
-                        }
-
-                        window.closeModal();
-                        e.target.reset();
-                        document.getElementById('installmentMonthsDiv').style.display = 'none';
-                        document.getElementById('installmentMonthsList').innerHTML = '';
-                        return;
-                    }
 
                     // Criar lançamento principal
                     const mainData = { ...baseData, date: date };
