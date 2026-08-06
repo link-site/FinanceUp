@@ -1,5 +1,6 @@
 {
   "name": "FinanceUP",
   "description": "Sistema de organização de orçamento mensal sofisticado com IA.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
