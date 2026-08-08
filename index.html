@@ -826,8 +826,23 @@
                             <i data-lucide="send" class="w-4 h-4"></i>
                             <span>Testar Notificação Real</span>
                         </button>
+                        <button type="button" id="btnSyncTelegramUpdates" onclick="syncTelegramNow()" class="py-3 px-4 rounded-xl bg-sky-500/20 text-sky-300 border border-sky-500/30 hover:bg-sky-500 hover:text-black font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer" title="Verificar se há mensagens recebidas do Telegram">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            <span>Sincronizar Mensagens</span>
+                        </button>
                     </div>
                 </form>
+
+                <!-- Bot Auto-Response Info Card -->
+                <div class="bg-gradient-to-r from-sky-950/80 to-zinc-950 p-4 rounded-2xl border border-sky-500/30 space-y-2">
+                    <div class="flex items-center gap-2 text-sky-400 font-bold text-xs uppercase tracking-wider">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Bot Ativo no Telegram (Resposta Automática)</span>
+                    </div>
+                    <p class="text-xs text-zinc-300 leading-relaxed">
+                        Quando você ou sua esposa enviarem mensagens como <strong>"oi"</strong>, <strong>"saldo"</strong>, <strong>"cartões"</strong> ou <strong>"compras"</strong> no Telegram, o FinanceUP processa na hora e envia a resposta automática de volta para o seu celular!
+                    </p>
+                </div>
 
                 <!-- Couple Mobile Setup Card -->
                 <div class="bg-gradient-to-r from-emerald-950/60 to-zinc-950 p-4 sm:p-5 rounded-2xl border border-emerald-500/30 space-y-3">
@@ -875,7 +890,13 @@
         window.dbInstance = null;
         window.firebaseFns = {};
 
-        window.cards = [];
+        window.cards = [
+            { id: 'card_atacadao', name: 'Atacadão', color: '#008000', limit: 5000, used: 749.13, invoiceValue: 749.13, closingDay: 10, dueDay: 17 },
+            { id: 'card_nubank', name: 'Cartão Nubank', color: '#8A05BE', limit: 5000, used: 1200, invoiceValue: 1200, closingDay: 5, dueDay: 12 },
+            { id: 'card_itau', name: 'Cartão Itaú', color: '#FF6B00', limit: 4000, used: 800, invoiceValue: 800, closingDay: 10, dueDay: 17 },
+            { id: 'card_inter', name: 'Cartão Inter', color: '#FF7A00', limit: 3000, used: 450, invoiceValue: 450, closingDay: 1, dueDay: 8 },
+            { id: 'card_bradesco', name: 'Cartão Bradesco', color: '#CC092F', limit: 2500, used: 0, invoiceValue: 0, closingDay: 15, dueDay: 22 }
+        ];
         window.defaultCategories = [
             { name: 'Salário', type: 'Entrada' }, { name: 'Extra', type: 'Entrada' }, { name: 'Outros', type: 'Entrada' },
             { name: 'Assinaturas', type: 'Saída' }, { name: 'Serviços', type: 'Saída' }, { name: 'Cartão de Credito', type: 'Saída' }, { name: 'Transporte', type: 'Saída' }
@@ -3529,11 +3550,25 @@ service cloud.firestore {
                 {
                     id: Date.now(),
                     sender: 'bot',
-                    text: `👋 **Olá! Sou o seu Bot Assistente do FinanceUP.**\n\n📊 **Valor Disponível Estimado (${metrics.monthName}):**\n💰 **${window.formatMoney(metrics.estimatedAvailable)}**\n\n*Opções Gratuitas de Atendimento:* Escolha uma opção abaixo para consultar ou atualizar o sistema:`,
+                    text: `👋 **Olá! Sou o seu Bot Assistente do FinanceUP.**\n\n📊 **Valor Disponível Estimado (${metrics.monthName}):**\n💰 **${window.formatMoney(metrics.estimatedAvailable)}**\n\n👇 *Escolha uma das opções do menu abaixo para navegar:*`,
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }
             ];
             window.renderBotChat();
+        };
+
+        window.getSystemCards = () => {
+            let list = window.cards || [];
+            if (!list || list.length === 0) {
+                list = [
+                    { id: 'card_atacadao', name: 'Atacadão', color: '#008000', limit: 5000, used: 749.13, invoiceValue: 749.13, closingDay: 10, dueDay: 17 },
+                    { id: 'card_nubank', name: 'Cartão Nubank', color: '#8A05BE', limit: 5000, used: 1200, invoiceValue: 1200, closingDay: 5, dueDay: 12 },
+                    { id: 'card_itau', name: 'Cartão Itaú', color: '#FF6B00', limit: 4000, used: 800, invoiceValue: 800, closingDay: 10, dueDay: 17 },
+                    { id: 'card_inter', name: 'Cartão Inter', color: '#FF7A00', limit: 3000, used: 450, invoiceValue: 450, closingDay: 1, dueDay: 8 },
+                    { id: 'card_bradesco', name: 'Cartão Bradesco', color: '#CC092F', limit: 2500, used: 0, invoiceValue: 0, closingDay: 15, dueDay: 22 }
+                ];
+            }
+            return list;
         };
 
         window.renderBotChat = () => {
@@ -3563,7 +3598,7 @@ service cloud.firestore {
 
                     return `
                         <div class="flex ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in duration-300">
-                            <div class="max-w-[85%] sm:max-w-[78%] p-3.5 rounded-2xl text-xs sm:text-sm shadow-md leading-relaxed ${bubbleBg}">
+                            <div class="max-w-[88%] sm:max-w-[82%] p-3.5 rounded-2xl text-xs sm:text-sm shadow-md leading-relaxed ${bubbleBg}">
                                 <div>${formattedText}</div>
                                 <div class="flex items-center justify-end gap-1 text-[10px] opacity-70 mt-1.5 font-mono">
                                     <span>${m.time || ''}</span>
@@ -3580,20 +3615,23 @@ service cloud.firestore {
             // Render Quick Choice Chips
             if (chips) {
                 chips.innerHTML = `
-                    <button onclick="handleBotAction('disponivel')" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-emerald-400 font-bold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm">
-                        <span>💰 Disponível Estimado</span>
+                    <button onclick="handleBotAction('menu')" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-emerald-400 font-bold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm">
+                        <span>📋 Menu Principal</span>
                     </button>
                     <button onclick="handleBotAction('cartoes')" class="px-3 py-1.5 rounded-xl bg-sky-500/10 hover:bg-sky-500 hover:text-black border border-sky-500/30 text-sky-400 font-bold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm">
-                        <span>💳 Atualizar Cartões</span>
+                        <span>💳 Cartões de Crédito</span>
+                    </button>
+                    <button onclick="handleBotAction('disponivel')" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-emerald-300 font-bold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm">
+                        <span>💰 Disponível Estimado</span>
+                    </button>
+                    <button onclick="handleBotAction('saidas')" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500 hover:text-black border border-rose-500/30 text-rose-400 font-bold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm">
+                        <span>🔴 Saídas</span>
+                    </button>
+                    <button onclick="handleBotAction('entradas')" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-emerald-400 font-bold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm">
+                        <span>🟢 Entradas</span>
                     </button>
                     <button onclick="handleBotAction('perguntas_fixas')" class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500 hover:text-black border border-amber-500/30 text-amber-400 font-bold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm">
-                        <span>📋 Perguntas Fixas</span>
-                    </button>
-                    <button onclick="handleBotAction('lista_compras')" class="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500 hover:text-black border border-purple-500/30 text-purple-400 font-bold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm">
-                        <span>🛒 Lista de Compras</span>
-                    </button>
-                    <button onclick="setBotTab('config')" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 font-bold text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 shadow-sm">
-                        <span>⚙️ Configurar Bot (Grátis)</span>
+                        <span>❓ Dúvidas</span>
                     </button>
                 `;
             }
@@ -3619,27 +3657,22 @@ service cloud.firestore {
             const lower = text.toLowerCase().trim();
             const metrics = window.getSystemMetrics();
 
-            // Greeting detection
-            const greetings = ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'e ai', 'e aí', 'hey', 'hello', 'salve', 'iniciar', 'start', 'tudo bem', 'tudo bom', 'oie', 'oii', 'oiii', 'menu', 'ajuda'];
-            const isGreeting = greetings.some(g => lower === g || lower.startsWith(g + ' ') || lower.endsWith(' ' + g));
-
-            if (window.selectedCardForBotUpdate) {
-                // User input as new card amount
+            // Check if user is currently prompted to add value to a card
+            if (window.selectedCardForBotAdd) {
+                const cardId = window.selectedCardForBotAdd;
                 const numVal = parseFloat(text.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-                window.executeCardUpdate(window.selectedCardForBotUpdate, numVal);
-                return;
+                if (numVal > 0) {
+                    await window.confirmCardAddValue(cardId, numVal);
+                    return;
+                }
             }
 
+            // Greeting & Menu detection
+            const greetings = ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'e ai', 'e aí', 'hey', 'hello', 'salve', 'iniciar', 'start', 'tudo bem', 'tudo bom', 'oie', 'oii', 'oiii', 'menu', 'ajuda', 'opçoes', 'opções'];
+            const isGreeting = greetings.some(g => lower === g || lower.startsWith(g + ' ') || lower.endsWith(' ' + g));
+
             if (isGreeting) {
-                setTimeout(() => {
-                    window.botMessages.push({
-                        id: Date.now(),
-                        sender: 'bot',
-                        text: `👋 **Olá! Que bom falar com você!**\n\nEstou aqui no **Bot Assistente FinanceUP** para te ajudar com suas finanças em tempo real.\n\n📊 **RESUMO ATUAL (${metrics.monthName}):**\n💰 **Disponível Estimado:** **${window.formatMoney(metrics.estimatedAvailable)}**\n🟢 **Total de Entradas:** ${window.formatMoney(metrics.totalIncomes)}\n🔴 **Total de Saídas:** ${window.formatMoney(metrics.totalExpenses)}\n💳 **Faturas dos Cartões:** ${window.formatMoney(metrics.totalCardsInvoice)}\n\n💡 *O que você gostaria de fazer agora? Escolha uma opção rápida abaixo ou digite sua dúvida:*`,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    });
-                    window.renderBotChat();
-                }, 300);
+                setTimeout(() => window.handleBotAction('menu'), 300);
                 return;
             }
 
@@ -3649,7 +3682,7 @@ service cloud.firestore {
                 return;
             }
 
-            if (lower.includes('cartao') || lower.includes('cartão') || lower.includes('cartões') || lower.includes('fatura') || lower.includes('faturas') || lower.includes('limite') || lower.includes('nubank') || lower.includes('itau') || lower.includes('itaú') || lower.includes('inter') || lower.includes('bradesco')) {
+            if (lower.includes('cartao') || lower.includes('cartão') || lower.includes('cartões') || lower.includes('fatura') || lower.includes('faturas') || lower.includes('limite') || lower.includes('atacadao') || lower.includes('atacadão') || lower.includes('nubank') || lower.includes('itau') || lower.includes('itaú') || lower.includes('inter') || lower.includes('bradesco')) {
                 setTimeout(() => window.handleBotAction('cartoes'), 300);
                 return;
             }
@@ -3659,43 +3692,22 @@ service cloud.firestore {
                 return;
             }
 
-            if (lower.includes('pergunta') || lower.includes('fixa') || lower.includes('duvida') || lower.includes('dúvida') || lower.includes('opção') || lower.includes('opções')) {
+            if (lower.includes('pergunta') || lower.includes('fixa') || lower.includes('duvida') || lower.includes('dúvida')) {
                 setTimeout(() => window.handleBotAction('perguntas_fixas'), 300);
                 return;
             }
 
             if (lower.includes('entrada') || lower.includes('entradas') || lower.includes('receita') || lower.includes('salario') || lower.includes('salário') || lower.includes('ganho')) {
-                setTimeout(() => {
-                    window.botMessages.push({
-                        id: Date.now(),
-                        sender: 'bot',
-                        text: `🟢 **DETALHES DE ENTRADAS (${metrics.monthName}):**\n\n• Total Previsto: **${window.formatMoney(metrics.totalIncomes)}**\n• Total Já Confirmado: **${window.formatMoney(metrics.paidIncomes)}**\n\nVocê pode adicionar mais entradas a qualquer momento na aba **Lançamentos** do sistema!`,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    });
-                    window.renderBotChat();
-                }, 300);
+                setTimeout(() => window.handleBotAction('entradas'), 300);
                 return;
             }
 
             if (lower.includes('saida') || lower.includes('saída') || lower.includes('saidas') || lower.includes('saídas') || lower.includes('despesa') || lower.includes('despesas') || lower.includes('gasto') || lower.includes('gastos') || lower.includes('conta') || lower.includes('contas')) {
-                setTimeout(() => {
-                    let billsText = '';
-                    if (metrics.upcomingBills.length > 0) {
-                        billsText = `\n\n📅 **Próximos Vencimentos:**\n` + metrics.upcomingBills.slice(0, 5).map(b => `• **${b.description}**: ${window.formatMoney(b.value)} (${b.date})`).join('\n');
-                    }
-                    window.botMessages.push({
-                        id: Date.now(),
-                        sender: 'bot',
-                        text: `🔴 **DETALHES DE SAÍDAS (${metrics.monthName}):**\n\n• Total de Despesas Previstas: **${window.formatMoney(metrics.totalExpenses)}**\n• Despesas Já Pagas: **${window.formatMoney(metrics.paidExpenses)}**${billsText}`,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    });
-                    window.renderBotChat();
-                }, 300);
+                setTimeout(() => window.handleBotAction('saidas'), 300);
                 return;
             }
 
             // Fallback & Gemini AI Consult
-            // Add thinking indicator
             const tempId = Date.now();
             window.botMessages.push({
                 id: tempId,
@@ -3709,7 +3721,7 @@ service cloud.firestore {
                 if (window.GoogleGenAI) {
                     const ai = new window.GoogleGenAI({ apiKey: "AIzaSyCrqECbdY29Vw1mKHt0Gfjdmsm2KGauIVo" });
                     const contextStr = `Mês: ${metrics.monthName}. Disponível Estimado: R$ ${metrics.estimatedAvailable}. Total Entradas: R$ ${metrics.totalIncomes}. Total Saídas: R$ ${metrics.totalExpenses}. Total Cartões: R$ ${metrics.totalCardsInvoice}. Contas a vencer: ${JSON.stringify(metrics.upcomingBills.slice(0, 5))}.`;
-                    const sysPrompt = `Você é o Bot Assistente Financeiro FinanceUP no WhatsApp/Telegram. Responda em português do Brasil com emojis amigáveis, formatação Markdown clara (com negritos e tópicos), de forma curta, objetiva e útil. Dados financeiros atuais do usuário: ${contextStr}`;
+                    const sysPrompt = `Você é o Bot Assistente Financeiro FinanceUP. Responda em português com clareza, objetividade, emojis e negritos Markdown. Dados financeiros atuais do usuário: ${contextStr}`;
 
                     const response = await ai.models.generateContent({
                         model: 'gemini-3-flash-preview',
@@ -3717,10 +3729,9 @@ service cloud.firestore {
                         config: { systemInstruction: sysPrompt, temperature: 0.7 }
                     });
 
-                    // Replace thinking message
                     const botMsg = window.botMessages.find(m => m.id === tempId);
                     if (botMsg) {
-                        botMsg.text = response.text || `🤖 Recebi sua mensagem: *"${text}"*.\n\n📊 **Disponível Estimado (${metrics.monthName}):** ${window.formatMoney(metrics.estimatedAvailable)}\n\nEscolha uma das opções rápidas abaixo ou consulte **💳 Cartões** ou **💰 Disponível**:`;
+                        botMsg.text = response.text || `🤖 Recebi sua mensagem: *"${text}"*.\n\n📊 **Disponível Estimado (${metrics.monthName}):** ${window.formatMoney(metrics.estimatedAvailable)}\n\nEscolha uma opção no menu rápido abaixo:`;
                     }
                 } else {
                     throw new Error("AI SDK not ready");
@@ -3729,7 +3740,7 @@ service cloud.firestore {
                 console.log("AI Bot fallback:", err);
                 const botMsg = window.botMessages.find(m => m.id === tempId);
                 if (botMsg) {
-                    botMsg.text = `🤖 **Entendi sua mensagem:** *"${text}"*\n\n📊 **RESUMO RÁPIDO DO MÊS (${metrics.monthName}):**\n💰 **Disponível Estimado:** **${window.formatMoney(metrics.estimatedAvailable)}**\n🟢 **Entradas:** ${window.formatMoney(metrics.totalIncomes)} | 🔴 **Saídas:** ${window.formatMoney(metrics.totalExpenses)}\n💳 **Cartões:** ${window.formatMoney(metrics.totalCardsInvoice)}\n\n💡 *Escolha uma das opções rápidas abaixo ou digite 'cartões', 'disponível' ou 'ajuda':*`;
+                    botMsg.text = `🤖 **Entendi sua mensagem:** *"${text}"*\n\n📊 **RESUMO RÁPIDO DO MÊS (${metrics.monthName}):**\n💰 **Disponível Estimado:** **${window.formatMoney(metrics.estimatedAvailable)}**\n🟢 **Entradas:** ${window.formatMoney(metrics.totalIncomes)} | 🔴 **Saídas:** ${window.formatMoney(metrics.totalExpenses)}\n💳 **Cartões:** ${window.formatMoney(metrics.totalCardsInvoice)}\n\n💡 *Clique em uma das opções do menu abaixo:*`;
                 }
             }
             window.renderBotChat();
@@ -3738,79 +3749,141 @@ service cloud.firestore {
         window.handleBotAction = (action, payload = null) => {
             const metrics = window.getSystemMetrics();
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            window.selectedCardForBotAdd = null;
 
-            if (action === 'disponivel') {
+            if (action === 'menu') {
                 window.botMessages.push({
                     id: Date.now(),
                     sender: 'user',
-                    text: 'Exibir disponível estimado do mês atual',
+                    text: 'Abrir Menu Principal',
+                    time
+                });
+
+                const menuHtml = `
+                    📋 **MENU PRINCIPAL FINANCEUP**\n
+                    Escolha o que deseja consultar ou atualizar clicando em uma das opções abaixo:\n\n
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                        <button onclick="handleBotAction('entradas')" class="p-3 bg-zinc-900 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold rounded-xl text-left text-xs transition-all flex items-center justify-between shadow-sm">
+                            <span class="flex items-center gap-2">🟢 Entradas / Receitas</span>
+                        </button>
+                        <button onclick="handleBotAction('saidas')" class="p-3 bg-zinc-900 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold rounded-xl text-left text-xs transition-all flex items-center justify-between shadow-sm">
+                            <span class="flex items-center gap-2">🔴 Saídas / Despesas</span>
+                        </button>
+                        <button onclick="handleBotAction('disponivel')" class="p-3 bg-zinc-900 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold rounded-xl text-left text-xs transition-all flex items-center justify-between shadow-sm">
+                            <span class="flex items-center gap-2">💰 Disponível Estimado</span>
+                        </button>
+                        <button onclick="handleBotAction('cartoes')" class="p-3 bg-zinc-900 hover:bg-sky-500/20 border border-sky-500/30 text-sky-400 font-bold rounded-xl text-left text-xs transition-all flex items-center justify-between shadow-sm">
+                            <span class="flex items-center gap-2">💳 Cartões de Crédito</span>
+                        </button>
+                        <button onclick="handleBotAction('lista_compras')" class="p-3 bg-zinc-900 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 font-bold rounded-xl text-left text-xs transition-all flex items-center justify-between shadow-sm">
+                            <span class="flex items-center gap-2">🛒 Lista de Compras</span>
+                        </button>
+                        <button onclick="handleBotAction('perguntas_fixas')" class="p-3 bg-zinc-900 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-left text-xs transition-all flex items-center justify-between shadow-sm">
+                            <span class="flex items-center gap-2">❓ Dúvidas Frequentes</span>
+                        </button>
+                    </div>
+                `;
+
+                window.botMessages.push({
+                    id: Date.now() + 1,
+                    sender: 'bot',
+                    text: menuHtml,
+                    time
+                });
+            } else if (action === 'disponivel') {
+                window.botMessages.push({
+                    id: Date.now(),
+                    sender: 'user',
+                    text: 'Consultar Disponível Estimado',
                     time
                 });
                 window.botMessages.push({
                     id: Date.now() + 1,
                     sender: 'bot',
-                    text: `📊 **RESUMO DO MÊS ATUAL (${metrics.monthName}):**\n\n🟢 **Total de Entradas:** ${window.formatMoney(metrics.totalIncomes)}\n🔴 **Total de Saídas:** ${window.formatMoney(metrics.totalExpenses)}\n💳 **Faturas de Cartões:** ${window.formatMoney(metrics.totalCardsInvoice)}\n\n✨ **DISPONÍVEL ESTIMADO LÍQUIDO:**\n💰 **${window.formatMoney(metrics.estimatedAvailable)}**\n\n*Nota:* O disponível estimado diminui conforme novas despesas ou parcelas de cartões são adicionadas.`,
+                    text: `💰 **DISPONÍVEL ESTIMADO DO MÊS (${metrics.monthName}):**\n\n🟢 **Total de Entradas:** ${window.formatMoney(metrics.totalIncomes)}\n🔴 **Total de Saídas:** ${window.formatMoney(metrics.totalExpenses)}\n💳 **Faturas de Cartões:** ${window.formatMoney(metrics.totalCardsInvoice)}\n\n✨ **DISPONÍVEL ESTIMADO LÍQUIDO:**\n💰 **${window.formatMoney(metrics.estimatedAvailable)}**\n\n*Nota:* O saldo disponível diminui conforme novas despesas ou parcelas de cartões são somadas ao sistema.`,
+                    time
+                });
+            } else if (action === 'entradas') {
+                window.botMessages.push({
+                    id: Date.now(),
+                    sender: 'user',
+                    text: 'Consultar Entradas',
+                    time
+                });
+                window.botMessages.push({
+                    id: Date.now() + 1,
+                    sender: 'bot',
+                    text: `🟢 **RESUMO DE ENTRADAS (${metrics.monthName}):**\n\n• **Total Previsto:** **${window.formatMoney(metrics.totalIncomes)}**\n• **Já Recebido/Confirmado:** **${window.formatMoney(metrics.paidIncomes)}**\n\n💡 *Dica:* Você pode cadastrar novas receitas na aba **Lançamentos** do sistema.`,
+                    time
+                });
+            } else if (action === 'saidas') {
+                window.botMessages.push({
+                    id: Date.now(),
+                    sender: 'user',
+                    text: 'Consultar Saídas',
+                    time
+                });
+
+                let billsText = '';
+                if (metrics.upcomingBills.length > 0) {
+                    billsText = `\n\n📅 **Próximos Vencimentos:**\n` + metrics.upcomingBills.slice(0, 5).map(b => `• **${b.description}**: ${window.formatMoney(b.value)} (${b.date})`).join('\n');
+                }
+
+                window.botMessages.push({
+                    id: Date.now() + 1,
+                    sender: 'bot',
+                    text: `🔴 **RESUMO DE SAÍDAS / DESPESAS (${metrics.monthName}):**\n\n• **Total Despesas Previstas:** **${window.formatMoney(metrics.totalExpenses)}**\n• **Despesas Já Pagas:** **${window.formatMoney(metrics.paidExpenses)}**${billsText}`,
                     time
                 });
             } else if (action === 'cartoes') {
                 window.botMessages.push({
                     id: Date.now(),
                     sender: 'user',
-                    text: 'Atualizar valor nos cartões cadastrados',
+                    text: 'Consultar Cartões de Crédito',
                     time
                 });
 
-                if (metrics.cardsList.length === 0) {
-                    window.botMessages.push({
-                        id: Date.now() + 1,
-                        sender: 'bot',
-                        text: `💳 **Nenhum cartão encontrado em seu banco de dados.**\n\nDeseja inicializar com os **Cartões Padrão (Nubank, Itaú, Inter, Bradesco)** para simular e atualizar valores?`,
-                        time
-                    });
-                    window.botMessages.push({
-                        id: Date.now() + 2,
-                        sender: 'bot',
-                        text: `👉 <button onclick="window.initializeDefaultCards()" class="mt-2 w-full py-2 bg-sky-500 hover:bg-sky-400 text-black font-bold rounded-xl text-xs transition-all shadow-md">➕ Inicializar Cartões Padrão no Firebase</button>`,
-                        time
-                    });
-                } else {
-                    let text = `💳 **SELECIONE O CARTÃO QUE DESEJA ATUALIZAR:**\n\n`;
-                    metrics.cardsList.forEach(c => {
-                        const val = parseFloat(c.used || c.invoiceValue || 0);
-                        const lim = parseFloat(c.limit || 5000);
-                        text += `• **${c.name || 'Cartão'}**: Fatura/Utilizado: **${window.formatMoney(val)}** | Limite: ${window.formatMoney(lim)}\n`;
-                    });
-                    text += `\nClique em um dos botões abaixo para escolher qual cartão atualizar:`;
+                const cards = window.getSystemCards();
 
-                    window.botMessages.push({
-                        id: Date.now() + 1,
-                        sender: 'bot',
-                        text,
-                        time
-                    });
+                let cardListHtml = `
+                    💳 **CARTÕES DE CRÉDITO CADASTRADOS:**\n
+                    Clique no cartão desejado abaixo para ver o **saldo** ou **atualizar (somar) o valor da fatura**:\n\n
+                    <div class="space-y-2 mt-2">
+                `;
 
-                    // Render interactive buttons for selecting card
-                    let cardBtns = `<div class="grid grid-cols-1 gap-1.5 mt-2">`;
-                    metrics.cardsList.forEach(c => {
-                        cardBtns += `<button onclick="window.promptSelectCardForUpdate('${c.id}')" class="py-2 px-3 bg-zinc-700 hover:bg-emerald-500 hover:text-black text-white font-bold rounded-xl text-xs transition-all text-left flex items-center justify-between border border-zinc-600">
-                            <span>💳 ${c.name}</span>
-                            <span class="text-[11px] font-mono opacity-80">${window.formatMoney(c.used || c.invoiceValue || 0)}</span>
-                        </button>`;
-                    });
-                    cardBtns += `</div>`;
+                cards.forEach(c => {
+                    const cVal = parseFloat(c.used || c.invoiceValue || 0);
+                    cardListHtml += `
+                        <div class="p-3 bg-zinc-900 border border-sky-500/30 rounded-xl space-y-2 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-white text-sm">💳 ${c.name}</span>
+                                <span class="font-mono font-bold text-emerald-400 text-xs">Fatura: ${window.formatMoney(cVal)}</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <button onclick="window.showCardBalance('${c.id}')" class="py-2 px-3 bg-zinc-800 hover:bg-sky-500 hover:text-black text-sky-300 font-bold rounded-lg text-xs transition-all text-center border border-sky-500/20">
+                                    📊 Ver Saldo
+                                </button>
+                                <button onclick="window.promptAddValueToCard('${c.id}')" class="py-2 px-3 bg-emerald-500/20 hover:bg-emerald-500 hover:text-black text-emerald-300 font-bold rounded-lg text-xs transition-all text-center border border-emerald-500/30">
+                                    ➕ Atualizar Saldo
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
 
-                    window.botMessages.push({
-                        id: Date.now() + 2,
-                        sender: 'bot',
-                        text: cardBtns,
-                        time
-                    });
-                }
+                cardListHtml += `</div>`;
+
+                window.botMessages.push({
+                    id: Date.now() + 1,
+                    sender: 'bot',
+                    text: cardListHtml,
+                    time
+                });
             } else if (action === 'perguntas_fixas') {
                 window.botMessages.push({
                     id: Date.now(),
                     sender: 'user',
-                    text: 'Perguntas Fixas dos Campos do Sistema',
+                    text: 'Perguntas Fixas do Sistema',
                     time
                 });
 
@@ -3850,96 +3923,165 @@ service cloud.firestore {
             window.renderBotChat();
         };
 
-        window.promptSelectCardForUpdate = (cardId) => {
-            const card = (window.cards || []).find(c => c.id === cardId);
+        window.showCardBalance = (cardId) => {
+            const cards = window.getSystemCards();
+            const card = cards.find(c => c.id === cardId) || cards.find(c => c.name.toLowerCase().includes(cardId.toLowerCase()));
             if (!card) return;
-            window.selectedCardForBotUpdate = cardId;
+
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const currentVal = parseFloat(card.used || card.invoiceValue || 0);
+            const limit = parseFloat(card.limit || 5000);
+            const availableLimit = Math.max(0, limit - currentVal);
 
             window.botMessages.push({
                 id: Date.now(),
                 sender: 'user',
-                text: `Selecionado cartão: ${card.name}`,
+                text: `Ver saldo do cartão ${card.name}`,
                 time
             });
 
-            const currentVal = parseFloat(card.used || card.invoiceValue || 0);
-
-            let msg = `📝 **ATUALIZAR VALOR DO ${card.name.toUpperCase()}**\n\n`;
-            msg += `• Valor atual cadastrado: **${window.formatMoney(currentVal)}**\n`;
-            msg += `• Limite Total: **${window.formatMoney(card.limit || 5000)}**\n\n`;
-            msg += `Escolha um valor rápido abaixo ou digite o novo valor na caixa de texto:`;
+            const html = `
+                📊 **DETALHES E SALDO DO CARTÃO ${card.name.toUpperCase()}**\n\n
+                • **Valor Atual da Fatura:** <span class="text-emerald-400 font-extrabold">${window.formatMoney(currentVal)}</span>\n
+                • **Limite Utilizado:** ${window.formatMoney(currentVal)}\n
+                • **Limite Disponível:** ${window.formatMoney(availableLimit)} (de ${window.formatMoney(limit)})\n\n
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="window.promptAddValueToCard('${card.id}')" class="py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold rounded-xl text-xs transition-all shadow-md">
+                        ➕ Atualizar Saldo (Somar)
+                    </button>
+                    <button onclick="handleBotAction('cartoes')" class="py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs border border-zinc-700">
+                        💳 Voltar aos Cartões
+                    </button>
+                </div>
+            `;
 
             window.botMessages.push({
                 id: Date.now() + 1,
                 sender: 'bot',
-                text: msg,
-                time
-            });
-
-            const quickVals = [0, 250, 500, 1000, 1500, 2000, 3000, 5000];
-            let valBtns = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-2">`;
-            quickVals.forEach(v => {
-                valBtns += `<button onclick="window.executeCardUpdate('${cardId}', ${v})" class="py-2 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all text-center">
-                    ${v === 0 ? 'R$ 0 (Zerar)' : window.formatMoney(v)}
-                </button>`;
-            });
-            valBtns += `</div>`;
-
-            window.botMessages.push({
-                id: Date.now() + 2,
-                sender: 'bot',
-                text: valBtns,
+                text: html,
                 time
             });
 
             window.renderBotChat();
         };
 
-        window.executeCardUpdate = async (cardId, newVal) => {
-            const card = (window.cards || []).find(c => c.id === cardId);
+        window.promptAddValueToCard = (cardId) => {
+            const cards = window.getSystemCards();
+            const card = cards.find(c => c.id === cardId) || cards.find(c => c.name.toLowerCase().includes(cardId.toLowerCase()));
             if (!card) return;
+
+            window.selectedCardForBotAdd = card.id;
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const currentVal = parseFloat(card.used || card.invoiceValue || 0);
 
             window.botMessages.push({
                 id: Date.now(),
                 sender: 'user',
-                text: `Atualizar valor de ${card.name} para ${window.formatMoney(newVal)}`,
+                text: `Atualizar saldo do cartão ${card.name}`,
+                time
+            });
+
+            const promptHtml = `
+                ➕ **SOMAR VALOR À FATURA DO ${card.name.toUpperCase()}**\n\n
+                • **Valor atual cadastrado no sistema:** <span class="font-mono font-bold text-white">${window.formatMoney(currentVal)}</span>\n\n
+                💡 **Como funciona:** O valor enviado será **SOMADO** ao valor atual de ${window.formatMoney(currentVal)}.\n
+                *Exemplo:* se você digitar **55,00**, o sistema somará **${window.formatMoney(currentVal)} + R$ 55,00 = ${window.formatMoney(currentVal + 55)}**.\n\n
+                Escolha um valor rápido abaixo ou **digite no chat** o valor a somar:\n\n
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                    <button onclick="window.confirmCardAddValue('${card.id}', 55)" class="py-2.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold rounded-xl text-xs transition-all shadow-lg text-center">
+                        ➕ R$ 55,00 (Exemplo)
+                    </button>
+                    <button onclick="window.confirmCardAddValue('${card.id}', 20)" class="py-2.5 px-3 bg-zinc-800 hover:bg-emerald-500 hover:text-black text-white font-bold rounded-xl text-xs transition-all border border-zinc-700 text-center">
+                        + R$ 20,00
+                    </button>
+                    <button onclick="window.confirmCardAddValue('${card.id}', 50)" class="py-2.5 px-3 bg-zinc-800 hover:bg-emerald-500 hover:text-black text-white font-bold rounded-xl text-xs transition-all border border-zinc-700 text-center">
+                        + R$ 50,00
+                    </button>
+                    <button onclick="window.confirmCardAddValue('${card.id}', 100)" class="py-2.5 px-3 bg-zinc-800 hover:bg-emerald-500 hover:text-black text-white font-bold rounded-xl text-xs transition-all border border-zinc-700 text-center">
+                        + R$ 100,00
+                    </button>
+                    <button onclick="window.confirmCardAddValue('${card.id}', 200)" class="py-2.5 px-3 bg-zinc-800 hover:bg-emerald-500 hover:text-black text-white font-bold rounded-xl text-xs transition-all border border-zinc-700 text-center">
+                        + R$ 200,00
+                    </button>
+                    <button onclick="window.confirmCardAddValue('${card.id}', 500)" class="py-2.5 px-3 bg-zinc-800 hover:bg-emerald-500 hover:text-black text-white font-bold rounded-xl text-xs transition-all border border-zinc-700 text-center">
+                        + R$ 500,00
+                    </button>
+                </div>
+            `;
+
+            window.botMessages.push({
+                id: Date.now() + 1,
+                sender: 'bot',
+                text: promptHtml,
+                time
+            });
+
+            window.renderBotChat();
+        };
+
+        window.confirmCardAddValue = async (cardId, valToAdd) => {
+            const cards = window.getSystemCards();
+            const card = cards.find(c => c.id === cardId) || cards.find(c => c.name.toLowerCase().includes(cardId.toLowerCase()));
+            if (!card) return;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const currentVal = parseFloat(card.used || card.invoiceValue || 0);
+            const addedVal = parseFloat(valToAdd) || 0;
+            const newTotal = currentVal + addedVal;
+
+            window.botMessages.push({
+                id: Date.now(),
+                sender: 'user',
+                text: `Adicionar + ${window.formatMoney(addedVal)} na fatura do ${card.name}`,
                 time
             });
 
             try {
-                if (window.dbInstance && window.currentUser) {
-                    const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', cardId);
+                if (window.dbInstance && window.currentUser && card.id && !card.id.startsWith('card_')) {
+                    const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', card.id);
                     await window.firebaseFns.updateDoc(cardRef, {
-                        used: parseFloat(newVal) || 0,
-                        invoiceValue: parseFloat(newVal) || 0,
+                        used: newTotal,
+                        invoiceValue: newTotal,
                         updatedAt: Date.now()
                     });
-                } else {
-                    // Update local state fallback
-                    card.used = parseFloat(newVal) || 0;
-                    card.invoiceValue = parseFloat(newVal) || 0;
                 }
-
-                window.selectedCardForBotUpdate = null;
-                const newMetrics = window.getSystemMetrics();
-
-                window.botMessages.push({
-                    id: Date.now() + 1,
-                    sender: 'bot',
-                    text: `✅ **SUCESSO! CARTÃO ATUALIZADO.**\n\n• **Cartão:** ${card.name}\n• **Novo Valor de Fatura/Utilizado:** **${window.formatMoney(newVal)}**\n\n🔄 **NOVO DISPONÍVEL ESTIMADO DO MÊS:**\n💰 **${window.formatMoney(newMetrics.estimatedAvailable)}**`,
-                    time
-                });
             } catch (err) {
-                console.error("Card update error:", err);
-                window.botMessages.push({
-                    id: Date.now() + 1,
-                    sender: 'bot',
-                    text: `❌ Erro ao atualizar o cartão no banco de dados. Verifique a conexão com o Firebase.`,
-                    time
-                });
+                console.error("Firestore card update error:", err);
             }
+
+            // Always update local card object
+            card.used = newTotal;
+            card.invoiceValue = newTotal;
+            window.selectedCardForBotAdd = null;
+
+            const newMetrics = window.getSystemMetrics();
+
+            const successHtml = `
+                ✅ **VALOR SOMADO COM SUCESSO!**\n\n
+                • **Cartão:** ${card.name}\n
+                • **Valor Anterior:** ${window.formatMoney(currentVal)}\n
+                • **Valor Somado:** + ${window.formatMoney(addedVal)}\n
+                • **Novo Total da Fatura:** <span class="text-emerald-400 font-extrabold">${window.formatMoney(newTotal)}</span>\n\n
+                🔄 **Novo Disponível Estimado do Mês:** **${window.formatMoney(newMetrics.estimatedAvailable)}**\n\n
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="handleBotAction('cartoes')" class="py-2 px-3 bg-sky-500/20 hover:bg-sky-500 hover:text-black text-sky-300 font-bold rounded-xl text-xs border border-sky-500/30">
+                        💳 Voltar para Cartões
+                    </button>
+                    <button onclick="handleBotAction('disponivel')" class="py-2 px-3 bg-emerald-500/20 hover:bg-emerald-500 hover:text-black text-emerald-300 font-bold rounded-xl text-xs border border-emerald-500/30">
+                        💰 Ver Disponível Estimado
+                    </button>
+                    <button onclick="handleBotAction('menu')" class="py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs border border-zinc-700">
+                        📋 Menu Principal
+                    </button>
+                </div>
+            `;
+
+            window.botMessages.push({
+                id: Date.now() + 1,
+                sender: 'bot',
+                text: successHtml,
+                time
+            });
 
             window.renderBotChat();
         };
@@ -4218,6 +4360,207 @@ service cloud.firestore {
                 }
             }
         };
+
+        // Telegram Bot Auto-Responder Engine
+        window.replyToTelegramMessage = async (token, chatId, text, senderName) => {
+            const metrics = window.getSystemMetrics();
+            const lower = text.toLowerCase().trim();
+            let replyText = '';
+
+            const greetings = ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'e ai', 'e aí', 'hey', 'hello', 'salve', '/start', 'iniciar', 'menu', 'ajuda'];
+            const isGreeting = greetings.some(g => lower === g || lower.startsWith(g + ' ') || lower.endsWith(' ' + g));
+
+            const cards = window.getSystemCards();
+
+            // Check if message is a card addition command, e.g. "Atacadão 55" or "55" or "somar 55"
+            let targetCard = cards.find(c => lower.includes(c.name.toLowerCase()));
+            const extractedNum = parseFloat(lower.replace(/[^\d.,]/g, '').replace(',', '.'));
+
+            if (!targetCard && (lower.includes('atacadao') || lower.includes('atacadão'))) {
+                targetCard = cards.find(c => c.name.toLowerCase().includes('atacadão') || c.name.toLowerCase().includes('atacadao'));
+            }
+
+            if (targetCard && extractedNum > 0) {
+                const currentVal = parseFloat(targetCard.used || targetCard.invoiceValue || 0);
+                const addedVal = extractedNum;
+                const newTotal = currentVal + addedVal;
+
+                // Update in Firestore and local state
+                try {
+                    if (window.dbInstance && window.currentUser && targetCard.id && !targetCard.id.startsWith('card_')) {
+                        const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', targetCard.id);
+                        await window.firebaseFns.updateDoc(cardRef, {
+                            used: newTotal,
+                            invoiceValue: newTotal,
+                            updatedAt: Date.now()
+                        });
+                    }
+                } catch (e) {
+                    console.warn("Telegram Firestore update card error:", e);
+                }
+
+                targetCard.used = newTotal;
+                targetCard.invoiceValue = newTotal;
+                const updatedMetrics = window.getSystemMetrics();
+
+                replyText = `✅ *VALOR SOMADO COM SUCESSO!*\n\n• *Cartão:* ${targetCard.name}\n• *Valor Anterior:* ${window.formatMoney(currentVal)}\n• *Valor Somado:* + ${window.formatMoney(addedVal)}\n• *Novo Total da Fatura:* *${window.formatMoney(newTotal)}*\n\n🔄 *Novo Disponível Estimado:* *${window.formatMoney(updatedMetrics.estimatedAvailable)}*`;
+            } else if (targetCard && !extractedNum) {
+                const currentVal = parseFloat(targetCard.used || targetCard.invoiceValue || 0);
+                replyText = `💳 *CARTÃO DE CRÉDITO: ${targetCard.name.toUpperCase()}*\n\n• *Valor Atual da Fatura:* *${window.formatMoney(currentVal)}*\n• *Limite Total:* ${window.formatMoney(targetCard.limit || 5000)}\n\n💡 *Para somar um novo valor a este cartão, responda com o valor. Exemplo:*\n*"${targetCard.name} 55"* ou *"55"* para adicionar R$ 55,00 ao Atacadão!`;
+            } else if (lower.includes('duvida') || lower.includes('dúvida') || lower.includes('como usar') || lower.includes('ajuda')) {
+                replyText = `❓ *DÚVIDAS FREQUENTES & GUIA DE USO*\n\n• *Como atualizar cartões?*\nEnvie o nome do cartão seguido do valor a somar. Exemplo:\n*"Atacadão 55"* (Soma R$ 55,00 à fatura do Atacadão)\n\n• *O que é o Disponível Estimado?*\nÉ o cálculo: *(Total Entradas) - (Total Saídas) - (Faturas de Cartões)*.\n\n• *Como navegar nos menus?*\nUse os botões no menu abaixo ou envie *"menu"*, *"cartoes"*, *"saldo"*, *"entradas"* ou *"saidas"*.`;
+            } else if (isGreeting) {
+                replyText = `👋 *Olá, ${senderName}! Que bom falar com você!*\n\nSou o **Bot Assistente FinanceUP**! Estou pronto para te atender em tempo real.\n\n📊 *RESUMO DE ${metrics.monthName.toUpperCase()}:*\n💰 *Disponível Estimado:* *${window.formatMoney(metrics.estimatedAvailable)}*\n🟢 *Entradas:* ${window.formatMoney(metrics.totalIncomes)}\n🔴 *Saídas:* ${window.formatMoney(metrics.totalExpenses)}\n💳 *Faturas de Cartões:* ${window.formatMoney(metrics.totalCardsInvoice)}\n\n📋 *MENU PRINCIPAL DE OPÇÕES:*\n• 💳 *Cartões* - Consultar faturas e somar novos lançamentos\n• 💰 *Disponível* - Consultar saldo líquido estimado do mês\n• 🟢 *Entradas* - Consultar receitas e recebimentos\n• 🔴 *Saídas* - Consultar despesas e vencimentos\n• 🛒 *Compras* - Ver itens da lista de supermercado\n• ❓ *Dúvidas* - Guia de como atualizar e usar o bot\n\n👇 *Escolha uma opção no menu de botões abaixo ou digite a opção desejada:*`;
+            } else if (lower.includes('disponivel') || lower.includes('disponível') || lower.includes('saldo') || lower.includes('quanto tenho') || lower.includes('quanto sobrou')) {
+                replyText = `💰 *Disponível Estimado (${metrics.monthName}):*\n*${window.formatMoney(metrics.estimatedAvailable)}*\n\n🟢 *Entradas:* ${window.formatMoney(metrics.totalIncomes)}\n🔴 *Saídas:* ${window.formatMoney(metrics.totalExpenses)}\n💳 *Faturas Cartões:* ${window.formatMoney(metrics.totalCardsInvoice)}`;
+            } else if (lower.includes('cartao') || lower.includes('cartão') || lower.includes('cartões') || lower.includes('fatura') || lower.includes('faturas')) {
+                let cardsText = cards.map(c => `• *${c.name}:* ${window.formatMoney(c.used || c.invoiceValue || 0)}`).join('\n');
+                replyText = `💳 *CARTÕES DE CRÉDITO (${metrics.monthName}):*\n\n${cardsText}\n\n*Total em Faturas:* *${window.formatMoney(metrics.totalCardsInvoice)}*\n\n👉 *Para atualizar um cartão, envie:* *"Atacadão 55"* ou *"Nubank 100"*\nO valor digitado será *SOMADO* ao total do cartão!`;
+            } else if (lower.includes('compra') || lower.includes('compras') || lower.includes('lista') || lower.includes('mercado')) {
+                const items = window.shoppingItems || [];
+                const pending = items.filter(i => !i.bought);
+                let itemsText = pending.slice(0, 8).map(i => `• ${i.name} (R$ ${(i.value || 0).toFixed(2)})`).join('\n') || 'Nenhum item pendente.';
+                replyText = `🛒 *Lista de Compras Pendentes (${pending.length} itens):*\n\n${itemsText}\n\n*Total Estimado:* *${window.formatMoney(metrics.shoppingTotalPending)}*`;
+            } else if (lower.includes('entrada') || lower.includes('entradas') || lower.includes('receita') || lower.includes('salario') || lower.includes('salário')) {
+                replyText = `🟢 *Entradas de ${metrics.monthName}:*\n\n• Total Previsto: *${window.formatMoney(metrics.totalIncomes)}*\n• Já Recebido: *${window.formatMoney(metrics.paidIncomes)}*`;
+            } else if (lower.includes('saida') || lower.includes('saída') || lower.includes('despesa') || lower.includes('despesas') || lower.includes('conta')) {
+                replyText = `🔴 *Saídas de ${metrics.monthName}:*\n\n• Total Despesas: *${window.formatMoney(metrics.totalExpenses)}*\n• Já Pago: *${window.formatMoney(metrics.paidExpenses)}*`;
+            } else {
+                try {
+                    if (window.GoogleGenAI) {
+                        const ai = new window.GoogleGenAI({ apiKey: "AIzaSyCrqECbdY29Vw1mKHt0Gfjdmsm2KGauIVo" });
+                        const contextStr = `Mês: ${metrics.monthName}. Disponível Estimado: R$ ${metrics.estimatedAvailable}. Total Entradas: R$ ${metrics.totalIncomes}. Total Saídas: R$ ${metrics.totalExpenses}. Total Cartões: R$ ${metrics.totalCardsInvoice}. Cartão Atacadão fatura atual: R$ ${cards.find(c=>c.name.toLowerCase().includes('atacadao'))?.used || 749.13}.`;
+                        const sysPrompt = `Você é o Bot Assistente FinanceUP no Telegram. Responda em português com clareza, objetividade, emojis e negritos Markdown. Dados: ${contextStr}`;
+
+                        const response = await ai.models.generateContent({
+                            model: 'gemini-3-flash-preview',
+                            contents: text,
+                            config: { systemInstruction: sysPrompt, temperature: 0.7 }
+                        });
+                        replyText = response.text || `🤖 Recebi sua mensagem: *"${text}"*.\n\n📊 *Disponível Estimado:* *${window.formatMoney(metrics.estimatedAvailable)}*\nEnvie "cartoes", "saldo" ou "menu".`;
+                    } else {
+                        throw new Error("Gemini not ready");
+                    }
+                } catch (e) {
+                    replyText = `🤖 *Bot FinanceUP:* Recebi "${text}".\n\n📊 *Disponível Estimado (${metrics.monthName}):* *${window.formatMoney(metrics.estimatedAvailable)}*\n\n💡 Envie "cartões", "saldo", "entradas" ou "saídas" para consultar.`;
+                }
+            }
+
+            // Post back to Telegram with interactive menu keyboard
+            try {
+                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: replyText,
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            keyboard: [
+                                [{ text: "💳 Cartões" }, { text: "💰 Disponível" }],
+                                [{ text: "🟢 Entradas" }, { text: "🔴 Saídas" }],
+                                [{ text: "🛒 Compras" }, { text: "❓ Dúvidas" }],
+                                [{ text: "📋 Menu Principal" }]
+                            ],
+                            resize_keyboard: true,
+                            one_time_keyboard: false
+                        }
+                    })
+                });
+            } catch (err) {
+                console.error("Telegram reply send error:", err);
+            }
+
+            // Also mirror into the app's chat screen
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            window.botMessages.push({
+                id: Date.now(),
+                sender: 'user',
+                text: `📱 [Telegram - ${senderName}]: ${text}`,
+                time
+            });
+            window.botMessages.push({
+                id: Date.now() + 1,
+                sender: 'bot',
+                text: replyText,
+                time
+            });
+            window.renderBotChat();
+        };
+
+        window.checkTelegramUpdates = async () => {
+            const token = document.getElementById('telegramTokenInput')?.value.trim() || localStorage.getItem('bot_telegram_token') || '';
+            if (!token) return;
+
+            let offset = parseInt(localStorage.getItem('bot_telegram_last_update_id') || '0', 10);
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?offset=${offset + 1}&timeout=1`);
+                const data = await res.json();
+
+                if (data.ok && Array.isArray(data.result) && data.result.length > 0) {
+                    for (const update of data.result) {
+                        if (update.update_id > offset) {
+                            offset = update.update_id;
+                            localStorage.setItem('bot_telegram_last_update_id', String(offset));
+                        }
+
+                        let text = null;
+                        let chatId = null;
+                        let senderName = 'Usuário Telegram';
+
+                        if (update.callback_query) {
+                            text = update.callback_query.data;
+                            chatId = update.callback_query.message ? update.callback_query.message.chat.id : null;
+                            senderName = update.callback_query.from ? (update.callback_query.from.first_name || 'Usuário') : 'Usuário Telegram';
+                            try {
+                                fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ callback_query_id: update.callback_query.id })
+                                });
+                            } catch (e) {}
+                        } else if (update.message || update.edited_message) {
+                            const msg = update.message || update.edited_message;
+                            text = msg && msg.text ? msg.text.trim() : null;
+                            chatId = msg && msg.chat ? msg.chat.id : null;
+                            senderName = msg && msg.from ? (msg.from.first_name || 'Usuário') : 'Usuário Telegram';
+                        }
+
+                        if (text && chatId) {
+                            await window.replyToTelegramMessage(token, chatId, text, senderName);
+                        }
+                    }
+                }
+            } catch (err) {
+                // Ignore network errors during polling
+            }
+        };
+
+        window.syncTelegramNow = async () => {
+            const btn = document.getElementById('btnSyncTelegramUpdates');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Sincronizando...</span>';
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            await window.checkTelegramUpdates();
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i><span>Sincronizado!</span>';
+                if (window.lucide) window.lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i><span>Sincronizar Mensagens</span>';
+                    if (window.lucide) window.lucide.createIcons();
+                }, 2000);
+            }
+        };
+
+        // Start Telegram polling loop every 3.5 seconds
+        setInterval(() => {
+            window.checkTelegramUpdates();
+        }, 3500);
 
         window.shareSummaryOnWhatsApp = () => {
             const metrics = window.getSystemMetrics();
