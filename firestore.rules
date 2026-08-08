@@ -5,6 +5,22 @@ service cloud.firestore {
     match /transactions/{txId} {
       allow read, write, create: if true;
     }
+
+    match /shopping_items/{itemId} {
+      allow read, write, create: if true;
+    }
+
+    match /shopping_tags/{tagId} {
+      allow read, write, create: if true;
+    }
+
+    match /cards/{cardId} {
+      allow read, write, create: if true;
+    }
+
+    match /bot_settings/{settingId} {
+      allow read, write, create: if true;
+    }
     
     function isAllowedUser() {
       return request.auth != null && (
