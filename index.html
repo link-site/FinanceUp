@@ -3437,7 +3437,7 @@ service cloud.firestore {
 
             // Card invoice sum
             let totalCardsInvoice = 0;
-            const cardsList = window.cards || [];
+            const cardsList = window.getSystemCards ? window.getSystemCards() : (window.cards || []);
             cardsList.forEach(c => {
                 totalCardsInvoice += parseFloat(c.used || c.invoiceValue || 0);
             });
@@ -3558,8 +3558,85 @@ service cloud.firestore {
         };
 
         window.getSystemCards = () => {
-            let list = window.cards || [];
-            if (!list || list.length === 0) {
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const m = mSel ? parseInt(mSel.value) : new Date().getMonth();
+            const y = ySel ? parseInt(ySel.value) : new Date().getFullYear();
+
+            const cardMap = {};
+
+            // 1. Map items from Movimentações (window.transactions) with category "Cartão de Credito" / "Cartão de Crédito"
+            (window.transactions || []).forEach(t => {
+                if (t.isTombstone) return;
+
+                const cat = (t.category || '').toLowerCase();
+                const isCardCat = cat.includes('cartão') || cat.includes('cartao') || cat.includes('credito') || cat.includes('crédito');
+                if (!isCardCat) return;
+
+                // Match date with selected month if date exists
+                const dateStr = t.receiptDate || t.dueDate || t.date;
+                if (dateStr && typeof dateStr === 'string') {
+                    const parts = dateStr.split('-');
+                    if (parts.length >= 2) {
+                        const ty = parseInt(parts[0]);
+                        const tm = parseInt(parts[1]) - 1;
+                        if (ty !== y || tm !== m) return;
+                    }
+                }
+
+                const name = (t.description || 'Cartão de Crédito').trim();
+                if (!name) return;
+                const key = name.toLowerCase();
+                const val = parseFloat(t.value) || 0;
+
+                if (!cardMap[key]) {
+                    cardMap[key] = {
+                        id: t.id || ('card_' + key.replace(/\s+/g, '_')),
+                        name: name,
+                        color: '#8A05BE',
+                        limit: 5000,
+                        used: 0,
+                        invoiceValue: 0,
+                        txIds: []
+                    };
+                }
+
+                cardMap[key].used += val;
+                cardMap[key].invoiceValue += val;
+                if (t.id && !cardMap[key].txIds.includes(t.id)) {
+                    cardMap[key].txIds.push(t.id);
+                }
+            });
+
+            // 2. Merge with cards registered in window.cards (if any card isn't in transactions yet)
+            (window.cards || []).forEach(c => {
+                const name = (c.name || '').trim();
+                if (!name) return;
+                const key = name.toLowerCase();
+
+                if (!cardMap[key]) {
+                    cardMap[key] = {
+                        id: c.id || ('card_' + key.replace(/\s+/g, '_')),
+                        name: c.name,
+                        color: c.color || '#8A05BE',
+                        limit: parseFloat(c.limit) || 5000,
+                        used: parseFloat(c.used || c.invoiceValue || 0),
+                        invoiceValue: parseFloat(c.invoiceValue || c.used || 0)
+                    };
+                } else {
+                    if (c.limit) cardMap[key].limit = parseFloat(c.limit);
+                    if (c.color) cardMap[key].color = c.color;
+                    if ((!cardMap[key].used || cardMap[key].used === 0) && (c.used || c.invoiceValue)) {
+                        cardMap[key].used = parseFloat(c.used || c.invoiceValue || 0);
+                        cardMap[key].invoiceValue = parseFloat(c.invoiceValue || c.used || 0);
+                    }
+                }
+            });
+
+            let list = Object.values(cardMap);
+
+            // 3. Fallback default list if completely empty
+            if (list.length === 0) {
                 list = [
                     { id: 'card_atacadao', name: 'Atacadão', color: '#008000', limit: 5000, used: 749.13, invoiceValue: 749.13, closingDay: 10, dueDay: 17 },
                     { id: 'card_nubank', name: 'Cartão Nubank', color: '#8A05BE', limit: 5000, used: 1200, invoiceValue: 1200, closingDay: 5, dueDay: 12 },
@@ -3568,6 +3645,7 @@ service cloud.firestore {
                     { id: 'card_bradesco', name: 'Cartão Bradesco', color: '#CC092F', limit: 2500, used: 0, invoiceValue: 0, closingDay: 15, dueDay: 22 }
                 ];
             }
+
             return list;
         };
 
@@ -4385,15 +4463,55 @@ service cloud.firestore {
                 const addedVal = extractedNum;
                 const newTotal = currentVal + addedVal;
 
-                // Update in Firestore and local state
+                // Sync with Movimentações (window.transactions & Firestore)
                 try {
+                    const mSel = document.getElementById('monthSelect');
+                    const ySel = document.getElementById('yearSelect');
+                    const m = mSel ? parseInt(mSel.value) : new Date().getMonth();
+                    const y = ySel ? parseInt(ySel.value) : new Date().getFullYear();
+                    const dateToday = `${y}-${(m + 1).toString().padStart(2, '0')}-10`;
+
+                    let existingTx = (window.transactions || []).find(t => {
+                        if (t.isTombstone) return false;
+                        const cat = (t.category || '').toLowerCase();
+                        const desc = (t.description || '').toLowerCase();
+                        const isCardCat = cat.includes('cartão') || cat.includes('cartao') || cat.includes('credito') || cat.includes('crédito');
+                        if (!isCardCat) return false;
+                        return desc.includes(targetCard.name.toLowerCase()) || targetCard.name.toLowerCase().includes(desc);
+                    });
+
+                    if (existingTx) {
+                        existingTx.value = newTotal;
+                        if (window.dbInstance && window.currentUser && existingTx.id) {
+                            const txRef = window.firebaseFns.doc(window.dbInstance, 'transactions', existingTx.id);
+                            await window.firebaseFns.updateDoc(txRef, { value: newTotal, updatedAt: Date.now() });
+                        }
+                    } else {
+                        const newTxData = {
+                            userId: window.currentUser ? window.currentUser.uid : 'demo',
+                            description: targetCard.name,
+                            value: newTotal,
+                            type: 'Saída',
+                            category: 'Cartão de Credito',
+                            date: dateToday,
+                            dueDate: dateToday,
+                            isPaid: false,
+                            isRecurring: false,
+                            createdAt: Date.now()
+                        };
+                        if (window.dbInstance && window.currentUser) {
+                            const docRef = await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
+                            newTxData.id = docRef.id;
+                        } else {
+                            newTxData.id = 'tx_' + Date.now();
+                        }
+                        if (!window.transactions) window.transactions = [];
+                        window.transactions.push(newTxData);
+                    }
+
                     if (window.dbInstance && window.currentUser && targetCard.id && !targetCard.id.startsWith('card_')) {
                         const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', targetCard.id);
-                        await window.firebaseFns.updateDoc(cardRef, {
-                            used: newTotal,
-                            invoiceValue: newTotal,
-                            updatedAt: Date.now()
-                        });
+                        await window.firebaseFns.updateDoc(cardRef, { used: newTotal, invoiceValue: newTotal, updatedAt: Date.now() });
                     }
                 } catch (e) {
                     console.warn("Telegram Firestore update card error:", e);
@@ -4415,7 +4533,7 @@ service cloud.firestore {
                 replyText = `💰 *Disponível Estimado (${metrics.monthName}):*\n*${window.formatMoney(metrics.estimatedAvailable)}*\n\n🟢 *Entradas:* ${window.formatMoney(metrics.totalIncomes)}\n🔴 *Saídas:* ${window.formatMoney(metrics.totalExpenses)}\n💳 *Faturas Cartões:* ${window.formatMoney(metrics.totalCardsInvoice)}`;
             } else if (lower.includes('cartao') || lower.includes('cartão') || lower.includes('cartões') || lower.includes('fatura') || lower.includes('faturas')) {
                 let cardsText = cards.map(c => `• *${c.name}:* ${window.formatMoney(c.used || c.invoiceValue || 0)}`).join('\n');
-                replyText = `💳 *CARTÕES DE CRÉDITO (${metrics.monthName}):*\n\n${cardsText}\n\n*Total em Faturas:* *${window.formatMoney(metrics.totalCardsInvoice)}*\n\n👉 *Para atualizar um cartão, envie:* *"Atacadão 55"* ou *"Nubank 100"*\nO valor digitado será *SOMADO* ao total do cartão!`;
+                replyText = `💳 *CARTÕES DE CRÉDITO (${metrics.monthName}):*\n\n${cardsText}\n\n*Total em Faturas:* *${window.formatMoney(metrics.totalCardsInvoice)}*\n\n👉 *Para atualizar um cartão, envie o nome do cartão e valor*\nO valor digitado será *SOMADO* ao total do cartão!`;
             } else if (lower.includes('compra') || lower.includes('compras') || lower.includes('lista') || lower.includes('mercado')) {
                 const items = window.shoppingItems || [];
                 const pending = items.filter(i => !i.bought);
