@@ -3745,6 +3745,19 @@ service cloud.firestore {
                 }
             }
 
+            // Direct card addition command check (e.g. "Atacadão 55" or "Nubank 100")
+            const cardsListForBot = window.getSystemCards();
+            let matchedBotCard = cardsListForBot.find(c => lower.includes(c.name.toLowerCase()));
+            if (!matchedBotCard && (lower.includes('atacadao') || lower.includes('atacadão'))) {
+                matchedBotCard = cardsListForBot.find(c => c.name.toLowerCase().includes('atacadão') || c.name.toLowerCase().includes('atacadao'));
+            }
+            const numInText = parseFloat(text.replace(/[^\d.,]/g, '').replace(',', '.'));
+
+            if (matchedBotCard && numInText > 0) {
+                await window.confirmCardAddValue(matchedBotCard.id, numInText);
+                return;
+            }
+
             // Greeting & Menu detection
             const greetings = ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'e ai', 'e aí', 'hey', 'hello', 'salve', 'iniciar', 'start', 'tudo bem', 'tudo bom', 'oie', 'oii', 'oiii', 'menu', 'ajuda', 'opçoes', 'opções'];
             const isGreeting = greetings.some(g => lower === g || lower.startsWith(g + ' ') || lower.endsWith(' ' + g));
@@ -4097,6 +4110,124 @@ service cloud.firestore {
             window.renderBotChat();
         };
 
+        window.syncCardValueToSystem = async (targetCard, addedVal, newTotal) => {
+            if (!targetCard) return;
+
+            // 1. Update targetCard object directly
+            targetCard.used = newTotal;
+            targetCard.invoiceValue = newTotal;
+
+            // 2. Update window.cards global array if present or push it
+            if (!window.cards) window.cards = [];
+            let globalCard = window.cards.find(c =>
+                (c.id && targetCard.id && c.id === targetCard.id) ||
+                c.name.toLowerCase().trim() === targetCard.name.toLowerCase().trim() ||
+                c.name.toLowerCase().includes(targetCard.name.toLowerCase()) ||
+                targetCard.name.toLowerCase().includes(c.name.toLowerCase())
+            );
+
+            if (globalCard) {
+                globalCard.used = newTotal;
+                globalCard.invoiceValue = newTotal;
+            } else {
+                window.cards.push({
+                    id: targetCard.id || ('card_' + targetCard.name.toLowerCase().replace(/\s+/g, '_')),
+                    name: targetCard.name,
+                    color: targetCard.color || '#8A05BE',
+                    limit: targetCard.limit || 5000,
+                    used: newTotal,
+                    invoiceValue: newTotal
+                });
+            }
+
+            // 3. Update or create transaction in window.transactions & Firestore
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const m = mSel ? parseInt(mSel.value) : new Date().getMonth();
+            const y = ySel ? parseInt(ySel.value) : new Date().getFullYear();
+            const dateToday = `${y}-${(m + 1).toString().padStart(2, '0')}-10`;
+
+            let existingTx = (window.transactions || []).find(t => {
+                if (t.isTombstone) return false;
+                const cat = (t.category || '').toLowerCase();
+                const desc = (t.description || '').toLowerCase();
+                const cardName = targetCard.name.toLowerCase();
+                const isCardCat = cat.includes('cartão') || cat.includes('cartao') || cat.includes('credito') || cat.includes('crédito');
+                const isDescMatch = desc.includes(cardName) || cardName.includes(desc);
+                return (isCardCat || isDescMatch) && isDescMatch;
+            });
+
+            if (existingTx) {
+                existingTx.value = newTotal;
+                if (window.dbInstance && window.currentUser && existingTx.id) {
+                    try {
+                        const txRef = window.firebaseFns.doc(window.dbInstance, 'transactions', existingTx.id);
+                        await window.firebaseFns.updateDoc(txRef, { value: newTotal, updatedAt: Date.now() });
+                    } catch (e) {
+                        console.warn("Firestore update transaction error:", e);
+                    }
+                }
+            } else {
+                const newTxData = {
+                    userId: window.currentUser ? window.currentUser.uid : 'demo',
+                    description: targetCard.name.toLowerCase().includes('fatura') ? targetCard.name : `Fatura ${targetCard.name}`,
+                    value: newTotal,
+                    type: 'Saída',
+                    category: 'Cartão de Credito',
+                    date: dateToday,
+                    dueDate: dateToday,
+                    isPaid: false,
+                    isRecurring: false,
+                    createdAt: Date.now()
+                };
+                if (window.dbInstance && window.currentUser) {
+                    try {
+                        const docRef = await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
+                        newTxData.id = docRef.id;
+                    } catch (e) {
+                        newTxData.id = 'tx_' + Date.now();
+                    }
+                } else {
+                    newTxData.id = 'tx_' + Date.now();
+                }
+                if (!window.transactions) window.transactions = [];
+                window.transactions.push(newTxData);
+            }
+
+            // 4. Update or add card doc in Firestore 'cards' collection
+            if (window.dbInstance && window.currentUser) {
+                try {
+                    const cardDoc = (window.cards || []).find(c => c.id && !c.id.startsWith('card_') && c.name.toLowerCase() === targetCard.name.toLowerCase());
+                    if (cardDoc && cardDoc.id) {
+                        const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', cardDoc.id);
+                        await window.firebaseFns.updateDoc(cardRef, { used: newTotal, invoiceValue: newTotal, updatedAt: Date.now() });
+                    } else if (targetCard.id && !targetCard.id.startsWith('card_')) {
+                        const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', targetCard.id);
+                        await window.firebaseFns.updateDoc(cardRef, { used: newTotal, invoiceValue: newTotal, updatedAt: Date.now() });
+                    } else {
+                        const newDoc = await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'cards'), {
+                            userId: window.currentUser.uid,
+                            name: targetCard.name,
+                            color: targetCard.color || '#8A05BE',
+                            limit: targetCard.limit || 5000,
+                            used: newTotal,
+                            invoiceValue: newTotal,
+                            createdAt: Date.now()
+                        });
+                        targetCard.id = newDoc.id;
+                    }
+                } catch (e) {
+                    console.warn("Firestore card doc update error:", e);
+                }
+            }
+
+            // 5. Instantly trigger re-renders in open app UI
+            if (window.renderDashboard) window.renderDashboard();
+            if (window.renderCardsView) window.renderCardsView();
+            if (window.updateCardSelects) window.updateCardSelects();
+            if (window.populateSimulateCards) window.populateSimulateCards();
+        };
+
         window.confirmCardAddValue = async (cardId, valToAdd) => {
             const cards = window.getSystemCards();
             const card = cards.find(c => c.id === cardId) || cards.find(c => c.name.toLowerCase().includes(cardId.toLowerCase()));
@@ -4114,22 +4245,7 @@ service cloud.firestore {
                 time
             });
 
-            try {
-                if (window.dbInstance && window.currentUser && card.id && !card.id.startsWith('card_')) {
-                    const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', card.id);
-                    await window.firebaseFns.updateDoc(cardRef, {
-                        used: newTotal,
-                        invoiceValue: newTotal,
-                        updatedAt: Date.now()
-                    });
-                }
-            } catch (err) {
-                console.error("Firestore card update error:", err);
-            }
-
-            // Always update local card object
-            card.used = newTotal;
-            card.invoiceValue = newTotal;
+            await window.syncCardValueToSystem(card, addedVal, newTotal);
             window.selectedCardForBotAdd = null;
 
             const newMetrics = window.getSystemMetrics();
@@ -4463,62 +4579,7 @@ service cloud.firestore {
                 const addedVal = extractedNum;
                 const newTotal = currentVal + addedVal;
 
-                // Sync with Movimentações (window.transactions & Firestore)
-                try {
-                    const mSel = document.getElementById('monthSelect');
-                    const ySel = document.getElementById('yearSelect');
-                    const m = mSel ? parseInt(mSel.value) : new Date().getMonth();
-                    const y = ySel ? parseInt(ySel.value) : new Date().getFullYear();
-                    const dateToday = `${y}-${(m + 1).toString().padStart(2, '0')}-10`;
-
-                    let existingTx = (window.transactions || []).find(t => {
-                        if (t.isTombstone) return false;
-                        const cat = (t.category || '').toLowerCase();
-                        const desc = (t.description || '').toLowerCase();
-                        const isCardCat = cat.includes('cartão') || cat.includes('cartao') || cat.includes('credito') || cat.includes('crédito');
-                        if (!isCardCat) return false;
-                        return desc.includes(targetCard.name.toLowerCase()) || targetCard.name.toLowerCase().includes(desc);
-                    });
-
-                    if (existingTx) {
-                        existingTx.value = newTotal;
-                        if (window.dbInstance && window.currentUser && existingTx.id) {
-                            const txRef = window.firebaseFns.doc(window.dbInstance, 'transactions', existingTx.id);
-                            await window.firebaseFns.updateDoc(txRef, { value: newTotal, updatedAt: Date.now() });
-                        }
-                    } else {
-                        const newTxData = {
-                            userId: window.currentUser ? window.currentUser.uid : 'demo',
-                            description: targetCard.name,
-                            value: newTotal,
-                            type: 'Saída',
-                            category: 'Cartão de Credito',
-                            date: dateToday,
-                            dueDate: dateToday,
-                            isPaid: false,
-                            isRecurring: false,
-                            createdAt: Date.now()
-                        };
-                        if (window.dbInstance && window.currentUser) {
-                            const docRef = await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'transactions'), newTxData);
-                            newTxData.id = docRef.id;
-                        } else {
-                            newTxData.id = 'tx_' + Date.now();
-                        }
-                        if (!window.transactions) window.transactions = [];
-                        window.transactions.push(newTxData);
-                    }
-
-                    if (window.dbInstance && window.currentUser && targetCard.id && !targetCard.id.startsWith('card_')) {
-                        const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', targetCard.id);
-                        await window.firebaseFns.updateDoc(cardRef, { used: newTotal, invoiceValue: newTotal, updatedAt: Date.now() });
-                    }
-                } catch (e) {
-                    console.warn("Telegram Firestore update card error:", e);
-                }
-
-                targetCard.used = newTotal;
-                targetCard.invoiceValue = newTotal;
+                await window.syncCardValueToSystem(targetCard, addedVal, newTotal);
                 const updatedMetrics = window.getSystemMetrics();
 
                 replyText = `✅ *VALOR SOMADO COM SUCESSO!*\n\n• *Cartão:* ${targetCard.name}\n• *Valor Anterior:* ${window.formatMoney(currentVal)}\n• *Valor Somado:* + ${window.formatMoney(addedVal)}\n• *Novo Total da Fatura:* *${window.formatMoney(newTotal)}*\n\n🔄 *Novo Disponível Estimado:* *${window.formatMoney(updatedMetrics.estimatedAvailable)}*`;
