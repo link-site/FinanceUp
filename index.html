@@ -82,11 +82,6 @@
                     <button onclick="setView('organization')" id="btnOrg" class="px-5 py-2 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-white">Organização</button>
                     <button onclick="setView('shoppingList')" id="btnShoppingList" class="px-5 py-2 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-white">Lista de Compras</button>
                     <button onclick="setView('reports')" id="btnReports" class="px-5 py-2 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-white">Relatórios</button>
-                    <button onclick="openFinanceBotModal()" class="ml-2 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-black transition-all flex items-center gap-1.5 shadow-sm">
-                        <i data-lucide="bot" class="w-4 h-4"></i>
-                        <span>Bot WhatsApp / Telegram</span>
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    </button>
                 </nav>
             </div>
             <div class="flex items-center gap-2 sm:gap-3">
@@ -243,23 +238,174 @@
             </div>
 
             <!-- Reports View -->
-            <div id="viewReports" class="hidden animate-in fade-in duration-500">
-                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
-                        <h3 class="text-lg font-bold mb-6 italic">Gasto Mensal</h3>
-                        <div class="h-64 flex flex-col items-center justify-center bg-zinc-950/50 rounded-xl border border-zinc-800/50">
-                             <i data-lucide="bar-chart-3" class="w-12 h-12 text-zinc-700 mb-2"></i>
-                             <p class="text-zinc-500 text-sm italic">Módulo de Gráficos em desenvolvimento</p>
+            <div id="viewReports" class="hidden animate-in fade-in duration-500 space-y-6">
+                <!-- Top Header & Tab Selector -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900 p-6 rounded-2xl border border-zinc-800 shadow-lg">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <i data-lucide="bar-chart-2" class="w-6 h-6 text-neon"></i>
+                            <h3 class="text-xl font-bold text-white">Relatórios & Análises</h3>
+                        </div>
+                        <p class="text-zinc-400 text-xs sm:text-sm">Acompanhe relatórios detalhados das suas compras por tags e análises financeiras do seu caixa.</p>
+                    </div>
+                    
+                    <!-- Mode Toggle Tabs -->
+                    <div class="flex items-center bg-zinc-950 p-1.5 rounded-xl border border-zinc-800 self-start sm:self-auto">
+                        <button id="btnReportTabShopping" onclick="window.setReportsTab('shopping')" class="px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-neon text-black shadow-md">
+                            <i data-lucide="tag" class="w-4 h-4"></i>
+                            <span>Compras por Tags</span>
+                        </button>
+                        <button id="btnReportTabFinancial" onclick="window.setReportsTab('financial')" class="px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-400 hover:text-white">
+                            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                            <span>Resumo Financeiro</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SHOPPING LIST REPORTS SECTION (BY TAGS) -->
+                <div id="reportsShoppingContainer" class="space-y-6">
+                    <!-- Summary KPI Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Total em Tags</span>
+                                <div class="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center text-neon">
+                                    <i data-lucide="tags" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                            <div id="rptTagTotalValue" class="text-2xl font-bold text-neon">R$ 0,00</div>
+                            <div id="rptTagTotalCount" class="text-xs text-zinc-400 mt-1">0 tags no relatório</div>
+                        </div>
+
+                        <div class="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Total Comprado</span>
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                            <div id="rptTagCompletedValue" class="text-2xl font-bold text-emerald-400">R$ 0,00</div>
+                            <div id="rptTagCompletedPercent" class="text-xs text-zinc-500 mt-1">0% do valor comprado</div>
+                        </div>
+
+                        <div class="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Pendente a Comprar</span>
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
+                                    <i data-lucide="clock" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                            <div id="rptTagPendingValue" class="text-2xl font-bold text-amber-400">R$ 0,00</div>
+                            <div id="rptTagPendingItemsCount" class="text-xs text-zinc-500 mt-1">0 itens pendentes</div>
+                        </div>
+
+                        <div class="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tag Maior Valor</span>
+                                <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+                                    <i data-lucide="trending-up" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                            <div id="rptTopTagName" class="text-lg font-bold text-white truncate">-</div>
+                            <div id="rptTopTagValue" class="text-xs text-purple-400 font-bold mt-1">R$ 0,00</div>
                         </div>
                     </div>
-                    <div class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
-                        <h3 class="text-lg font-bold mb-6 italic">Distribuição por Categoria</h3>
-                        <div class="h-64 flex flex-col items-center justify-center bg-zinc-950/50 rounded-xl border border-zinc-800/50">
-                             <i data-lucide="pie-chart" class="w-12 h-12 text-zinc-700 mb-2"></i>
-                             <p class="text-zinc-500 text-sm italic">Módulo de Gráficos em desenvolvimento</p>
+
+                    <!-- Filters & Options Control Bar -->
+                    <div class="bg-zinc-900 p-4 sm:p-5 rounded-2xl border border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            <!-- Month Selector Filter -->
+                            <select id="rptMonthFilterSelect" onchange="window.renderReportsView()" class="bg-zinc-800 border border-zinc-700 text-xs sm:text-sm text-zinc-200 rounded-xl px-3.5 py-2 outline-none focus:border-neon font-semibold">
+                                <option value="current_period">🗓️ Mês Selecionado (Topo)</option>
+                                <option value="all">📅 Todos os Meses (Geral)</option>
+                            </select>
+
+                            <!-- Tag Selector -->
+                            <select id="rptTagFilterSelect" onchange="window.renderReportsView()" class="bg-zinc-800 border border-zinc-700 text-xs sm:text-sm text-zinc-200 rounded-xl px-3.5 py-2 outline-none focus:border-neon">
+                                <option value="all">🏷️ Todas as Tags</option>
+                            </select>
+
+                            <!-- Status Filter -->
+                            <select id="rptTagStatusSelect" onchange="window.renderReportsView()" class="bg-zinc-800 border border-zinc-700 text-xs sm:text-sm text-zinc-200 rounded-xl px-3.5 py-2 outline-none focus:border-neon">
+                                <option value="all">📌 Todos os Status (Comprados & Pendentes)</option>
+                                <option value="pending">⏳ Apenas Pendentes (A Comprar)</option>
+                                <option value="completed">✅ Apenas Comprados (Concluídos)</option>
+                            </select>
+
+                            <!-- Order By -->
+                            <select id="rptTagSortSelect" onchange="window.renderReportsView()" class="bg-zinc-800 border border-zinc-700 text-xs sm:text-sm text-zinc-200 rounded-xl px-3.5 py-2 outline-none focus:border-neon">
+                                <option value="value_desc">📊 Ordenar: Maior Valor Total</option>
+                                <option value="value_asc">📊 Ordenar: Menor Valor Total</option>
+                                <option value="items_desc">🔢 Ordenar: Mais Itens</option>
+                                <option value="name_asc">🔤 Ordenar: Nome da Tag (A-Z)</option>
+                            </select>
+                        </div>
+
+                        <!-- Export & Share Buttons -->
+                        <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                            <button onclick="window.copyShoppingTagReportText()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                                <i data-lucide="copy" class="w-4 h-4 text-neon"></i>
+                                <span>Copiar Resumo</span>
+                            </button>
+                            <button onclick="window.shareShoppingTagReportWhatsApp()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                                <i data-lucide="share-2" class="w-4 h-4"></i>
+                                <span>Enviar WhatsApp</span>
+                            </button>
                         </div>
                     </div>
-                 </div>
+
+                    <!-- Visual Distribution Bars Chart by Tag -->
+                    <div class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-white text-base flex items-center gap-2">
+                                <i data-lucide="bar-chart-3" class="w-5 h-5 text-neon"></i>
+                                <span>Distribuição Financeira por Tag</span>
+                            </h4>
+                            <span id="rptDistributionMeta" class="text-xs text-zinc-500 font-mono">0 tags</span>
+                        </div>
+                        <div id="rptTagDistributionBars" class="space-y-3">
+                            <!-- Rendered dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Detailed Tags Breakdown Cards Grid -->
+                    <div id="rptTagCardsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- FINANCIAL REPORTS SECTION (CAIXA / CATEGORIAS) -->
+                <div id="reportsFinancialContainer" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Cashflow Overview -->
+                        <div class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 space-y-4">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="wallet" class="w-5 h-5 text-neon"></i>
+                                <span>Balanço do Mês (Entradas vs Saídas)</span>
+                            </h3>
+                            <div id="rptFinancialBars" class="space-y-4">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Category Expense Breakdown -->
+                        <div class="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 space-y-4">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="pie-chart" class="w-5 h-5 text-neon"></i>
+                                <span>Saídas por Categoria do Caixa</span>
+                            </h3>
+                            <div id="rptCategoryBars" class="space-y-3">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toast Notification Element -->
+            <div id="reportToast" class="fixed bottom-6 right-6 z-50 hidden bg-zinc-900 text-white border border-neon/50 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-bold animate-in fade-in slide-in-from-bottom-2">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-neon"></i>
+                <span id="reportToastText">Copiado com sucesso!</span>
             </div>
 
             <!-- Shopping List View -->
@@ -347,12 +493,21 @@
                         <!-- Dynamically generated tags pills -->
                     </div>
 
-                    <!-- Status Filter -->
-                    <select id="shoppingStatusFilter" onchange="renderShoppingListView()" class="w-full md:w-auto bg-zinc-800 border border-zinc-700 text-xs sm:text-sm text-zinc-200 rounded-xl px-3 py-2 outline-none focus:border-neon">
-                        <option value="all">Todos os Status</option>
-                        <option value="pending">Pendentes</option>
-                        <option value="completed">Comprados / Concluídos</option>
-                    </select>
+                    <!-- Filters & Options Group -->
+                    <div class="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
+                        <!-- Month Filter Select -->
+                        <select id="shoppingMonthFilterSelect" onchange="renderShoppingListView()" class="w-full md:w-auto bg-zinc-800 border border-zinc-700 text-xs sm:text-sm text-zinc-200 rounded-xl px-3 py-2 outline-none focus:border-neon font-semibold">
+                            <option value="current_period">🗓️ Mês Selecionado (Topo)</option>
+                            <option value="all">📅 Todos os Meses (Geral)</option>
+                        </select>
+
+                        <!-- Status Filter -->
+                        <select id="shoppingStatusFilter" onchange="renderShoppingListView()" class="w-full md:w-auto bg-zinc-800 border border-zinc-700 text-xs sm:text-sm text-zinc-200 rounded-xl px-3 py-2 outline-none focus:border-neon">
+                            <option value="all">Todos os Status</option>
+                            <option value="pending">Pendentes</option>
+                            <option value="completed">Comprados / Concluídos</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Shopping Items List (Organização em Lista) -->
@@ -562,10 +717,19 @@
             <form id="shoppingItemForm" onsubmit="saveShoppingItem(event)" class="p-4 sm:p-6 space-y-4">
                 <input type="hidden" id="shoppingItemId">
 
-                <!-- Nome da Compra -->
-                <div>
-                    <label class="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">Nome da Compra *</label>
-                    <input type="text" id="shoppingItemName" placeholder="Ex: Geladeira, Tênis, Feira do Mês" required class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 focus:border-neon outline-none text-white text-sm placeholder-zinc-500">
+                <!-- Nome & Data da Compra Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- Nome da Compra -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">Nome da Compra *</label>
+                        <input type="text" id="shoppingItemName" placeholder="Ex: Geladeira, Tênis, Feira do Mês" required class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 focus:border-neon outline-none text-white text-sm placeholder-zinc-500">
+                    </div>
+
+                    <!-- Data / Mês da Compra -->
+                    <div>
+                        <label class="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">Data / Mês *</label>
+                        <input type="date" id="shoppingItemDate" required class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-3 focus:border-neon outline-none text-white text-sm">
+                    </div>
                 </div>
 
                 <!-- Valor & Parcelas Grid -->
@@ -688,196 +852,7 @@
 
 
 
-    <!-- BOT ASSISTENTE WHATSAPP & TELEGRAM (FINANCEUP BOT) -->
-    <!-- Floating Action Button -->
-    <button id="btnOpenFinanceBot" onclick="openFinanceBotModal()" class="fixed bottom-6 right-6 bg-emerald-500 hover:bg-emerald-400 text-black p-4 rounded-full shadow-2xl z-40 transition-all flex items-center justify-center gap-2 group border-2 border-emerald-400/50 shadow-[0_0_25px_rgba(37,211,102,0.4)]" title="Abrir Bot Assistente WhatsApp & Telegram">
-        <div class="relative">
-            <i data-lucide="message-square" class="w-6 h-6"></i>
-            <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-white rounded-full border-2 border-emerald-600 animate-ping"></span>
-        </div>
-        <span class="hidden group-hover:inline font-black text-xs uppercase tracking-wider pr-1">Bot WhatsApp / Telegram</span>
-    </button>
 
-    <!-- Bot Modal Full Chat Drawer -->
-    <div id="financeBotModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
-        <div class="bg-zinc-900 w-full max-w-2xl rounded-2xl border border-zinc-800 overflow-hidden shadow-2xl flex flex-col h-[90vh] sm:h-[820px] my-auto">
-            
-            <!-- Bot Header -->
-            <div id="botHeader" class="bg-zinc-950 p-4 border-b border-zinc-800 flex items-center justify-between shrink-0 transition-colors">
-                <div class="flex items-center gap-3">
-                    <div id="botAvatarBg" class="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
-                        <i id="botAvatarIcon" data-lucide="bot" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h3 id="botHeaderTitle" class="font-bold text-white text-base">Bot Assistente FinanceUP</h3>
-                            <span id="botPlatformBadge" class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-extrabold uppercase">WhatsApp Web</span>
-                        </div>
-                        <p class="text-xs text-zinc-400 flex items-center gap-1.5 mt-0.5">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span id="botStatusText">Online • Responde instantaneamente</span>
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Action Controls & Tabs -->
-                <div class="flex items-center gap-1.5">
-                    <!-- Tab Selector -->
-                    <div class="hidden sm:flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-xs font-bold">
-                        <button onclick="setBotTab('whatsapp')" id="botTabWhatsapp" class="px-3 py-1.5 rounded-lg text-emerald-400 bg-zinc-800 font-extrabold transition-all flex items-center gap-1">
-                            <i data-lucide="message-square" class="w-3.5 h-3.5"></i> WhatsApp
-                        </button>
-                        <button onclick="setBotTab('telegram')" id="botTabTelegram" class="px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center gap-1">
-                            <i data-lucide="send" class="w-3.5 h-3.5"></i> Telegram
-                        </button>
-                        <button onclick="setBotTab('config')" id="botTabConfig" class="px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center gap-1">
-                            <i data-lucide="settings" class="w-3.5 h-3.5"></i> Config
-                        </button>
-                    </div>
-                    <button type="button" onclick="closeFinanceBotModal()" class="text-zinc-400 hover:text-white p-2 rounded-xl hover:bg-zinc-800"><i data-lucide="x" class="w-6 h-6"></i></button>
-                </div>
-            </div>
-
-            <!-- Mobile Sub-Navigation Tabs -->
-            <div class="flex sm:hidden bg-zinc-950 px-3 py-2 border-b border-zinc-800 text-xs font-bold gap-1">
-                <button onclick="setBotTab('whatsapp')" id="botTabWhatsappMob" class="flex-1 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-center font-bold">WhatsApp</button>
-                <button onclick="setBotTab('telegram')" id="botTabTelegramMob" class="flex-1 py-1.5 rounded-lg bg-zinc-900 text-zinc-400 text-center font-bold">Telegram</button>
-                <button onclick="setBotTab('config')" id="botTabConfigMob" class="flex-1 py-1.5 rounded-lg bg-zinc-900 text-zinc-400 text-center font-bold">Config (Grátis)</button>
-            </div>
-
-            <!-- TAB 1 & 2: Interactive Chat Stream -->
-            <div id="botChatContainer" class="flex-1 flex flex-col min-h-0 bg-zinc-950/60 relative">
-                <!-- Message Thread -->
-                <div id="botMessagesList" class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 font-sans leading-relaxed">
-                    <!-- Dynamic chat messages go here -->
-                </div>
-
-                <!-- Bot Quick Reply Action Chips -->
-                <div id="botQuickReplyBar" class="p-3 bg-zinc-900/90 border-t border-zinc-800 shrink-0 overflow-x-auto">
-                    <div class="text-[10px] uppercase font-bold text-zinc-400 mb-2 px-1 tracking-wider flex justify-between items-center">
-                        <span>⚡ Opções Rápidas (Fluxo Gratuito)</span>
-                        <span id="botAvailablePill" class="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-bold text-[10px]"></span>
-                    </div>
-                    <div id="botChipsContainer" class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                        <!-- Rendered by JS -->
-                    </div>
-                </div>
-
-                <!-- Input Footer -->
-                <div class="p-3 sm:p-4 bg-zinc-950 border-t border-zinc-800 flex items-center gap-2 shrink-0">
-                    <button onclick="restartBotFlow()" class="p-2.5 text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800 rounded-xl transition-all shrink-0" title="Reiniciar Conversa com o Bot">
-                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
-                    </button>
-                    <input type="text" id="botInput" placeholder="Escolha uma opção acima ou digite 'cartoes', 'disponivel'..." class="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-emerald-500 outline-none transition-all" onkeypress="if(event.key === 'Enter') sendUserBotMessage()">
-                    <button onclick="sendUserBotMessage()" class="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-1 shadow-md shrink-0">
-                        <i data-lucide="send" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">Enviar</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- TAB 3: Configuração Telegram & Webhook Grátis -->
-            <div id="botConfigContainer" class="flex-1 overflow-y-auto p-5 space-y-6 hidden bg-zinc-900">
-                <div class="bg-gradient-to-r from-sky-950/60 to-zinc-900 border border-sky-500/30 p-4 sm:p-5 rounded-2xl flex items-start gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
-                        <i data-lucide="send" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-white text-base">Integração com Telegram Bot (100% Grátis)</h4>
-                        <p class="text-xs text-zinc-300 mt-1 leading-relaxed">
-                            O Telegram permite criar bots gratuitamente sem limite de mensagens e sem taxas. Ao configurar seu Bot Token, o FinanceUP enviará notificações reais no seu celular!
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Tutorial Steps -->
-                <div class="bg-zinc-950 p-4 sm:p-5 rounded-2xl border border-zinc-800 space-y-3">
-                    <h5 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                        <i data-lucide="check-circle-2" class="w-4 h-4"></i> Passo a Passo Rápido para Criar seu Bot no Telegram:
-                    </h5>
-                    <ol class="text-xs text-zinc-300 space-y-2 list-decimal list-inside leading-relaxed">
-                        <li>Abra o Telegram no seu celular ou computador e procure pelo usuário <strong class="text-sky-400">@BotFather</strong>.</li>
-                        <li>Envie a mensagem <code class="bg-zinc-800 text-neon px-1.5 py-0.5 rounded">/newbot</code>, dê um nome ao seu bot e escolha um username (ex: <em>MeuFinanceUPBot</em>).</li>
-                        <li>Copie o <strong>Token de Acesso HTTP</strong> gerado pelo BotFather (ex: <code class="text-zinc-400">123456789:ABCdefGHI...</code>).</li>
-                        <li>Para descobrir seu <strong>Chat ID</strong>, envie qualquer mensagem para o bot <strong class="text-sky-400">@userinfobot</strong> no Telegram e ele te dirá o seu ID numérico.</li>
-                    </ol>
-                </div>
-
-                <!-- Config Form -->
-                <form id="telegramBotConfigForm" onsubmit="saveTelegramBotConfig(event)" class="space-y-4">
-                    <div id="telegramConfigStatus" class="hidden font-bold text-xs p-3.5 rounded-xl transition-all"></div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">Telegram Bot Token *</label>
-                        <input type="text" id="telegramTokenInput" placeholder="Ex: 789101112:AAF_xyz..." class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 focus:border-sky-400 outline-none text-white text-sm font-mono placeholder-zinc-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">Seu Chat ID no Telegram *</label>
-                        <input type="text" id="telegramChatIdInput" placeholder="Ex: 987654321" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 focus:border-sky-400 outline-none text-white text-sm font-mono placeholder-zinc-500">
-                    </div>
-
-                    <div class="flex flex-col sm:flex-row gap-3 pt-2">
-                        <button type="submit" id="btnSaveTelegramConfig" class="flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer">
-                            <i data-lucide="save" class="w-4 h-4"></i>
-                            <span>Salvar Configurações</span>
-                        </button>
-                        <button type="button" id="btnTestTelegramConfig" onclick="testTelegramNotification()" class="py-3 px-5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-black font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
-                            <i data-lucide="send" class="w-4 h-4"></i>
-                            <span>Testar Notificação Real</span>
-                        </button>
-                        <button type="button" id="btnSyncTelegramUpdates" onclick="syncTelegramNow()" class="py-3 px-4 rounded-xl bg-sky-500/20 text-sky-300 border border-sky-500/30 hover:bg-sky-500 hover:text-black font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer" title="Verificar se há mensagens recebidas do Telegram">
-                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                            <span>Sincronizar Mensagens</span>
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Bot Auto-Response Info Card -->
-                <div class="bg-gradient-to-r from-sky-950/80 to-zinc-950 p-4 rounded-2xl border border-sky-500/30 space-y-2">
-                    <div class="flex items-center gap-2 text-sky-400 font-bold text-xs uppercase tracking-wider">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span>Bot Ativo no Telegram (Resposta Automática)</span>
-                    </div>
-                    <p class="text-xs text-zinc-300 leading-relaxed">
-                        Quando você ou sua esposa enviarem mensagens como <strong>"oi"</strong>, <strong>"saldo"</strong>, <strong>"cartões"</strong> ou <strong>"compras"</strong> no Telegram, o FinanceUP processa na hora e envia a resposta automática de volta para o seu celular!
-                    </p>
-                </div>
-
-                <!-- Couple Mobile Setup Card -->
-                <div class="bg-gradient-to-r from-emerald-950/60 to-zinc-950 p-4 sm:p-5 rounded-2xl border border-emerald-500/30 space-y-3">
-                    <h5 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                        <i data-lucide="smartphone" class="w-4 h-4"></i> Como usar no Celular (Seu e da sua Esposa):
-                    </h5>
-                    <div class="space-y-3 text-xs text-zinc-300 leading-relaxed">
-                        <div class="bg-zinc-900/80 p-3 rounded-xl border border-zinc-800">
-                            <p class="font-bold text-white mb-1">1. Instalar o App na Tela Inicial dos dois Celulares (PWA):</p>
-                            <p>Abra o link do aplicativo no navegador do celular (Chrome ou Safari) do seu aparelho e no da sua esposa, clique no menu do navegador e escolha <strong>"Adicionar à Tela Início"</strong>. Assim, o FinanceUP funcionará como um aplicativo nativo no celular dos dois!</p>
-                        </div>
-                        <div class="bg-zinc-900/80 p-3 rounded-xl border border-zinc-800">
-                            <p class="font-bold text-white mb-1">2. No WhatsApp (Grupo da Família ou Casal):</p>
-                            <p>No assistente, utilize o botão <strong>"Abrir e Enviar Resumo no WhatsApp"</strong> ou acione a opção de compartilhar para enviar as atualizações diretamente no grupo do casal no WhatsApp de forma 100% gratuita.</p>
-                        </div>
-                        <div class="bg-zinc-900/80 p-3 rounded-xl border border-zinc-800">
-                            <p class="font-bold text-white mb-1">3. No Telegram (Notificações Simultâneas para Ambos):</p>
-                            <p>Crie um grupo no Telegram com você e sua esposa e adicione o seu Bot ao grupo. Ao colocar o ID do Grupo no campo <em>"Chat ID"</em> acima, as notificações do FinanceUP chegarão na hora no celular de vocês dois simultaneamente!</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Direct WhatsApp Link Generator -->
-                <div class="pt-4 border-t border-zinc-800">
-                    <h5 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Compartilhar Relatório via WhatsApp</h5>
-                    <p class="text-xs text-zinc-400 mb-3">Gere um link direto com a mensagem formatada para enviar no seu grupo ou conversa do WhatsApp:</p>
-                    <button type="button" onclick="shareSummaryOnWhatsApp()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg">
-                        <i data-lucide="message-circle" class="w-4 h-4"></i>
-                        <span>Abrir e Enviar Resumo no WhatsApp Web</span>
-                    </button>
-                </div>
-            </div>
-
-        </div>
-    </div>
 
     <!-- Firebase & Logic -->
     </div> <!-- End of appContent -->
@@ -2036,6 +2011,8 @@
             window.updatePeriodDisplay();
             window.renderDashboard();
             if (window.currentView === 'cards' && window.renderCardsView) window.renderCardsView();
+            if (window.currentView === 'reports' && window.renderReportsView) window.renderReportsView();
+            if (window.currentView === 'shoppingList' && window.renderShoppingListView) window.renderShoppingListView();
         };
 
         window.updatePeriodDisplay = () => {
@@ -2588,13 +2565,14 @@ service cloud.firestore {
                 if (sections.shoppingList) sections.shoppingList.classList.add('hidden');
                 sections.summary.classList.remove('hidden');
             } else if (view === 'reports') {
-                titleEl.innerText = 'Relatórios Financeiros';
+                titleEl.innerText = 'Relatórios Financeiros & Compras';
                 sections.dashboard.classList.add('hidden');
                 sections.transactions.classList.add('hidden');
                 sections.reports.classList.remove('hidden');
                 if (sections.cards) sections.cards.classList.add('hidden');
                 if (sections.shoppingList) sections.shoppingList.classList.add('hidden');
                 sections.summary.classList.add('hidden');
+                if (window.renderReportsView) window.renderReportsView();
             } else if (view === 'cards') {
                 titleEl.innerText = 'Meus Cartões & Faturas';
                 sections.dashboard.classList.add('hidden');
@@ -2962,6 +2940,9 @@ service cloud.firestore {
                 if (window.activeCardPurchasesId && window.renderCardPurchasesModal) {
                     window.renderCardPurchasesModal();
                 }
+                if (window.currentView === 'reports' && window.renderReportsView) {
+                    window.renderReportsView();
+                }
             });
 
             // Listeners for Shopping List
@@ -2969,6 +2950,9 @@ service cloud.firestore {
                 window.shoppingItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (window.currentView === 'shoppingList' && window.renderShoppingListView) {
                     window.renderShoppingListView();
+                }
+                if (window.currentView === 'reports' && window.renderReportsView) {
+                    window.renderReportsView();
                 }
             });
 
@@ -2978,6 +2962,9 @@ service cloud.firestore {
                 if (window.updateShoppingItemTagsSelector) window.updateShoppingItemTagsSelector();
                 if (window.currentView === 'shoppingList' && window.renderShoppingListView) {
                     window.renderShoppingListView();
+                }
+                if (window.currentView === 'reports' && window.renderReportsView) {
+                    window.renderReportsView();
                 }
             });
         }
@@ -3012,6 +2999,61 @@ service cloud.firestore {
             const container = document.getElementById('shoppingListContainer');
             if (!container) return;
 
+            const allItems = window.shoppingItems || [];
+
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const selectedMonth = mSel ? parseInt(mSel.value) : new Date().getMonth();
+            const selectedYear = ySel ? parseInt(ySel.value) : new Date().getFullYear();
+            const monthsNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const currentPeriodName = `${monthsNames[selectedMonth]} ${selectedYear}`;
+
+            // Populate Dropdown Options for Month Filter
+            const monthSelectEl = document.getElementById('shoppingMonthFilterSelect');
+            if (monthSelectEl) {
+                const currentVal = monthSelectEl.value || 'current_period';
+                
+                const monthPairsMap = {};
+                allItems.forEach(i => {
+                    const { month, year } = window.getItemMonthYear(i);
+                    if (month !== null && year !== null) {
+                        const key = `${year}-${(month + 1).toString().padStart(2, '0')}`;
+                        const label = `${monthsNames[month]} ${year}`;
+                        monthPairsMap[key] = label;
+                    }
+                });
+
+                let monthHtml = `<option value="current_period">🗓️ Mês Ativo: ${currentPeriodName}</option>`;
+                monthHtml += `<option value="all">📅 Todos os Meses (Histórico Completo)</option>`;
+
+                Object.keys(monthPairsMap).sort().reverse().forEach(key => {
+                    monthHtml += `<option value="${key}">📅 ${monthPairsMap[key]}</option>`;
+                });
+
+                monthSelectEl.innerHTML = monthHtml;
+                monthSelectEl.value = currentVal;
+            }
+
+            const monthFilter = document.getElementById('shoppingMonthFilterSelect')?.value || 'current_period';
+
+            // Filter items by selected month / period
+            let items = allItems;
+            if (monthFilter === 'current_period') {
+                items = allItems.filter(i => {
+                    const { month, year } = window.getItemMonthYear(i);
+                    if (month === null || year === null) return true;
+                    return month === selectedMonth && year === selectedYear;
+                });
+            } else if (monthFilter !== 'all') {
+                const [filterYearStr, filterMonthStr] = monthFilter.split('-');
+                const fYear = parseInt(filterYearStr);
+                const fMonth = parseInt(filterMonthStr) - 1;
+                items = allItems.filter(i => {
+                    const { month, year } = window.getItemMonthYear(i);
+                    return month === fMonth && year === fYear;
+                });
+            }
+
             const searchTerm = (document.getElementById('shoppingSearchInput')?.value || '').toLowerCase();
             const statusFilter = document.getElementById('shoppingStatusFilter')?.value || 'all';
 
@@ -3038,9 +3080,6 @@ service cloud.firestore {
                 tagPillsContainer.innerHTML = pillsHtml;
             }
 
-            // 2. Filter items
-            let items = window.shoppingItems || [];
-            
             // Metrics computation
             const totalCount = items.length;
             const completedCount = items.filter(i => i.isCompleted).length;
@@ -3103,8 +3142,19 @@ service cloud.firestore {
                 const instVal = val / inst;
                 const isComp = !!item.isCompleted;
 
+                const { month: itemM, year: itemY } = window.getItemMonthYear(item);
+                const shortMonths = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                const itemDateLabel = item.date ? item.date.split('-').reverse().join('/') : (itemM !== null && itemY !== null ? `${shortMonths[itemM]}/${itemY}` : '');
+
                 // Render tags badges
                 let tagBadges = '';
+                if (itemDateLabel) {
+                    tagBadges += `
+                        <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-bold bg-zinc-800 text-zinc-400 border border-zinc-700/60 font-mono">
+                            📅 ${itemDateLabel}
+                        </span>
+                    `;
+                }
                 if (item.tags && item.tags.length > 0) {
                     item.tags.forEach(tName => {
                         const tagObj = (window.shoppingTags || []).find(t => (typeof t === 'string' ? t : t.name) === tName);
@@ -3168,6 +3218,37 @@ service cloud.firestore {
             window.renderShoppingListView();
         };
 
+        window.getItemMonthYear = (item) => {
+            if (!item) return { month: null, year: null };
+            let y = null;
+            let m = null;
+
+            if (item.date && typeof item.date === 'string') {
+                const parts = item.date.split('-');
+                if (parts.length >= 2) {
+                    y = parseInt(parts[0]);
+                    m = parseInt(parts[1]) - 1;
+                }
+            }
+
+            if ((y === null || isNaN(y)) && item.createdAt) {
+                let d = null;
+                if (typeof item.createdAt === 'number') {
+                    d = new Date(item.createdAt);
+                } else if (item.createdAt.seconds) {
+                    d = new Date(item.createdAt.seconds * 1000);
+                } else {
+                    d = new Date(item.createdAt);
+                }
+                if (d && !isNaN(d.getTime())) {
+                    y = d.getFullYear();
+                    m = d.getMonth();
+                }
+            }
+
+            return { month: m, year: y };
+        };
+
         window.openShoppingItemModal = (id = null) => {
             window.editingShoppingItemId = id;
             const modalTitle = document.getElementById('shoppingItemModalTitle');
@@ -3185,6 +3266,18 @@ service cloud.firestore {
                     document.getElementById('shoppingItemInstallments').value = item.installments || 1;
                     document.getElementById('shoppingItemNote').value = item.note || '';
 
+                    let dStr = new Date().toISOString().split('T')[0];
+                    if (item.date) {
+                        dStr = item.date;
+                    } else if (item.createdAt) {
+                        const d = typeof item.createdAt === 'number' ? new Date(item.createdAt) : (item.createdAt.seconds ? new Date(item.createdAt.seconds * 1000) : new Date(item.createdAt));
+                        if (d && !isNaN(d.getTime())) {
+                            dStr = d.toISOString().split('T')[0];
+                        }
+                    }
+                    const dateEl = document.getElementById('shoppingItemDate');
+                    if (dateEl) dateEl.value = dStr;
+
                     const tagCheckboxes = document.querySelectorAll('input[name="shoppingTagChoice"]');
                     tagCheckboxes.forEach(cb => {
                         cb.checked = (item.tags || []).includes(cb.value);
@@ -3195,6 +3288,26 @@ service cloud.firestore {
                 if (form) form.reset();
                 document.getElementById('shoppingItemId').value = '';
                 document.getElementById('shoppingItemInstallments').value = 1;
+
+                const mSel = document.getElementById('monthSelect');
+                const ySel = document.getElementById('yearSelect');
+                const dateEl = document.getElementById('shoppingItemDate');
+                if (dateEl) {
+                    if (mSel && ySel && mSel.value !== '' && ySel.value !== '') {
+                        const mStr = (parseInt(mSel.value) + 1).toString().padStart(2, '0');
+                        const yStr = ySel.value;
+                        const now = new Date();
+                        const curM = (now.getMonth() + 1).toString().padStart(2, '0');
+                        const curY = now.getFullYear().toString();
+                        if (mStr === curM && yStr === curY) {
+                            dateEl.value = now.toISOString().split('T')[0];
+                        } else {
+                            dateEl.value = `${yStr}-${mStr}-01`;
+                        }
+                    } else {
+                        dateEl.value = new Date().toISOString().split('T')[0];
+                    }
+                }
             }
 
             window.calculateInstallmentPreview();
@@ -3244,6 +3357,7 @@ service cloud.firestore {
             const value = parseFloat(document.getElementById('shoppingItemValue').value) || 0;
             const installments = Math.max(1, parseInt(document.getElementById('shoppingItemInstallments').value) || 1);
             const note = document.getElementById('shoppingItemNote').value.trim();
+            const itemDate = document.getElementById('shoppingItemDate')?.value || new Date().toISOString().split('T')[0];
 
             const selectedTags = [];
             const checkboxes = document.querySelectorAll('input[name="shoppingTagChoice"]:checked');
@@ -3256,6 +3370,7 @@ service cloud.firestore {
                 installments: installments,
                 tags: selectedTags,
                 note: note,
+                date: itemDate,
                 isCompleted: false,
                 createdAt: Date.now()
             };
@@ -3386,194 +3501,648 @@ service cloud.firestore {
             });
         };
 
-        // --- BOT ASSISTENTE WHATSAPP & TELEGRAM (FINANCEUP LOGIC) ---
-        window.botMessages = [];
-        window.activeBotTab = 'whatsapp';
-        window.selectedCardForBotUpdate = null;
+        // --- REPORTS VIEW LOGIC (SHOPPING LIST BY TAGS & FINANCIAL) ---
+        window.activeReportsTab = 'shopping';
 
-        // System Metrics Helper
-        window.getSystemMetrics = () => {
+        window.setReportsTab = (tab) => {
+            window.activeReportsTab = tab;
+            const btnShopping = document.getElementById('btnReportTabShopping');
+            const btnFinancial = document.getElementById('btnReportTabFinancial');
+            const ctnShopping = document.getElementById('reportsShoppingContainer');
+            const ctnFinancial = document.getElementById('reportsFinancialContainer');
+
+            if (tab === 'shopping') {
+                if (btnShopping) btnShopping.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-neon text-black shadow-md';
+                if (btnFinancial) btnFinancial.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-400 hover:text-white';
+                if (ctnShopping) ctnShopping.classList.remove('hidden');
+                if (ctnFinancial) ctnFinancial.classList.add('hidden');
+            } else {
+                if (btnShopping) btnShopping.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-400 hover:text-white';
+                if (btnFinancial) btnFinancial.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-neon text-black shadow-md';
+                if (ctnShopping) ctnShopping.classList.add('hidden');
+                if (ctnFinancial) ctnFinancial.classList.remove('hidden');
+            }
+
+            window.renderReportsView();
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.showReportToast = (msg) => {
+            const toast = document.getElementById('reportToast');
+            const txt = document.getElementById('reportToastText');
+            if (!toast || !txt) return;
+            txt.innerText = msg;
+            toast.classList.remove('hidden');
+            if (window.lucide) window.lucide.createIcons();
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        };
+
+        window.renderReportsView = () => {
+            if (window.activeReportsTab === 'shopping') {
+                window.renderShoppingTagReports();
+            } else {
+                window.renderFinancialReports();
+            }
+        };
+
+        window.renderShoppingTagReports = () => {
+            const allItems = window.shoppingItems || [];
+            const tagsList = window.shoppingTags || [];
+
             const mSel = document.getElementById('monthSelect');
             const ySel = document.getElementById('yearSelect');
-            const m = (mSel && mSel.value !== '' && !isNaN(parseInt(mSel.value))) ? parseInt(mSel.value) : new Date().getMonth();
-            const y = (ySel && ySel.value !== '' && !isNaN(parseInt(ySel.value))) ? parseInt(ySel.value) : new Date().getFullYear();
-            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            const monthName = `${months[m]} ${y}`;
+            const selectedMonth = mSel ? parseInt(mSel.value) : new Date().getMonth();
+            const selectedYear = ySel ? parseInt(ySel.value) : new Date().getFullYear();
+            const monthsNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const currentPeriodName = `${monthsNames[selectedMonth]} ${selectedYear}`;
 
-            const curPeriodStr = `${y}-${(m + 1).toString().padStart(2, '0')}`;
-            const filtered = (window.transactions || []).filter(t => {
-                if (t.isTombstone) return false;
-                const dateStr = t.dueDate || t.date;
-                if (!dateStr || typeof dateStr !== 'string') return false;
-                const parts = dateStr.split('-');
-                if (parts.length < 2) return false;
-                const [ty, tm] = parts;
-                const txMonthTotal = parseInt(ty) * 12 + (parseInt(tm) - 1);
-                const selMonthTotal = y * 12 + m;
-                const curPeriod = `${y}-${(m + 1).toString().padStart(2, '0')}`;
+            // Populate Dropdown Options for Month Filter
+            const monthSelectEl = document.getElementById('rptMonthFilterSelect');
+            if (monthSelectEl) {
+                const currentVal = monthSelectEl.value || 'current_period';
                 
-                const isFixed = window.isFixedHeader ? window.isFixedHeader(t) : false;
-                
-                if (isFixed) {
-                    if (txMonthTotal > selMonthTotal) return false;
-                    const hasOverride = (window.transactions || []).some(ot => ot.parentId === t.id && ot.parentMonth === curPeriod);
-                    return !hasOverride;
-                }
-                return txMonthTotal === selMonthTotal;
-            });
+                const monthPairsMap = {};
+                allItems.forEach(i => {
+                    const { month, year } = window.getItemMonthYear(i);
+                    if (month !== null && year !== null) {
+                        const key = `${year}-${(month + 1).toString().padStart(2, '0')}`;
+                        const label = `${monthsNames[month]} ${year}`;
+                        monthPairsMap[key] = label;
+                    }
+                });
 
-            if (window.ensureCardTransactionsForPeriod) {
-                window.ensureCardTransactionsForPeriod(filtered, curPeriodStr);
+                let monthHtml = `<option value="current_period">🗓️ Mês Ativo: ${currentPeriodName}</option>`;
+                monthHtml += `<option value="all">📅 Todos os Meses (Histórico Completo)</option>`;
+
+                Object.keys(monthPairsMap).sort().reverse().forEach(key => {
+                    monthHtml += `<option value="${key}">📅 ${monthPairsMap[key]}</option>`;
+                });
+
+                monthSelectEl.innerHTML = monthHtml;
+                monthSelectEl.value = currentVal;
             }
 
-            let totalIncomes = 0;
-            let totalExpenses = 0;
-            let paidIncomes = 0;
-            let paidExpenses = 0;
-            let upcomingBills = [];
+            const monthFilter = document.getElementById('rptMonthFilterSelect')?.value || 'current_period';
 
-            filtered.forEach(t => {
+            // Filter items by selected month / period
+            let items = allItems;
+            if (monthFilter === 'current_period') {
+                items = allItems.filter(i => {
+                    const { month, year } = window.getItemMonthYear(i);
+                    if (month === null || year === null) return true; // keep legacy items without date
+                    return month === selectedMonth && year === selectedYear;
+                });
+            } else if (monthFilter !== 'all') {
+                const [filterYearStr, filterMonthStr] = monthFilter.split('-');
+                const fYear = parseInt(filterYearStr);
+                const fMonth = parseInt(filterMonthStr) - 1;
+                items = allItems.filter(i => {
+                    const { month, year } = window.getItemMonthYear(i);
+                    return month === fMonth && year === fYear;
+                });
+            }
+
+            // 1. Populate Dropdown Options for Tag Selector
+            const tagSelect = document.getElementById('rptTagFilterSelect');
+            if (tagSelect) {
+                const currentVal = tagSelect.value || 'all';
+                let selectHtml = `<option value="all">🏷️ Todas as Tags</option>`;
+                
+                const unassignedCount = items.filter(i => !i.tags || i.tags.length === 0).length;
+                if (unassignedCount > 0) {
+                    selectHtml += `<option value="unassigned">📌 Sem Tag (${unassignedCount})</option>`;
+                }
+
+                tagsList.forEach(tag => {
+                    const tagName = typeof tag === 'string' ? tag : tag.name;
+                    const count = items.filter(i => (i.tags || []).includes(tagName)).length;
+                    selectHtml += `<option value="${tagName}">🏷️ ${tagName} (${count})</option>`;
+                });
+                tagSelect.innerHTML = selectHtml;
+                tagSelect.value = currentVal;
+            }
+
+            const selectedTagFilter = document.getElementById('rptTagFilterSelect')?.value || 'all';
+            const statusFilter = document.getElementById('rptTagStatusSelect')?.value || 'all';
+            const sortOrder = document.getElementById('rptTagSortSelect')?.value || 'value_desc';
+
+            // 2. Build Tag Group Map
+            const tagGroupsMap = {};
+
+            const initGroup = (tagName, tagColor) => {
+                if (!tagGroupsMap[tagName]) {
+                    tagGroupsMap[tagName] = {
+                        name: tagName,
+                        color: tagColor || '#39FF14',
+                        items: [],
+                        totalValue: 0,
+                        completedValue: 0,
+                        pendingValue: 0,
+                        monthlyInstallmentSum: 0,
+                        totalCount: 0,
+                        completedCount: 0,
+                        pendingCount: 0,
+                        progressPercent: 0
+                    };
+                }
+            };
+
+            // Initialize defined tags
+            tagsList.forEach(t => {
+                const name = typeof t === 'string' ? t : t.name;
+                const color = typeof t === 'object' && t.color ? t.color : '#39FF14';
+                initGroup(name, color);
+            });
+
+            // Group items into tags
+            items.forEach(item => {
+                if (!item.tags || item.tags.length === 0) {
+                    initGroup('Sem Tag', '#A1A1AA');
+                    tagGroupsMap['Sem Tag'].items.push(item);
+                } else {
+                    item.tags.forEach(tagName => {
+                        const tagObj = tagsList.find(t => (typeof t === 'string' ? t : t.name) === tagName);
+                        const color = tagObj && typeof tagObj === 'object' && tagObj.color ? tagObj.color : '#39FF14';
+                        initGroup(tagName, color);
+                        tagGroupsMap[tagName].items.push(item);
+                    });
+                }
+            });
+
+            // Calculate metrics for each group
+            let globalTotalValue = 0;
+            let globalCompletedValue = 0;
+            let globalPendingValue = 0;
+            let globalPendingCount = 0;
+
+            Object.values(tagGroupsMap).forEach(group => {
+                let filteredItems = group.items;
+                if (statusFilter === 'pending') {
+                    filteredItems = filteredItems.filter(i => !i.isCompleted);
+                } else if (statusFilter === 'completed') {
+                    filteredItems = filteredItems.filter(i => i.isCompleted);
+                }
+
+                group.displayItems = filteredItems;
+                group.totalCount = filteredItems.length;
+                group.completedCount = filteredItems.filter(i => i.isCompleted).length;
+                group.pendingCount = filteredItems.filter(i => !i.isCompleted).length;
+
+                group.totalValue = filteredItems.reduce((sum, i) => sum + (parseFloat(i.value) || 0), 0);
+                group.completedValue = filteredItems.filter(i => i.isCompleted).reduce((sum, i) => sum + (parseFloat(i.value) || 0), 0);
+                group.pendingValue = filteredItems.filter(i => !i.isCompleted).reduce((sum, i) => sum + (parseFloat(i.value) || 0), 0);
+                group.monthlyInstallmentSum = filteredItems.filter(i => !i.isCompleted).reduce((sum, i) => {
+                    const val = parseFloat(i.value) || 0;
+                    const inst = Math.max(1, parseInt(i.installments) || 1);
+                    return sum + (val / inst);
+                }, 0);
+
+                group.progressPercent = group.totalCount > 0 ? Math.round((group.completedCount / group.totalCount) * 100) : 0;
+
+                globalTotalValue += group.totalValue;
+                globalCompletedValue += group.completedValue;
+                globalPendingValue += group.pendingValue;
+                globalPendingCount += group.pendingCount;
+            });
+
+            // Global Metrics Cards update
+            const totalValEl = document.getElementById('rptTagTotalValue');
+            if (totalValEl) totalValEl.innerText = window.formatMoney(globalTotalValue);
+
+            let tagGroupList = Object.values(tagGroupsMap).filter(g => g.totalCount > 0);
+
+            const totalCountEl = document.getElementById('rptTagTotalCount');
+            if (totalCountEl) totalCountEl.innerText = `${tagGroupList.length} tag(s) no relatório`;
+
+            const compValEl = document.getElementById('rptTagCompletedValue');
+            if (compValEl) compValEl.innerText = window.formatMoney(globalCompletedValue);
+
+            const compPercEl = document.getElementById('rptTagCompletedPercent');
+            const compPercent = globalTotalValue > 0 ? Math.round((globalCompletedValue / globalTotalValue) * 100) : 0;
+            if (compPercEl) compPercEl.innerText = `${compPercent}% do valor comprado`;
+
+            const pendValEl = document.getElementById('rptTagPendingValue');
+            if (pendValEl) pendValEl.innerText = window.formatMoney(globalPendingValue);
+
+            const pendCountEl = document.getElementById('rptTagPendingItemsCount');
+            if (pendCountEl) pendCountEl.innerText = `${globalPendingCount} item(ns) a comprar`;
+
+            // Top Tag
+            let topTag = null;
+            tagGroupList.forEach(g => {
+                if (!topTag || g.totalValue > topTag.totalValue) {
+                    topTag = g;
+                }
+            });
+
+            const topNameEl = document.getElementById('rptTopTagName');
+            if (topNameEl) topNameEl.innerText = topTag ? topTag.name : '-';
+            const topValEl = document.getElementById('rptTopTagValue');
+            if (topValEl) topValEl.innerText = topTag ? window.formatMoney(topTag.totalValue) : 'R$ 0,00';
+
+            // Filter Tag List if specific tag is selected
+            if (selectedTagFilter !== 'all') {
+                if (selectedTagFilter === 'unassigned') {
+                    tagGroupList = tagGroupList.filter(g => g.name === 'Sem Tag');
+                } else {
+                    tagGroupList = tagGroupList.filter(g => g.name === selectedTagFilter);
+                }
+            }
+
+            // Sort Tag List
+            if (sortOrder === 'value_desc') {
+                tagGroupList.sort((a, b) => b.totalValue - a.totalValue);
+            } else if (sortOrder === 'value_asc') {
+                tagGroupList.sort((a, b) => a.totalValue - b.totalValue);
+            } else if (sortOrder === 'items_desc') {
+                tagGroupList.sort((a, b) => b.totalCount - a.totalCount);
+            } else if (sortOrder === 'name_asc') {
+                tagGroupList.sort((a, b) => a.name.localeCompare(b.name));
+            }
+
+            // Distribution Meta
+            const distMeta = document.getElementById('rptDistributionMeta');
+            if (distMeta) distMeta.innerText = `${tagGroupList.length} tag(s) listadas`;
+
+            // 3. Render Distribution Bars
+            const distBarsContainer = document.getElementById('rptTagDistributionBars');
+            if (distBarsContainer) {
+                if (tagGroupList.length === 0) {
+                    distBarsContainer.innerHTML = `
+                        <div class="p-6 text-center text-zinc-500">
+                            <i data-lucide="tag" class="w-10 h-10 mx-auto mb-2 text-zinc-700"></i>
+                            <p class="font-bold text-zinc-400">Nenhum item ou tag encontrado com os filtros selecionados.</p>
+                        </div>
+                    `;
+                } else {
+                    let barsHtml = '';
+                    tagGroupList.forEach(group => {
+                        const globalShare = globalTotalValue > 0 ? Math.round((group.totalValue / globalTotalValue) * 100) : 0;
+                        const compShare = group.totalValue > 0 ? Math.round((group.completedValue / group.totalValue) * 100) : 0;
+
+                        barsHtml += `
+                            <div class="bg-zinc-950/60 p-4 rounded-xl border border-zinc-800/80 space-y-2">
+                                <div class="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-3 h-3 rounded-full shrink-0" style="background-color: ${group.color}"></span>
+                                        <span class="font-bold text-white">${group.name}</span>
+                                        <span class="text-zinc-500 text-xs">(${group.totalCount} ${group.totalCount === 1 ? 'item' : 'itens'})</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 font-mono">
+                                        <span class="text-zinc-400 text-xs">${globalShare}% do total</span>
+                                        <span class="font-bold text-neon">${window.formatMoney(group.totalValue)}</span>
+                                    </div>
+                                </div>
+
+                                <div class="w-full h-3 bg-zinc-800 rounded-full overflow-hidden flex">
+                                    <div class="bg-emerald-400 h-full transition-all duration-500" style="width: ${compShare}%" title="Comprado: ${compShare}%"></div>
+                                    <div class="bg-amber-400/80 h-full transition-all duration-500" style="width: ${100 - compShare}%" title="Pendente: ${100 - compShare}%"></div>
+                                </div>
+
+                                <div class="flex flex-wrap justify-between items-center text-[11px] text-zinc-400 pt-0.5">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-emerald-400 font-bold">🟢 Comprado: ${window.formatMoney(group.completedValue)} (${group.completedCount})</span>
+                                        <span class="text-amber-400 font-bold">🟡 Pendente: ${window.formatMoney(group.pendingValue)} (${group.pendingCount})</span>
+                                    </div>
+                                    ${group.monthlyInstallmentSum > 0 ? `<span class="text-blue-400 font-bold">💳 Impacto Mensal: ${window.formatMoney(group.monthlyInstallmentSum)} / mês</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    distBarsContainer.innerHTML = barsHtml;
+                }
+            }
+
+            // 4. Render Detailed Tag Cards Grid
+            const cardsGrid = document.getElementById('rptTagCardsGrid');
+            if (cardsGrid) {
+                if (tagGroupList.length === 0) {
+                    cardsGrid.innerHTML = `
+                        <div class="col-span-full bg-zinc-900 p-8 rounded-2xl border border-zinc-800 text-center text-zinc-500">
+                            <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto mb-3 text-zinc-700"></i>
+                            <h4 class="font-bold text-zinc-300 text-base mb-1">Sem Compras Nesta Categoria/Tag</h4>
+                            <p class="text-xs text-zinc-500 mb-4">Adicione compras ou associe tags aos seus itens no menu Lista de Compras.</p>
+                            <button onclick="setView('shoppingList')" class="bg-neon text-black font-bold px-4 py-2 rounded-xl text-xs inline-flex items-center gap-2">
+                                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                                <span>Ir para Lista de Compras</span>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    let cardsHtml = '';
+                    tagGroupList.forEach(group => {
+                        let itemsHtml = '';
+                        group.displayItems.forEach(item => {
+                            const val = parseFloat(item.value) || 0;
+                            const inst = Math.max(1, parseInt(item.installments) || 1);
+                            const instVal = val / inst;
+                            const isComp = !!item.isCompleted;
+
+                            itemsHtml += `
+                                <div class="p-3 bg-zinc-950/70 rounded-xl border border-zinc-800/80 flex items-start justify-between gap-3 hover:border-zinc-700 transition-all">
+                                    <div class="flex items-start gap-2.5">
+                                        <button onclick="window.toggleShoppingItemStatus('${item.id}')" title="${isComp ? 'Marcar pendente' : 'Marcar comprado'}" class="mt-0.5 w-5 h-5 rounded-md flex items-center justify-center border transition-all shrink-0 ${isComp ? 'bg-neon border-neon text-black' : 'bg-zinc-800 border-zinc-700 hover:border-neon text-transparent'}">
+                                            <i data-lucide="check" class="w-3.5 h-3.5 font-bold"></i>
+                                        </button>
+                                        <div>
+                                            <p class="text-xs font-bold text-white ${isComp ? 'line-through text-zinc-500' : ''}">${item.name || 'Sem nome'}</p>
+                                            <div class="flex flex-wrap items-center gap-2 text-[10px] text-zinc-400 mt-0.5">
+                                                <span>Total: <strong class="text-zinc-200">${window.formatMoney(val)}</strong></span>
+                                                <span>•</span>
+                                                <span class="text-neon font-bold">${inst > 1 ? `${inst}x de ${window.formatMoney(instVal)}/mês` : 'À vista'}</span>
+                                            </div>
+                                            ${item.note ? `<p class="text-[10px] italic text-zinc-500 mt-0.5">"${item.note}"</p>` : ''}
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${isComp ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
+                                        ${isComp ? 'Comprado' : 'Pendente'}
+                                    </span>
+                                </div>
+                            `;
+                        });
+
+                        cardsHtml += `
+                            <div class="bg-zinc-900 p-5 rounded-2xl border border-zinc-800 flex flex-col justify-between space-y-4 shadow-lg">
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between gap-2 pb-3 border-b border-zinc-800">
+                                        <div class="flex items-center gap-2.5">
+                                            <span class="w-3.5 h-3.5 rounded-full shadow-sm" style="background-color: ${group.color}"></span>
+                                            <h4 class="font-bold text-white text-base">${group.name}</h4>
+                                        </div>
+                                        <span class="text-xs font-mono font-bold bg-zinc-800 text-neon border border-neon/30 px-2.5 py-1 rounded-xl">
+                                            ${window.formatMoney(group.totalValue)}
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                                        <div class="bg-zinc-950/80 p-2 rounded-xl border border-zinc-800">
+                                            <span class="block text-[10px] text-zinc-500 uppercase font-bold">Comprado</span>
+                                            <span class="font-bold text-emerald-400 text-xs">${window.formatMoney(group.completedValue)}</span>
+                                        </div>
+                                        <div class="bg-zinc-950/80 p-2 rounded-xl border border-zinc-800">
+                                            <span class="block text-[10px] text-zinc-500 uppercase font-bold">Pendente</span>
+                                            <span class="font-bold text-amber-400 text-xs">${window.formatMoney(group.pendingValue)}</span>
+                                        </div>
+                                        <div class="bg-zinc-950/80 p-2 rounded-xl border border-zinc-800">
+                                            <span class="block text-[10px] text-zinc-500 uppercase font-bold">Parcela/mês</span>
+                                            <span class="font-bold text-blue-400 text-xs">${window.formatMoney(group.monthlyInstallmentSum)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between text-[11px] font-bold">
+                                            <span class="text-zinc-400">Progresso da Tag</span>
+                                            <span class="text-neon">${group.progressPercent}% (${group.completedCount}/${group.totalCount})</span>
+                                        </div>
+                                        <div class="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                                            <div class="bg-neon h-full transition-all duration-300" style="width: ${group.progressPercent}%"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                        ${itemsHtml}
+                                    </div>
+                                </div>
+
+                                <div class="pt-3 border-t border-zinc-800 flex items-center justify-between gap-2">
+                                    <span class="text-[11px] text-zinc-500 font-mono">${group.totalCount} item(ns)</span>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="window.copyTagText('${group.name}')" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold transition-all flex items-center gap-1">
+                                            <i data-lucide="copy" class="w-3.5 h-3.5 text-neon"></i>
+                                            <span>Copiar</span>
+                                        </button>
+                                        <button onclick="window.shareTagOnWhatsApp('${group.name}')" class="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1">
+                                            <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                                            <span>WhatsApp</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    cardsGrid.innerHTML = cardsHtml;
+                }
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.renderFinancialReports = () => {
+            const txs = window.transactions || [];
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const m = mSel ? parseInt(mSel.value) : new Date().getMonth();
+            const y = ySel ? parseInt(ySel.value) : new Date().getFullYear();
+
+            const activeTxs = txs.filter(t => {
+                if (t.isTombstone) return false;
+                const dStr = t.receiptDate || t.dueDate || t.date;
+                if (!dStr) return true;
+                const parts = dStr.split('-');
+                if (parts.length < 2) return true;
+                const ty = parseInt(parts[0]);
+                const tm = parseInt(parts[1]) - 1;
+                return ty === y && tm === m;
+            });
+
+            let totalInc = 0;
+            let totalExp = 0;
+            const categoryMap = {};
+
+            activeTxs.forEach(t => {
                 const val = parseFloat(t.value) || 0;
                 if (t.type === 'Entrada') {
-                    totalIncomes += val;
-                    if (t.isPaid) paidIncomes += val;
+                    totalInc += val;
                 } else {
-                    totalExpenses += val;
-                    if (t.isPaid) paidExpenses += val;
-                    else {
-                        upcomingBills.push({
-                            description: t.description,
-                            category: t.category,
-                            value: val,
-                            date: t.receiptDate || t.dueDate || t.date
-                        });
+                    totalExp += val;
+                    const cat = t.category || 'Outros';
+                    categoryMap[cat] = (categoryMap[cat] || 0) + val;
+                }
+            });
+
+            const netBalance = totalInc - totalExp;
+
+            const finContainer = document.getElementById('rptFinancialBars');
+            if (finContainer) {
+                const maxVal = Math.max(totalInc, totalExp, 1);
+                const incPercent = Math.min(100, Math.round((totalInc / maxVal) * 100));
+                const expPercent = Math.min(100, Math.round((totalExp / maxVal) * 100));
+
+                finContainer.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2">
+                            <div class="flex justify-between items-center text-xs font-bold">
+                                <span class="text-emerald-400 flex items-center gap-1.5"><i data-lucide="arrow-up-circle" class="w-4 h-4"></i> Entradas Totais</span>
+                                <span class="text-white font-mono text-sm">${window.formatMoney(totalInc)}</span>
+                            </div>
+                            <div class="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+                                <div class="bg-emerald-400 h-full transition-all duration-500" style="width: ${incPercent}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2">
+                            <div class="flex justify-between items-center text-xs font-bold">
+                                <span class="text-rose-400 flex items-center gap-1.5"><i data-lucide="arrow-down-circle" class="w-4 h-4"></i> Saídas Totais</span>
+                                <span class="text-white font-mono text-sm">${window.formatMoney(totalExp)}</span>
+                            </div>
+                            <div class="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+                                <div class="bg-rose-500 h-full transition-all duration-500" style="width: ${expPercent}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 flex items-center justify-between">
+                            <span class="text-xs font-bold text-zinc-400 uppercase">Saldo Líquido Estimado</span>
+                            <span class="text-lg font-bold font-mono ${netBalance >= 0 ? 'text-neon' : 'text-rose-400'}">${window.formatMoney(netBalance)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const catContainer = document.getElementById('rptCategoryBars');
+            if (catContainer) {
+                const catList = Object.entries(categoryMap).map(([name, val]) => ({ name, val }));
+                catList.sort((a, b) => b.val - a.val);
+
+                if (catList.length === 0) {
+                    catContainer.innerHTML = `<p class="text-xs text-zinc-500 italic p-4 text-center">Nenhuma despesa registrada no período.</p>`;
+                } else {
+                    let catHtml = '';
+                    catList.forEach(c => {
+                        const share = totalExp > 0 ? Math.round((c.val / totalExp) * 100) : 0;
+                        catHtml += `
+                            <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-1.5">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-bold text-zinc-200">${c.name}</span>
+                                    <div class="font-mono text-xs">
+                                        <span class="text-zinc-500 mr-2">${share}%</span>
+                                        <span class="font-bold text-rose-400">${window.formatMoney(c.val)}</span>
+                                    </div>
+                                </div>
+                                <div class="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-rose-500 h-full transition-all duration-500" style="width: ${share}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    catContainer.innerHTML = catHtml;
+                }
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.buildTagReportText = (targetTagName) => {
+            const allItems = window.shoppingItems || [];
+            const tagsList = window.shoppingTags || [];
+
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const selectedMonth = mSel ? parseInt(mSel.value) : new Date().getMonth();
+            const selectedYear = ySel ? parseInt(ySel.value) : new Date().getFullYear();
+            const monthsNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const currentPeriodName = `${monthsNames[selectedMonth]} ${selectedYear}`;
+
+            const monthFilter = document.getElementById('rptMonthFilterSelect')?.value || 'current_period';
+
+            let items = allItems;
+            if (monthFilter === 'current_period') {
+                items = allItems.filter(i => {
+                    const { month, year } = window.getItemMonthYear(i);
+                    if (month === null || year === null) return true;
+                    return month === selectedMonth && year === selectedYear;
+                });
+            } else if (monthFilter !== 'all') {
+                const [filterYearStr, filterMonthStr] = monthFilter.split('-');
+                const fYear = parseInt(filterYearStr);
+                const fMonth = parseInt(filterMonthStr) - 1;
+                items = allItems.filter(i => {
+                    const { month, year } = window.getItemMonthYear(i);
+                    return month === fMonth && year === fYear;
+                });
+            }
+
+            const headerPeriodText = monthFilter === 'all' ? 'HISTÓRICO GERAL' : currentPeriodName.toUpperCase();
+            let text = `📊 *RELATÓRIO DE COMPRAS POR TAGS - ${headerPeriodText}*\n\n`;
+
+            if (targetTagName) {
+                const tagItems = targetTagName === 'Sem Tag'
+                    ? items.filter(i => !i.tags || i.tags.length === 0)
+                    : items.filter(i => (i.tags || []).includes(targetTagName));
+
+                const totalVal = tagItems.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+                const compVal = tagItems.filter(i => i.isCompleted).reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+                const pendVal = tagItems.filter(i => !i.isCompleted).reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+
+                text += `🏷️ *TAG: ${targetTagName.toUpperCase()}*\n`;
+                text += `💰 *Valor Total:* ${window.formatMoney(totalVal)}\n`;
+                text += `🟢 *Comprado:* ${window.formatMoney(compVal)}\n`;
+                text += `🟡 *Pendente:* ${window.formatMoney(pendVal)}\n\n`;
+                text += `📦 *ITENS DA TAG:*\n`;
+
+                tagItems.forEach(i => {
+                    const status = i.isCompleted ? '✅' : '⏳';
+                    const val = parseFloat(i.value) || 0;
+                    const inst = Math.max(1, parseInt(i.installments) || 1);
+                    const instText = inst > 1 ? `(${inst}x de ${window.formatMoney(val / inst)}/mês)` : '(À vista)';
+                    text += `${status} *${i.name || 'Item'}* - ${window.formatMoney(val)} ${instText}\n`;
+                });
+            } else {
+                const tagNames = new Set(tagsList.map(t => typeof t === 'string' ? t : t.name));
+                items.forEach(i => (i.tags || []).forEach(t => tagNames.add(t)));
+                if (items.some(i => !i.tags || i.tags.length === 0)) tagNames.add('Sem Tag');
+
+                tagNames.forEach(tName => {
+                    const tagItems = tName === 'Sem Tag'
+                        ? items.filter(i => !i.tags || i.tags.length === 0)
+                        : items.filter(i => (i.tags || []).includes(tName));
+
+                    if (tagItems.length > 0) {
+                        const totalVal = tagItems.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+                        const compVal = tagItems.filter(i => i.isCompleted).reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+                        const pendVal = tagItems.filter(i => !i.isCompleted).reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+
+                        text += `🏷️ *${tName}:* ${window.formatMoney(totalVal)} (Comprado: ${window.formatMoney(compVal)} | Pendente: ${window.formatMoney(pendVal)})\n`;
                     }
-                }
-            });
-
-            // Card invoice sum
-            let totalCardsInvoice = 0;
-            const cardsList = window.getSystemCards ? window.getSystemCards() : (window.cards || []);
-            cardsList.forEach(c => {
-                totalCardsInvoice += parseFloat(c.used || c.invoiceValue || 0);
-            });
-
-            // Estimated available balance
-            const estimatedAvailable = totalIncomes - totalExpenses;
-
-            // Shopping List metrics
-            const shoppingItems = window.shoppingItems || [];
-            const pendingShopping = shoppingItems.filter(i => !i.isCompleted && !i.bought);
-            const shoppingTotalPending = pendingShopping.reduce((sum, item) => sum + (parseFloat(item.value) || 0), 0);
-            const shoppingInstallmentSum = pendingShopping.reduce((sum, item) => {
-                const val = parseFloat(item.value) || 0;
-                const inst = Math.max(1, parseInt(item.installments) || 1);
-                return sum + (val / inst);
-            }, 0);
-
-            return {
-                monthName,
-                totalIncomes,
-                totalExpenses,
-                paidIncomes,
-                paidExpenses,
-                totalCardsInvoice,
-                estimatedAvailable,
-                upcomingBills,
-                shoppingTotalCount: shoppingItems.length,
-                shoppingPendingCount: pendingShopping.length,
-                shoppingTotalPending,
-                shoppingInstallmentSum,
-                cardsCount: cardsList.length,
-                cardsList
-            };
-        };
-
-        window.openFinanceBotModal = () => {
-            const modal = document.getElementById('financeBotModal');
-            if (modal) modal.classList.add('active');
-            if (window.botMessages.length === 0) {
-                window.restartBotFlow();
-            } else {
-                window.renderBotChat();
+                });
             }
-            if (window.lucide) window.lucide.createIcons();
-            window.loadSavedBotSettings();
+
+            text += `\n_Gerado via FinanceUP_`;
+            return text;
         };
 
-        window.closeFinanceBotModal = () => {
-            const modal = document.getElementById('financeBotModal');
-            if (modal) modal.classList.remove('active');
-        };
-
-        window.setBotTab = (tab) => {
-            window.activeBotTab = tab;
-            const chatContainer = document.getElementById('botChatContainer');
-            const configContainer = document.getElementById('botConfigContainer');
-            const badge = document.getElementById('botPlatformBadge');
-            const statusText = document.getElementById('botStatusText');
-            const avatarBg = document.getElementById('botAvatarBg');
-
-            // Tabs styling
-            const tabs = ['Whatsapp', 'Telegram', 'Config'];
-            tabs.forEach(t => {
-                const desktopBtn = document.getElementById(`botTab${t}`);
-                const mobBtn = document.getElementById(`botTab${t}Mob`);
-                const isCurrent = (t.toLowerCase() === tab);
-                
-                if (desktopBtn) {
-                    desktopBtn.className = isCurrent 
-                        ? (tab === 'telegram' ? 'px-3 py-1.5 rounded-lg text-sky-400 bg-zinc-800 font-extrabold transition-all flex items-center gap-1' : (tab === 'config' ? 'px-3 py-1.5 rounded-lg text-neon bg-zinc-800 font-extrabold transition-all flex items-center gap-1' : 'px-3 py-1.5 rounded-lg text-emerald-400 bg-zinc-800 font-extrabold transition-all flex items-center gap-1'))
-                        : 'px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-all flex items-center gap-1';
-                }
-                if (mobBtn) {
-                    mobBtn.className = isCurrent 
-                        ? (tab === 'telegram' ? 'flex-1 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 text-center font-bold' : (tab === 'config' ? 'flex-1 py-1.5 rounded-lg bg-neon/20 text-neon text-center font-bold' : 'flex-1 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-center font-bold'))
-                        : 'flex-1 py-1.5 rounded-lg bg-zinc-900 text-zinc-400 text-center font-bold';
-                }
+        window.copyShoppingTagReportText = () => {
+            const text = window.buildTagReportText();
+            navigator.clipboard.writeText(text).then(() => {
+                window.showReportToast('✅ Resumo de todas as tags copiado!');
+            }).catch(() => {
+                window.showReportToast('Erro ao copiar resumo.');
             });
-
-            if (tab === 'config') {
-                if (chatContainer) chatContainer.classList.add('hidden');
-                if (configContainer) configContainer.classList.remove('hidden');
-                window.loadSavedBotSettings();
-            } else {
-                if (chatContainer) chatContainer.classList.remove('hidden');
-                if (configContainer) configContainer.classList.add('hidden');
-                
-                if (badge) {
-                    badge.innerText = tab === 'telegram' ? 'Telegram Bot' : 'WhatsApp Web';
-                    badge.className = tab === 'telegram' 
-                        ? 'text-[10px] bg-sky-500/20 text-sky-400 border border-sky-500/30 px-2 py-0.5 rounded-full font-extrabold uppercase'
-                        : 'text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-extrabold uppercase';
-                }
-                if (statusText) {
-                    statusText.innerText = tab === 'telegram' ? 'Bot Telegram Ativo • 100% Grátis' : 'Online • Responde Instantaneamente';
-                }
-                if (avatarBg) {
-                    avatarBg.className = tab === 'telegram' 
-                        ? 'w-10 h-10 rounded-full bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 shrink-0 shadow-inner'
-                        : 'w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner';
-                }
-                window.renderBotChat();
-            }
-            if (window.lucide) window.lucide.createIcons();
         };
 
-        window.restartBotFlow = () => {
-            const metrics = window.getSystemMetrics();
-            window.selectedCardForBotUpdate = null;
-
-            window.botMessages = [
-                {
-                    id: Date.now(),
-                    sender: 'bot',
-                    text: `👋 **Olá! Sou o seu Bot Assistente do FinanceUP.**\n\n👇 *Escolha uma das opções do menu abaixo para consultar ou atualizar suas finanças:*`,
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                }
-            ];
-            window.renderBotChat();
+        window.shareShoppingTagReportWhatsApp = () => {
+            const text = window.buildTagReportText();
+            const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
         };
+
+        window.copyTagText = (tagName) => {
+            const text = window.buildTagReportText(tagName);
+            navigator.clipboard.writeText(text).then(() => {
+                window.showReportToast(`✅ Resumo da tag "${tagName}" copiado!`);
+            }).catch(() => {
+                window.showReportToast('Erro ao copiar.');
+            });
+        };
+
+        window.shareTagOnWhatsApp = (tagName) => {
+            const text = window.buildTagReportText(tagName);
+            const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        };
+
+
 
         window.getSystemCards = () => {
             const mSel = document.getElementById('monthSelect');
@@ -3602,15 +4171,16 @@ service cloud.firestore {
                     }
                 }
 
-                const name = (t.description || 'Cartão de Crédito').trim();
-                if (!name) return;
-                const key = name.toLowerCase();
+                const rawName = (t.description || 'Cartão de Crédito').trim();
+                if (!rawName) return;
+                const cleanName = rawName.replace(/^fatura\s+/i, '').trim();
+                const key = cleanName.toLowerCase();
                 const val = parseFloat(t.value) || 0;
 
                 if (!cardMap[key]) {
                     cardMap[key] = {
-                        id: t.id || ('card_' + key.replace(/\s+/g, '_')),
-                        name: name,
+                        id: t.cardId || t.id || ('card_' + key.replace(/\s+/g, '_')),
+                        name: cleanName,
                         color: '#8A05BE',
                         limit: 5000,
                         used: 0,
@@ -3630,7 +4200,8 @@ service cloud.firestore {
             (window.cards || []).forEach(c => {
                 const name = (c.name || '').trim();
                 if (!name) return;
-                const key = name.toLowerCase();
+                const cleanName = name.replace(/^fatura\s+/i, '').trim();
+                const key = cleanName.toLowerCase();
 
                 if (!cardMap[key]) {
                     cardMap[key] = {
@@ -3644,6 +4215,7 @@ service cloud.firestore {
                 } else {
                     if (c.limit) cardMap[key].limit = parseFloat(c.limit);
                     if (c.color) cardMap[key].color = c.color;
+                    if (c.id && !c.id.startsWith('card_')) cardMap[key].id = c.id;
                     if ((!cardMap[key].used || cardMap[key].used === 0) && (c.used || c.invoiceValue)) {
                         cardMap[key].used = parseFloat(c.used || c.invoiceValue || 0);
                         cardMap[key].invoiceValue = parseFloat(c.invoiceValue || c.used || 0);
@@ -3665,6 +4237,48 @@ service cloud.firestore {
             }
 
             return list;
+        };
+
+        window.findCardByName = (text, cardsList) => {
+            if (!text) return null;
+            const cards = cardsList || window.getSystemCards();
+            const normText = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+            let match = cards.find(c => c.id === text || c.name.toLowerCase() === text.toLowerCase());
+            if (match) return match;
+
+            return cards.find(c => {
+                const cNorm = c.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const cClean = cNorm.replace(/cartao|fatura|de|credito/g, '').trim();
+                if (!cClean) return false;
+                return normText.includes(cNorm) || normText.includes(cClean) || cNorm.includes(normText) || cClean.includes(normText);
+            });
+        };
+
+        window.extractAmountFromText = (text, cardName) => {
+            if (!text) return NaN;
+            let remainder = text.toLowerCase();
+            if (cardName) {
+                const cNorm = cardName.toLowerCase();
+                const cClean = cNorm.replace(/cartão|cartao|fatura|de|credito|crédito/g, '').trim();
+                remainder = remainder.replace(cNorm, '').replace(cClean, '');
+            }
+            remainder = remainder.replace(/atualizar|fatura|valor|saldo|alterar|definir|r\$|reais/gi, '').trim();
+
+            const match = remainder.match(/(\d+(?:[.,]\d+)*)/);
+            if (!match) return NaN;
+
+            let numStr = match[1];
+            if (numStr.includes('.') && numStr.includes(',')) {
+                numStr = numStr.replace(/\./g, '').replace(',', '.');
+            } else if (numStr.includes(',')) {
+                numStr = numStr.replace(',', '.');
+            } else if ((numStr.match(/\./g) || []).length === 1 && numStr.split('.')[1].length === 3) {
+                numStr = numStr.replace('.', '');
+            }
+
+            const val = parseFloat(numStr);
+            return isNaN(val) ? NaN : val;
         };
 
         window.renderBotChat = () => {
@@ -3765,13 +4379,10 @@ service cloud.firestore {
 
             // Direct card addition command check (e.g. "Atacadão 55" or "Nubank 100")
             const cardsListForBot = window.getSystemCards();
-            let matchedBotCard = cardsListForBot.find(c => lower.includes(c.name.toLowerCase()));
-            if (!matchedBotCard && (lower.includes('atacadao') || lower.includes('atacadão'))) {
-                matchedBotCard = cardsListForBot.find(c => c.name.toLowerCase().includes('atacadão') || c.name.toLowerCase().includes('atacadao'));
-            }
-            const numInText = parseFloat(text.replace(/[^\d.,]/g, '').replace(',', '.'));
+            let matchedBotCard = window.findCardByName(lower, cardsListForBot);
+            const numInText = window.extractAmountFromText(text, matchedBotCard ? matchedBotCard.name : null);
 
-            if (matchedBotCard && numInText > 0) {
+            if (matchedBotCard && !isNaN(numInText) && numInText > 0) {
                 await window.confirmCardAddValue(matchedBotCard.id, numInText);
                 return;
             }
@@ -3956,27 +4567,17 @@ service cloud.firestore {
 
                 let cardListHtml = `
                     💳 **CARTÕES DE CRÉDITO CADASTRADOS:**\n
-                    Clique no cartão desejado abaixo para ver o **saldo** ou **atualizar (somar) o valor da fatura**:\n\n
+                    Clique em um cartão abaixo para abrir seu **submenu de opções**:\n\n
                     <div class="space-y-2 mt-2">
                 `;
 
                 cards.forEach(c => {
                     const cVal = parseFloat(c.used || c.invoiceValue || 0);
                     cardListHtml += `
-                        <div class="p-3 bg-zinc-900 border border-sky-500/30 rounded-xl space-y-2 shadow-sm">
-                            <div class="flex items-center justify-between">
-                                <span class="font-bold text-white text-sm">💳 ${c.name}</span>
-                                <span class="font-mono font-bold text-emerald-400 text-xs">Fatura: ${window.formatMoney(cVal)}</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2 pt-1">
-                                <button onclick="window.showCardBalance('${c.id}')" class="py-2 px-3 bg-zinc-800 hover:bg-sky-500 hover:text-black text-sky-300 font-bold rounded-lg text-xs transition-all text-center border border-sky-500/20">
-                                    📊 Ver Saldo
-                                </button>
-                                <button onclick="window.promptAddValueToCard('${c.id}')" class="py-2 px-3 bg-emerald-500/20 hover:bg-emerald-500 hover:text-black text-emerald-300 font-bold rounded-lg text-xs transition-all text-center border border-emerald-500/30">
-                                    ✏️ Atualizar Fatura
-                                </button>
-                            </div>
-                        </div>
+                        <button onclick="window.showCardSubmenu('${c.id}')" class="w-full p-3 bg-zinc-900 hover:bg-sky-500/20 border border-sky-500/30 rounded-xl flex items-center justify-between text-left transition-all shadow-sm group">
+                            <span class="font-bold text-white text-sm group-hover:text-sky-300">💳 ${c.name}</span>
+                            <span class="font-mono font-bold text-emerald-400 text-xs">Fatura: ${window.formatMoney(cVal)} ›</span>
+                        </button>
                     `;
                 });
 
@@ -4032,6 +4633,53 @@ service cloud.firestore {
             window.renderBotChat();
         };
 
+        window.showCardSubmenu = (cardId) => {
+            const cards = window.getSystemCards();
+            const card = cards.find(c => c.id === cardId) || cards.find(c => c.name.toLowerCase().includes(cardId.toLowerCase()));
+            if (!card) return;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const currentVal = parseFloat(card.used || card.invoiceValue || 0);
+            const limit = parseFloat(card.limit || 5000);
+            const availableLimit = Math.max(0, limit - currentVal);
+
+            window.botMessages.push({
+                id: Date.now(),
+                sender: 'user',
+                text: `Submenu do cartão ${card.name}`,
+                time
+            });
+
+            const html = `
+                💳 **SUBMENU DO CARTÃO: ${card.name.toUpperCase()}**\n\n
+                • **Valor Atual da Fatura:** <span class="text-emerald-400 font-extrabold">${window.formatMoney(currentVal)}</span>\n
+                • **Limite Disponível:** ${window.formatMoney(availableLimit)} (de ${window.formatMoney(limit)})\n\n
+                Escolha uma das opções abaixo:\n\n
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    <button onclick="window.showCardBalance('${card.id}')" class="p-3 bg-zinc-900 hover:bg-sky-500/20 text-sky-300 font-bold rounded-xl text-xs transition-all border border-sky-500/30 text-center flex items-center justify-center gap-2 shadow-sm">
+                        📊 Valor do Cartão
+                    </button>
+                    <button onclick="window.promptAddValueToCard('${card.id}')" class="p-3 bg-emerald-500/20 hover:bg-emerald-500 hover:text-black text-emerald-300 font-bold rounded-xl text-xs transition-all border border-emerald-500/30 text-center flex items-center justify-center gap-2 shadow-sm">
+                        ✏️ Atualizar Valor
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <button onclick="handleBotAction('cartoes')" class="w-full py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs border border-zinc-700 text-center transition-all">
+                        👈 Voltar aos Cartões
+                    </button>
+                </div>
+            `;
+
+            window.botMessages.push({
+                id: Date.now() + 1,
+                sender: 'bot',
+                text: html,
+                time
+            });
+
+            window.renderBotChat();
+        };
+
         window.showCardBalance = (cardId) => {
             const cards = window.getSystemCards();
             const card = cards.find(c => c.id === cardId) || cards.find(c => c.name.toLowerCase().includes(cardId.toLowerCase()));
@@ -4045,21 +4693,21 @@ service cloud.firestore {
             window.botMessages.push({
                 id: Date.now(),
                 sender: 'user',
-                text: `Ver saldo do cartão ${card.name}`,
+                text: `Ver valor do cartão ${card.name}`,
                 time
             });
 
             const html = `
-                📊 **DETALHES E SALDO DO CARTÃO ${card.name.toUpperCase()}**\n\n
+                📊 **VALOR DO CARTÃO: ${card.name.toUpperCase()}**\n\n
                 • **Valor Atual da Fatura:** <span class="text-emerald-400 font-extrabold">${window.formatMoney(currentVal)}</span>\n
                 • **Limite Utilizado:** ${window.formatMoney(currentVal)}\n
                 • **Limite Disponível:** ${window.formatMoney(availableLimit)} (de ${window.formatMoney(limit)})\n\n
                 <div class="flex flex-wrap gap-2 mt-3">
                     <button onclick="window.promptAddValueToCard('${card.id}')" class="py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold rounded-xl text-xs transition-all shadow-md">
-                        ✏️ Atualizar Fatura do Cartão
+                        ✏️ Atualizar Valor
                     </button>
-                    <button onclick="handleBotAction('cartoes')" class="py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs border border-zinc-700">
-                        💳 Voltar aos Cartões
+                    <button onclick="window.showCardSubmenu('${card.id}')" class="py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs border border-zinc-700">
+                        👈 Voltar ao Submenu ${card.name}
                     </button>
                 </div>
             `;
@@ -4086,16 +4734,16 @@ service cloud.firestore {
             window.botMessages.push({
                 id: Date.now(),
                 sender: 'user',
-                text: `Atualizar fatura do cartão ${card.name}`,
+                text: `Atualizar valor do cartão ${card.name}`,
                 time
             });
 
             const promptHtml = `
-                💳 **ATUALIZAR FATURA DO ${card.name.toUpperCase()}**\n\n
+                ✏️ **ATUALIZAR VALOR DA FATURA DO ${card.name.toUpperCase()}**\n\n
                 • **Valor atual cadastrado no sistema:** <span class="font-mono font-bold text-white">${window.formatMoney(currentVal)}</span>\n\n
-                💡 **Como funciona:** O valor enviado será gravado como o **NOVO TOTAL DA FATURA** deste cartão.\n
-                *Exemplo:* se você digitar **500,00**, a fatura do ${card.name} passará a ser **R$ 500,00**.\n\n
-                Escolha um valor rápido abaixo ou **digite no chat** o novo valor da fatura:\n\n
+                💡 **Atenção:** O novo valor enviado **IRÁ APAGAR O VALOR ANTERIOR** do sistema e atualizar a fatura do ${card.name}.\n
+                *Exemplo:* se você digitar **500,00**, o valor anterior de ${window.formatMoney(currentVal)} será apagado e a fatura passará a ser **R$ 500,00**.\n\n
+                Escolha um valor rápido abaixo ou **digite no chat** o novo valor:\n\n
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                     <button onclick="window.confirmCardAddValue('${card.id}', 100)" class="py-2.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold rounded-xl text-xs transition-all shadow-lg text-center">
                         R$ 100,00
@@ -4116,6 +4764,11 @@ service cloud.firestore {
                         R$ 1.500,00
                     </button>
                 </div>
+                <div class="mt-2">
+                    <button onclick="window.showCardSubmenu('${card.id}')" class="w-full py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs border border-zinc-700 text-center transition-all">
+                        👈 Voltar ao Submenu ${card.name}
+                    </button>
+                </div>
             `;
 
             window.botMessages.push({
@@ -4131,31 +4784,38 @@ service cloud.firestore {
         window.syncCardValueToSystem = async (targetCard, addedVal, newTotal) => {
             if (!targetCard) return;
 
+            const rawCardName = targetCard.name || 'Cartão';
+            const cleanCardName = rawCardName.replace(/^fatura\s+/i, '').trim();
+
             // 1. Update targetCard object directly
             targetCard.used = newTotal;
             targetCard.invoiceValue = newTotal;
 
             // 2. Update window.cards global array if present or push it
             if (!window.cards) window.cards = [];
-            let globalCard = window.cards.find(c =>
-                (c.id && targetCard.id && c.id === targetCard.id) ||
-                c.name.toLowerCase().trim() === targetCard.name.toLowerCase().trim() ||
-                c.name.toLowerCase().includes(targetCard.name.toLowerCase()) ||
-                targetCard.name.toLowerCase().includes(c.name.toLowerCase())
-            );
+            let globalCard = window.cards.find(c => {
+                if (c.id && targetCard.id && c.id === targetCard.id) return true;
+                const cClean = (c.name || '').toLowerCase().replace(/cartão|cartao|fatura|de|credito|crédito/g, '').trim();
+                const tClean = cleanCardName.toLowerCase().replace(/cartão|cartao|fatura|de|credito|crédito/g, '').trim();
+                return cClean === tClean || (cClean.length >= 3 && tClean.includes(cClean)) || (tClean.length >= 3 && cClean.includes(tClean));
+            });
 
             if (globalCard) {
                 globalCard.used = newTotal;
                 globalCard.invoiceValue = newTotal;
+                if (targetCard.id && !targetCard.id.startsWith('card_')) {
+                    globalCard.id = targetCard.id;
+                }
             } else {
-                window.cards.push({
-                    id: targetCard.id || ('card_' + targetCard.name.toLowerCase().replace(/\s+/g, '_')),
-                    name: targetCard.name,
+                globalCard = {
+                    id: targetCard.id || ('card_' + cleanCardName.toLowerCase().replace(/\s+/g, '_')),
+                    name: cleanCardName,
                     color: targetCard.color || '#8A05BE',
                     limit: targetCard.limit || 5000,
                     used: newTotal,
                     invoiceValue: newTotal
-                });
+                };
+                window.cards.push(globalCard);
             }
 
             // 3. Update or create transaction in window.transactions & Firestore for current active month
@@ -4165,14 +4825,21 @@ service cloud.firestore {
             const y = (ySel && ySel.value !== '' && !isNaN(parseInt(ySel.value))) ? parseInt(ySel.value) : new Date().getFullYear();
             const dateToday = `${y}-${(m + 1).toString().padStart(2, '0')}-10`;
 
+            const cleanTargetName = cleanCardName.toLowerCase().replace(/cartão|cartao|fatura|de|credito|crédito/g, '').trim();
+
             let existingTx = (window.transactions || []).find(t => {
                 if (t.isTombstone) return false;
                 const cat = (t.category || '').toLowerCase();
                 const desc = (t.description || '').toLowerCase();
-                const cardName = targetCard.name.toLowerCase();
+
                 const isCardCat = cat.includes('cartão') || cat.includes('cartao') || cat.includes('credito') || cat.includes('crédito');
-                const isDescMatch = desc.includes(cardName) || cardName.includes(desc);
-                if (!isCardCat && !isDescMatch) return false;
+                const cleanDesc = desc.replace(/cartão|cartao|fatura|de|credito|crédito/g, '').trim();
+
+                const isNameMatch = desc.includes(cleanTargetName) || cleanTargetName.includes(desc) ||
+                    (cleanTargetName.length >= 3 && cleanDesc.includes(cleanTargetName)) ||
+                    (cleanDesc.length >= 3 && cleanTargetName.includes(cleanDesc));
+
+                if (!isCardCat || !isNameMatch) return false;
 
                 const dateStr = t.receiptDate || t.dueDate || t.date;
                 if (dateStr && typeof dateStr === 'string') {
@@ -4197,9 +4864,10 @@ service cloud.firestore {
                     }
                 }
             } else {
+                const txDesc = cleanCardName.toLowerCase().includes('fatura') ? cleanCardName : `Fatura ${cleanCardName}`;
                 const newTxData = {
                     userId: window.currentUser ? window.currentUser.uid : 'demo',
-                    description: targetCard.name.toLowerCase().includes('fatura') ? targetCard.name : `Fatura ${targetCard.name}`,
+                    description: txDesc,
                     value: newTotal,
                     type: 'Saída',
                     category: 'Cartão de Credito',
@@ -4226,9 +4894,14 @@ service cloud.firestore {
             // 4. Update or add card doc in Firestore 'cards' collection
             if (window.dbInstance && window.currentUser) {
                 try {
-                    const cardDoc = (window.cards || []).find(c => c.id && !c.id.startsWith('card_') && c.name.toLowerCase() === targetCard.name.toLowerCase());
-                    if (cardDoc && cardDoc.id) {
-                        const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', cardDoc.id);
+                    const realCardDoc = (window.cards || []).find(c => {
+                        if (!c.id) return false;
+                        const cClean = (c.name || '').toLowerCase().replace(/cartão|cartao|fatura|de|credito|crédito/g, '').trim();
+                        return cClean === cleanTargetName || (cClean.length >= 3 && cleanTargetName.includes(cClean)) || (cleanTargetName.length >= 3 && cClean.includes(cClean));
+                    });
+
+                    if (realCardDoc && realCardDoc.id && !realCardDoc.id.startsWith('card_')) {
+                        const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', realCardDoc.id);
                         await window.firebaseFns.updateDoc(cardRef, { used: newTotal, invoiceValue: newTotal, updatedAt: Date.now() });
                     } else if (targetCard.id && !targetCard.id.startsWith('card_')) {
                         const cardRef = window.firebaseFns.doc(window.dbInstance, 'cards', targetCard.id);
@@ -4236,7 +4909,7 @@ service cloud.firestore {
                     } else {
                         const newDoc = await window.firebaseFns.addDoc(window.firebaseFns.collection(window.dbInstance, 'cards'), {
                             userId: window.currentUser.uid,
-                            name: targetCard.name,
+                            name: cleanCardName,
                             color: targetCard.color || '#8A05BE',
                             limit: targetCard.limit || 5000,
                             used: newTotal,
@@ -4244,6 +4917,7 @@ service cloud.firestore {
                             createdAt: Date.now()
                         });
                         targetCard.id = newDoc.id;
+                        if (globalCard) globalCard.id = newDoc.id;
                     }
                 } catch (e) {
                     console.warn("Firestore card doc update error:", e);
@@ -4382,24 +5056,38 @@ service cloud.firestore {
         };
 
         // Telegram Settings & Real Push Test
+        const DEFAULT_TG_TOKEN = "8821145839:AAEEavXarIUeMlze4V-Skd10yU600kD4zIs";
+        const DEFAULT_TG_CHAT_ID = "615009994";
+
+        window.telegramChatState = window.telegramChatState || {};
+
         window.loadSavedBotSettings = async () => {
             const tokenEl = document.getElementById('telegramTokenInput');
             const chatEl = document.getElementById('telegramChatIdInput');
             const statusDiv = document.getElementById('telegramConfigStatus');
 
-            // 1. Check local storage first
-            const localToken = localStorage.getItem('bot_telegram_token') || '';
-            const localChatId = localStorage.getItem('bot_telegram_chatId') || '';
+            // 1. Check local storage or set default user token/chatId
+            let localToken = localStorage.getItem('bot_telegram_token');
+            let localChatId = localStorage.getItem('bot_telegram_chatId');
 
-            if (tokenEl && localToken) tokenEl.value = localToken;
-            if (chatEl && localChatId) chatEl.value = localChatId;
+            if (!localToken) {
+                localToken = DEFAULT_TG_TOKEN;
+                localStorage.setItem('bot_telegram_token', localToken);
+            }
+            if (!localChatId) {
+                localChatId = DEFAULT_TG_CHAT_ID;
+                localStorage.setItem('bot_telegram_chatId', localChatId);
+            }
 
-            if (localToken && localChatId && statusDiv) {
+            if (tokenEl) tokenEl.value = localToken;
+            if (chatEl) chatEl.value = localChatId;
+
+            if (statusDiv) {
                 statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center justify-between";
                 statusDiv.innerHTML = `
                     <div class="flex items-center gap-2">
                         <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-                        <span>Configurações salvas e ativas!</span>
+                        <span>Bot Telegram Conectado e Ativo!</span>
                     </div>
                     <span class="text-[10px] bg-emerald-500/30 px-2 py-0.5 rounded-full uppercase font-black tracking-wider text-emerald-300">Conectado</span>
                 `;
@@ -4415,19 +5103,6 @@ service cloud.firestore {
                     const data = snap.data();
                     if (tokenEl && data.token) tokenEl.value = data.token;
                     if (chatEl && data.chatId) chatEl.value = data.chatId;
-
-                    if (data.token && data.chatId && statusDiv) {
-                        statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center justify-between";
-                        statusDiv.innerHTML = `
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-                                <span>Configurações sincronizadas na nuvem!</span>
-                            </div>
-                            <span class="text-[10px] bg-emerald-500/30 px-2 py-0.5 rounded-full uppercase font-black tracking-wider text-emerald-300">Sincronizado</span>
-                        `;
-                        statusDiv.classList.remove('hidden');
-                        if (window.lucide) window.lucide.createIcons();
-                    }
                 }
             } catch (e) {
                 console.log("No stored bot settings found yet.");
@@ -4436,20 +5111,10 @@ service cloud.firestore {
 
         window.saveTelegramBotConfig = async (e) => {
             if (e) e.preventDefault();
-            const token = document.getElementById('telegramTokenInput').value.trim();
-            const chatId = document.getElementById('telegramChatIdInput').value.trim();
+            const token = document.getElementById('telegramTokenInput').value.trim() || DEFAULT_TG_TOKEN;
+            const chatId = document.getElementById('telegramChatIdInput').value.trim() || DEFAULT_TG_CHAT_ID;
             const statusDiv = document.getElementById('telegramConfigStatus');
             const btn = document.getElementById('btnSaveTelegramConfig');
-
-            if (!token || !chatId) {
-                if (statusDiv) {
-                    statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-2";
-                    statusDiv.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i><span>Por favor, preencha o Telegram Bot Token e o Chat ID.</span>';
-                    statusDiv.classList.remove('hidden');
-                    if (window.lucide) window.lucide.createIcons();
-                }
-                return;
-            }
 
             if (btn) {
                 btn.disabled = true;
@@ -4504,20 +5169,10 @@ service cloud.firestore {
         };
 
         window.testTelegramNotification = async () => {
-            const token = document.getElementById('telegramTokenInput').value.trim() || localStorage.getItem('bot_telegram_token') || '';
-            const chatId = document.getElementById('telegramChatIdInput').value.trim() || localStorage.getItem('bot_telegram_chatId') || '';
+            const token = document.getElementById('telegramTokenInput')?.value.trim() || localStorage.getItem('bot_telegram_token') || DEFAULT_TG_TOKEN;
+            const chatId = document.getElementById('telegramChatIdInput')?.value.trim() || localStorage.getItem('bot_telegram_chatId') || DEFAULT_TG_CHAT_ID;
             const statusDiv = document.getElementById('telegramConfigStatus');
             const btnTest = document.getElementById('btnTestTelegramConfig');
-
-            if (!token || !chatId) {
-                if (statusDiv) {
-                    statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-2";
-                    statusDiv.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i><span>Preencha e salve o Bot Token e Chat ID primeiro para testar.</span>';
-                    statusDiv.classList.remove('hidden');
-                    if (window.lucide) window.lucide.createIcons();
-                }
-                return;
-            }
 
             if (btnTest) {
                 btnTest.disabled = true;
@@ -4526,7 +5181,7 @@ service cloud.firestore {
             }
 
             const metrics = window.getSystemMetrics();
-            const msg = `📊 *Notificação FinanceUP Bot*\n\n💰 *Disponível Estimado (${metrics.monthName}):* R$ ${metrics.estimatedAvailable.toFixed(2)}\n🟢 *Entradas:* R$ ${metrics.totalIncomes.toFixed(2)}\n🔴 *Saídas:* R$ ${metrics.totalExpenses.toFixed(2)}\n💳 *Faturas Cartões:* R$ ${metrics.totalCardsInvoice.toFixed(2)}\n\n_Enviado gratuitamente via FinanceUP Telegram Bot API_`;
+            const msg = `📊 *Notificação Telegram Bot FinanceUP*\n\n💰 *Disponível Estimado (${metrics.monthName}):* R$ ${metrics.estimatedAvailable.toFixed(2)}\n\n_Bot ativo com acesso ao Menu Orçamento._`;
 
             try {
                 const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -4535,7 +5190,13 @@ service cloud.firestore {
                     body: JSON.stringify({
                         chat_id: chatId,
                         text: msg,
-                        parse_mode: 'Markdown'
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            keyboard: [
+                                [{ text: "Valor Disponível Estimado" }, { text: "Cartões" }]
+                            ],
+                            resize_keyboard: true
+                        }
                     })
                 });
                 const data = await res.json();
@@ -4552,7 +5213,7 @@ service cloud.firestore {
                         statusDiv.innerHTML = `
                             <div class="flex items-center gap-2">
                                 <i data-lucide="send" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-                                <span>🚀 Notificação de teste enviada com sucesso para o Telegram!</span>
+                                <span>🚀 Notificação enviada com sucesso ao Telegram!</span>
                             </div>
                         `;
                         statusDiv.classList.remove('hidden');
@@ -4561,7 +5222,7 @@ service cloud.firestore {
                 } else {
                     if (statusDiv) {
                         statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-2";
-                        statusDiv.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0"></i><span>Erro no Telegram: ${data.description || 'Verifique se o Token e Chat ID estão corretos.'}</span>`;
+                        statusDiv.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0"></i><span>Erro no Telegram: ${data.description || 'Verifique Token e Chat ID.'}</span>`;
                         statusDiv.classList.remove('hidden');
                         if (window.lucide) window.lucide.createIcons();
                     }
@@ -4573,69 +5234,122 @@ service cloud.firestore {
                     btnTest.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i><span>Testar Notificação Real</span>';
                     if (window.lucide) window.lucide.createIcons();
                 }
-                if (statusDiv) {
-                    statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-2";
-                    statusDiv.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0"></i><span>Erro de conexão. Verifique o Token e Chat ID informados.</span>`;
-                    statusDiv.classList.remove('hidden');
-                    if (window.lucide) window.lucide.createIcons();
-                }
             }
         };
 
-        // Telegram Bot Auto-Responder Engine
+        // Telegram Bot Auto-Responder Engine (Menu Orçamento Flow)
         window.replyToTelegramMessage = async (token, chatId, text, senderName) => {
+            if (!window.telegramChatState[chatId]) {
+                window.telegramChatState[chatId] = { activeCard: null, awaitingValue: false };
+            }
+            const userState = window.telegramChatState[chatId];
             const metrics = window.getSystemMetrics();
-            const lower = text.toLowerCase().trim();
-            let replyText = '';
-
-            const greetings = ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'e ai', 'e aí', 'hey', 'hello', 'salve', '/start', 'iniciar', 'menu', 'ajuda'];
-            const isGreeting = greetings.some(g => lower === g || lower.startsWith(g + ' ') || lower.endsWith(' ' + g));
-
+            const lower = (text || '').toLowerCase().trim();
             const cards = window.getSystemCards();
 
-            // Check if message is a card update command, e.g. "Atacadão 500" or "500" or "Nubank 1000"
-            let targetCard = cards.find(c => lower.includes(c.name.toLowerCase()));
-            const extractedNum = parseFloat(lower.replace(/[^\d.,]/g, '').replace(',', '.'));
+            let replyText = '';
+            const mainKeyboard = [
+                [{ text: "Valor Disponível Estimado" }, { text: "Cartões" }]
+            ];
+            let activeKeyboard = mainKeyboard;
 
-            if (!targetCard && (lower.includes('atacadao') || lower.includes('atacadão'))) {
-                targetCard = cards.find(c => c.name.toLowerCase().includes('atacadão') || c.name.toLowerCase().includes('atacadao'));
+            const isStartOrMenu = ['/start', 'start', 'menu', 'iniciar', 'ajuda', 'oi', 'olá', 'ola', 'voltar', 'menu principal', '📋 menu principal'].includes(lower);
+
+            if (isStartOrMenu) {
+                userState.activeCard = null;
+                userState.awaitingValue = false;
+                replyText = `🤖 *BOT TELEGRAM FINANCEUP*\n\n*Acesso exclusivo:* Menu Orçamento\n\n👇 *Escolha uma opção no menu abaixo:*`;
+                activeKeyboard = mainKeyboard;
+            }
+            else if (lower.includes('disponível estimado') || lower.includes('disponivel estimado') || lower.includes('disponível') || lower.includes('disponivel') || lower.includes('estimado')) {
+                replyText = `💰 *Valor Disponível Estimado (${metrics.monthName}):*\n\n*${window.formatMoney(metrics.estimatedAvailable)}*\n\n_(Entradas: ${window.formatMoney(metrics.totalIncomes)} | Saídas: ${window.formatMoney(metrics.totalExpenses)} | Cartões: ${window.formatMoney(metrics.totalCardsInvoice)})_`;
+                activeKeyboard = mainKeyboard;
+            }
+            else if (lower === 'cartões' || lower === 'cartoes' || lower === 'cartao' || lower === 'cartão' || lower.includes('tag cartão') || lower.includes('tag cartao')) {
+                userState.activeCard = null;
+                userState.awaitingValue = false;
+
+                let cardsListStr = cards.map(c => `• *${c.name}:* ${window.formatMoney(c.used || c.invoiceValue || 0)}`).join('\n');
+                replyText = `💳 *ITENS DA TAG CARTÃO DE CRÉDITO (${metrics.monthName}):*\n\n${cardsListStr}\n\n👇 *Selecione um item para abrir o submenu:*`;
+
+                const cardButtons = cards.map(c => [{ text: `${c.name}` }]);
+                cardButtons.push([{ text: "📋 Menu Principal" }]);
+                activeKeyboard = cardButtons;
+            }
+            else {
+                // Find matching card by name
+                let matchedCard = cards.find(c => {
+                    const cNorm = c.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const textNorm = lower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const cClean = cNorm.replace(/cartao|fatura|de|credito/g, '').trim();
+                    return textNorm === cNorm || (cClean && textNorm === cClean) || textNorm.includes(cNorm);
+                });
+
+                const isSelectValor = (lower === 'valor' || lower === '📊 valor' || (matchedCard && lower.includes('valor')));
+                const isSelectAtualizar = (lower === 'atualizar valor' || lower === '✏️ atualizar valor' || (matchedCard && lower.includes('atualizar')));
+
+                if (isSelectValor && (userState.activeCard || matchedCard)) {
+                    const card = matchedCard || userState.activeCard;
+                    userState.activeCard = card;
+                    userState.awaitingValue = false;
+
+                    const currentVal = parseFloat(card.used || card.invoiceValue || 0);
+                    replyText = `📊 *INFORMAÇÃO DO ITEM: ${card.name.toUpperCase()}*\n\n• *Tag:* Cartão de Crédito\n• *Valor Atual do Item:* *${window.formatMoney(currentVal)}*\n• *Período:* ${metrics.monthName}`;
+                    activeKeyboard = [
+                        [{ text: "Valor" }, { text: "Atualizar Valor" }],
+                        [{ text: "Cartões" }, { text: "Valor Disponível Estimado" }]
+                    ];
+                }
+                else if (isSelectAtualizar && (userState.activeCard || matchedCard)) {
+                    const card = matchedCard || userState.activeCard;
+                    userState.activeCard = card;
+                    userState.awaitingValue = true;
+
+                    const currentVal = parseFloat(card.used || card.invoiceValue || 0);
+                    replyText = `✏️ *ATUALIZAR VALOR: ${card.name.toUpperCase()}*\n\n• *Valor Atual no Sistema:* *${window.formatMoney(currentVal)}*\n\n👉 *Envie o novo valor para sobrescrever o valor do campo deste item.*\nExemplo: Envie *"500"*, *"750,50"* ou escolha uma opção rápida:`;
+                    activeKeyboard = [
+                        [{ text: `${card.name} 100` }, { text: `${card.name} 200` }, { text: `${card.name} 500` }],
+                        [{ text: `${card.name} 750` }, { text: `${card.name} 1000` }, { text: `${card.name} 1500` }],
+                        [{ text: "Cartões" }, { text: "Valor Disponível Estimado" }]
+                    ];
+                }
+                else if (matchedCard && !lower.includes('100') && !lower.includes('200') && !lower.includes('500') && !lower.includes('750') && !lower.includes('1000') && !lower.includes('1500')) {
+                    userState.activeCard = matchedCard;
+                    userState.awaitingValue = false;
+
+                    const currentVal = parseFloat(matchedCard.used || matchedCard.invoiceValue || 0);
+                    replyText = `💳 *SUBMENU: ${matchedCard.name.toUpperCase()}*\nTag: *Cartão de Crédito*\n• *Valor Atual:* *${window.formatMoney(currentVal)}*\n\n👇 *Selecione uma opção:*`;
+                    activeKeyboard = [
+                        [{ text: "Valor" }, { text: "Atualizar Valor" }],
+                        [{ text: "Cartões" }, { text: "Valor Disponível Estimado" }]
+                    ];
+                }
+                else {
+                    let targetCardForUpdate = matchedCard || userState.activeCard;
+                    let numVal = window.extractAmountFromText(text, targetCardForUpdate ? targetCardForUpdate.name : null);
+
+                    if (targetCardForUpdate && !isNaN(numVal) && numVal > 0) {
+                        const prevVal = parseFloat(targetCardForUpdate.used || targetCardForUpdate.invoiceValue || 0);
+                        
+                        await window.syncCardValueToSystem(targetCardForUpdate, 0, numVal);
+                        const updatedMetrics = window.getSystemMetrics();
+
+                        userState.activeCard = targetCardForUpdate;
+                        userState.awaitingValue = false;
+
+                        replyText = `✅ *VALOR SOBRESCRITO COM SUCESSO!*\n\n• *Item:* ${targetCardForUpdate.name}\n• *Valor Anterior:* ${window.formatMoney(prevVal)}\n• *Novo Valor:* *${window.formatMoney(numVal)}*\n\n💰 *Novo Disponível Estimado (${updatedMetrics.monthName}):* *${window.formatMoney(updatedMetrics.estimatedAvailable)}*`;
+                        activeKeyboard = [
+                            [{ text: "Valor" }, { text: "Atualizar Valor" }],
+                            [{ text: "Cartões" }, { text: "Valor Disponível Estimado" }]
+                        ];
+                    }
+                    else {
+                        replyText = `🤖 *BOT TELEGRAM FINANCEUP*\n\nMenu **Orçamento**:\n• 💰 *Valor Disponível Estimado*\n• 💳 *Cartões*\n\nPor favor, escolha uma opção no teclado abaixo:`;
+                        activeKeyboard = mainKeyboard;
+                    }
+                }
             }
 
-            if (targetCard && extractedNum > 0) {
-                const currentVal = parseFloat(targetCard.used || targetCard.invoiceValue || 0);
-                const newTotal = extractedNum; // Set value directly from Telegram message, no addition/summing calculation!
-
-                await window.syncCardValueToSystem(targetCard, 0, newTotal);
-                const updatedMetrics = window.getSystemMetrics();
-
-                replyText = `✅ *VALOR ATUALIZADO COM SUCESSO!*\n\n• *Cartão:* ${targetCard.name}\n• *Valor Anterior:* ${window.formatMoney(currentVal)}\n• *Novo Valor da Fatura:* *${window.formatMoney(newTotal)}*\n\n🔄 *Novo Disponível Estimado:* *${window.formatMoney(updatedMetrics.estimatedAvailable)}*`;
-            } else if (targetCard && !extractedNum) {
-                const currentVal = parseFloat(targetCard.used || targetCard.invoiceValue || 0);
-                replyText = `💳 *CARTÃO DE CRÉDITO: ${targetCard.name.toUpperCase()}*\n\n• *Valor Atual da Fatura:* *${window.formatMoney(currentVal)}*\n• *Limite Total:* ${window.formatMoney(targetCard.limit || 5000)}\n\n💡 *Para atualizar a fatura deste cartão, responda com o novo valor. Exemplo:*\n*"${targetCard.name} 500"* para definir R$ 500,00 na fatura do ${targetCard.name}!`;
-            } else if (lower.includes('duvida') || lower.includes('dúvida') || lower.includes('como usar') || lower.includes('ajuda')) {
-                replyText = `❓ *DÚVIDAS FREQUENTES & GUIA DE USO*\n\n• *Como atualizar cartões?*\nEnvie o nome do cartão seguido do novo valor. Exemplo:\n*"Atacadão 500"* (Define R$ 500,00 como valor da fatura do Atacadão)\n\n• *O que é o Disponível Estimado?*\nÉ o cálculo: *(Total Entradas) - (Total Saídas) - (Faturas de Cartões)*.\n\n• *Como navegar nos menus?*\nUse os botões no menu abaixo ou envie *"menu"*, *"cartoes"*, *"saldo"*, *"entradas"* ou *"saidas"*.`;
-            } else if (isGreeting) {
-                replyText = `👋 *Olá, ${senderName}! Que bom falar com você!*\n\nSou o **Bot Assistente FinanceUP**! Estou pronto para te atender.\n\n📋 *MENU PRINCIPAL DE OPÇÕES:*\n• 💳 *Cartões* - Consultar e atualizar faturas dos cartões\n• 💰 *Disponível* - Consultar saldo líquido estimado do mês\n• 🟢 *Entradas* - Consultar receitas e recebimentos\n• 🔴 *Saídas* - Consultar despesas e vencimentos\n• 🛒 *Compras* - Ver itens da lista de supermercado\n• ❓ *Dúvidas* - Guia de como utilizar o bot\n\n👇 *Escolha uma das opções no menu de botões abaixo:*`;
-            } else if (lower.includes('disponivel') || lower.includes('disponível') || lower.includes('saldo') || lower.includes('quanto tenho') || lower.includes('quanto sobrou')) {
-                replyText = `💰 *Disponível Estimado (${metrics.monthName}):*\n*${window.formatMoney(metrics.estimatedAvailable)}*\n\n🟢 *Entradas:* ${window.formatMoney(metrics.totalIncomes)}\n🔴 *Saídas:* ${window.formatMoney(metrics.totalExpenses)}\n💳 *Faturas Cartões:* ${window.formatMoney(metrics.totalCardsInvoice)}`;
-            } else if (lower.includes('cartao') || lower.includes('cartão') || lower.includes('cartões') || lower.includes('fatura') || lower.includes('faturas')) {
-                let cardsText = cards.map(c => `• *${c.name}:* ${window.formatMoney(c.used || c.invoiceValue || 0)}`).join('\n');
-                replyText = `💳 *CARTÕES DE CRÉDITO (${metrics.monthName}):*\n\n${cardsText}\n\n*Total em Faturas:* *${window.formatMoney(metrics.totalCardsInvoice)}*\n\n👉 *Para atualizar um cartão, envie o nome do cartão e o novo valor:*\nExemplo: *"Atacadão 500"* ou *"Nubank 1000"*`;
-            } else if (lower.includes('compra') || lower.includes('compras') || lower.includes('lista') || lower.includes('mercado')) {
-                const items = window.shoppingItems || [];
-                const pending = items.filter(i => !i.bought);
-                let itemsText = pending.slice(0, 8).map(i => `• ${i.name} (R$ ${(i.value || 0).toFixed(2)})`).join('\n') || 'Nenhum item pendente.';
-                replyText = `🛒 *Lista de Compras Pendentes (${pending.length} itens):*\n\n${itemsText}\n\n*Total Estimado:* *${window.formatMoney(metrics.shoppingTotalPending)}*`;
-            } else if (lower.includes('entrada') || lower.includes('entradas') || lower.includes('receita') || lower.includes('salario') || lower.includes('salário')) {
-                replyText = `🟢 *Entradas de ${metrics.monthName}:*\n\n• Total Previsto: *${window.formatMoney(metrics.totalIncomes)}*\n• Já Recebido: *${window.formatMoney(metrics.paidIncomes)}*`;
-            } else if (lower.includes('saida') || lower.includes('saída') || lower.includes('despesa') || lower.includes('despesas') || lower.includes('conta')) {
-                replyText = `🔴 *Saídas de ${metrics.monthName}:*\n\n• Total Despesas: *${window.formatMoney(metrics.totalExpenses)}*\n• Já Pago: *${window.formatMoney(metrics.paidExpenses)}*`;
-            } else {
-                // Strict compliance: Only guide user to bot menu options when unrecognized input is received
-                replyText = `🤖 *Bot FinanceUP:* Para consultar ou atualizar suas informações, por favor selecione uma das opções do menu abaixo ou envie o nome do cartão com o valor desejado (Ex: *"Atacadão 500"*).`;
-            }
-
-            // Post back to Telegram with interactive menu keyboard
             try {
                 await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                     method: 'POST',
@@ -4645,12 +5359,7 @@ service cloud.firestore {
                         text: replyText,
                         parse_mode: 'Markdown',
                         reply_markup: {
-                            keyboard: [
-                                [{ text: "💳 Cartões" }, { text: "💰 Disponível" }],
-                                [{ text: "🟢 Entradas" }, { text: "🔴 Saídas" }],
-                                [{ text: "🛒 Compras" }, { text: "❓ Dúvidas" }],
-                                [{ text: "📋 Menu Principal" }]
-                            ],
+                            keyboard: activeKeyboard,
                             resize_keyboard: true,
                             one_time_keyboard: false
                         }
@@ -4660,7 +5369,6 @@ service cloud.firestore {
                 console.error("Telegram reply send error:", err);
             }
 
-            // Also mirror into the app's chat screen
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             window.botMessages.push({
                 id: Date.now(),
@@ -4678,7 +5386,7 @@ service cloud.firestore {
         };
 
         window.checkTelegramUpdates = async () => {
-            const token = document.getElementById('telegramTokenInput')?.value.trim() || localStorage.getItem('bot_telegram_token') || '';
+            const token = document.getElementById('telegramTokenInput')?.value.trim() || localStorage.getItem('bot_telegram_token') || DEFAULT_TG_TOKEN;
             if (!token) return;
 
             let offset = parseInt(localStorage.getItem('bot_telegram_last_update_id') || '0', 10);
@@ -4746,17 +5454,13 @@ service cloud.firestore {
             }
         };
 
-        // Start Telegram polling loop every 3.5 seconds
+        // Start background polling for Telegram updates every 3 seconds
         setInterval(() => {
-            window.checkTelegramUpdates();
-        }, 3500);
+            if (window.checkTelegramUpdates) {
+                window.checkTelegramUpdates();
+            }
+        }, 3000);
 
-        window.shareSummaryOnWhatsApp = () => {
-            const metrics = window.getSystemMetrics();
-            const text = `📊 *Resumo FinanceUP Bot (${metrics.monthName})*\n\n💰 *Disponível Estimado:* ${window.formatMoney(metrics.estimatedAvailable)}\n🟢 *Entradas:* ${window.formatMoney(metrics.totalIncomes)}\n🔴 *Saídas:* ${window.formatMoney(metrics.totalExpenses)}\n💳 *Cartões:* ${window.formatMoney(metrics.totalCardsInvoice)}\n\n_Enviado via FinanceUP Bot_`;
-            const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-            window.open(url, '_blank');
-        };
     </script>
 </body>
 </html>
