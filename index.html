@@ -66,6 +66,111 @@
         </div>
     </div>
 
+    <!-- Telegram Connection & Synchronization Modal -->
+    <div id="telegramModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-zinc-900 w-full max-w-xl rounded-2xl border border-sky-500/30 overflow-hidden shadow-2xl flex flex-col my-auto max-h-[92vh]">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4 sm:p-5 border-b border-zinc-800 bg-zinc-950/80">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-sky-500/20 rounded-xl border border-sky-500/30">
+                        <i data-lucide="send" class="w-5 h-5 text-sky-400"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-white leading-tight">Conexão & Sincronização Telegram</h2>
+                        <p class="text-xs text-zinc-400">Integração do Bot para o Menu Orçamento e Faturas</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.closeTelegramModal()" class="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-zinc-800 transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <!-- Content Body -->
+            <div class="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
+                <!-- Status Banner Div -->
+                <div id="telegramConfigStatus" class="hidden"></div>
+
+                <!-- Credenciais Form -->
+                <form id="telegramConfigForm" onsubmit="window.saveTelegramBotConfig(event)" class="space-y-4 bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-800">
+                    <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="key" class="w-4 h-4"></i> Credenciais de Acesso do Bot
+                    </h3>
+
+                    <!-- Bot Token Input -->
+                    <div>
+                        <label class="block text-xs font-bold text-zinc-300 mb-1">Telegram Bot Token (HTTP API) *</label>
+                        <input type="text" id="telegramTokenInput" placeholder="Ex: 8821145839:AAEEavXarIUeMlze4V-Skd10yU600kD4zIs" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
+                        <p class="text-[11px] text-zinc-400 mt-1">Obtenha no Telegram com o <b>@BotFather</b> enviando o comando <code>/newbot</code>.</p>
+                    </div>
+
+                    <!-- Chat ID Input + Auto Detect -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-bold text-zinc-300">Chat ID do Usuário *</label>
+                            <button type="button" id="btnDetectChatId" onclick="window.detectTelegramChatId()" class="text-xs text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1 hover:underline cursor-pointer">
+                                <i data-lucide="radar" class="w-3.5 h-3.5"></i> Detectar Chat ID
+                            </button>
+                        </div>
+                        <input type="text" id="telegramChatIdInput" placeholder="Ex: 615009994" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
+                        <p class="text-[11px] text-zinc-400 mt-1">Seu ID no Telegram. Clique em <b>Detectar Chat ID</b> após enviar <code>/start</code> para o bot no Telegram.</p>
+                    </div>
+
+                    <!-- Botão Salvar Credenciais -->
+                    <div class="pt-2 flex gap-2">
+                        <button type="submit" id="btnSaveTelegramConfig" class="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer">
+                            <i data-lucide="save" class="w-4 h-4"></i> Salvar Credenciais
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Painel de Sincronização & Testes -->
+                <div class="space-y-3 bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-800">
+                    <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Ações & Sincronização
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Botão Sincronizar Agora -->
+                        <button type="button" id="btnSyncTelegramUpdates" onclick="window.syncTelegramNow()" class="py-3 px-4 bg-emerald-500/20 hover:bg-emerald-500 hover:text-black text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 shrink-0"></i>
+                            <span>Sincronizar Mensagens Agora</span>
+                        </button>
+
+                        <!-- Botão Testar Envio Real -->
+                        <button type="button" id="btnTestTelegramConfig" onclick="window.testTelegramNotification()" class="py-3 px-4 bg-sky-500/20 hover:bg-sky-500 hover:text-black text-sky-300 border border-sky-500/40 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <i data-lucide="send" class="w-4 h-4 shrink-0"></i>
+                            <span>Enviar Notificação de Teste</span>
+                        </button>
+                    </div>
+
+                    <!-- Toggle Polling Automático -->
+                    <div class="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-zinc-200 block">Sincronização Automática em Segundo Plano</span>
+                            <span class="text-[11px] text-zinc-400">Verifica novas mensagens do Telegram a cada 4 segundos</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" id="telegramAutoSyncToggle" onchange="window.toggleTelegramAutoSync(this.checked)" class="sr-only peer">
+                            <div class="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Guia Passo a Passo -->
+                <div class="bg-zinc-950/40 p-4 rounded-2xl border border-zinc-800 space-y-2 text-xs text-zinc-300">
+                    <h4 class="font-bold text-white flex items-center gap-1.5 text-xs">
+                        <i data-lucide="help-circle" class="w-4 h-4 text-amber-400"></i> Como conectar passo a passo:
+                    </h4>
+                    <ol class="list-decimal list-inside space-y-1 text-zinc-400 text-[11px] leading-relaxed">
+                        <li>Abra o Telegram, procure por <b class="text-white">@BotFather</b> e mande o comando <code>/newbot</code> para criar seu bot.</li>
+                        <li>Copie o <b class="text-white">API Token</b> gerado e cole no campo "Telegram Bot Token" acima.</li>
+                        <li>Abra o chat com o seu bot novo no Telegram e mande a mensagem <b class="text-white">/start</b> ou <b class="text-white">menu</b>.</li>
+                        <li>Clique no botão <b class="text-sky-400">Detectar Chat ID</b> acima para preencher seu Chat ID automaticamente.</li>
+                        <li>Clique em <b class="text-white">Salvar Credenciais</b> e interaja com o menu Orçamento diretamente no Telegram!</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main App Content -->
     <div id="appContent" class="hidden">
         <!-- Header -->
@@ -85,6 +190,11 @@
                 </nav>
             </div>
             <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="window.openTelegramModal()" class="flex items-center gap-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer" title="Conexão Telegram">
+                    <i data-lucide="send" class="w-4 h-4 text-sky-400"></i>
+                    <span class="hidden md:inline">Conexão Telegram</span>
+                    <span id="telegramHeaderBadge" class="w-2 h-2 rounded-full bg-zinc-600"></span>
+                </button>
                 <div id="userInfo" class="flex items-center gap-3">
                     <img id="userAvatar" class="w-9 h-9 rounded-full border border-zinc-800 object-cover" src="" alt="Avatar" referrerpolicy="no-referrer">
                     <div class="hidden sm:flex flex-col">
@@ -212,13 +322,19 @@
 
             <!-- Transactions List View (Used by Budget and Organization) -->
             <div id="viewTransactions" class="animate-in fade-in duration-500">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
                     <h3 class="text-xl font-semibold text-zinc-200 flex items-center gap-2">
                         <i data-lucide="list" class="w-5 h-5 text-neon"></i> Movimentações
                     </h3>
-                    <button onclick="openModal(true)" class="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                        <i data-lucide="plus" class="w-3.5 h-3.5 text-neon"></i> Adicionar Lançamento
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="window.openTelegramModal()" class="bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer">
+                            <i data-lucide="send" class="w-4 h-4 text-sky-400"></i>
+                            <span>Conexão Telegram</span>
+                        </button>
+                        <button onclick="openModal(true)" class="bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                            <i data-lucide="plus" class="w-3.5 h-3.5 text-neon"></i> Adicionar Lançamento
+                        </button>
+                    </div>
                 </div>
                 <div class="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-x-auto">
                     <table class="w-full text-left">
@@ -850,9 +966,110 @@
         </div>
     </div>
 
+    <!-- Telegram Connection & Synchronization Modal -->
+    <div id="telegramModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-zinc-900 w-full max-w-xl rounded-2xl border border-sky-500/30 overflow-hidden shadow-2xl flex flex-col my-auto max-h-[92vh]">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-4 sm:p-5 border-b border-zinc-800 bg-zinc-950/80">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-sky-500/20 rounded-xl border border-sky-500/30">
+                        <i data-lucide="send" class="w-5 h-5 text-sky-400"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-white leading-tight">Conexão & Sincronização Telegram</h2>
+                        <p class="text-xs text-zinc-400">Integração do Bot para o Menu Orçamento e Faturas</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.closeTelegramModal()" class="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-zinc-800 transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
 
+            <!-- Content Body -->
+            <div class="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
+                <!-- Status Banner Div -->
+                <div id="telegramConfigStatus" class="hidden"></div>
 
+                <!-- Credenciais Form -->
+                <form id="telegramConfigForm" onsubmit="window.saveTelegramBotConfig(event)" class="space-y-4 bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-800">
+                    <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="key" class="w-4 h-4"></i> Credenciais de Acesso do Bot
+                    </h3>
 
+                    <!-- Bot Token Input -->
+                    <div>
+                        <label class="block text-xs font-bold text-zinc-300 mb-1">Telegram Bot Token (HTTP API) *</label>
+                        <input type="text" id="telegramTokenInput" placeholder="Ex: 8821145839:AAEEavXarIUeMlze4V-Skd10yU600kD4zIs" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
+                        <p class="text-[11px] text-zinc-400 mt-1">Obtenha no Telegram com o <b>@BotFather</b> enviando o comando <code>/newbot</code>.</p>
+                    </div>
+
+                    <!-- Chat ID Input + Auto Detect -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-bold text-zinc-300">Chat ID do Usuário *</label>
+                            <button type="button" id="btnDetectChatId" onclick="window.detectTelegramChatId()" class="text-xs text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1 hover:underline cursor-pointer">
+                                <i data-lucide="radar" class="w-3.5 h-3.5"></i> Detectar Chat ID
+                            </button>
+                        </div>
+                        <input type="text" id="telegramChatIdInput" placeholder="Ex: 615009994" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
+                        <p class="text-[11px] text-zinc-400 mt-1">Seu ID no Telegram. Clique em <b>Detectar Chat ID</b> após enviar <code>/start</code> para o bot no Telegram.</p>
+                    </div>
+
+                    <!-- Botão Salvar Credenciais -->
+                    <div class="pt-2 flex gap-2">
+                        <button type="submit" id="btnSaveTelegramConfig" class="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer">
+                            <i data-lucide="save" class="w-4 h-4"></i> Salvar Credenciais
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Painel de Sincronização & Testes -->
+                <div class="space-y-3 bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-800">
+                    <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Ações & Sincronização
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Botão Sincronizar Agora -->
+                        <button type="button" id="btnSyncTelegramUpdates" onclick="window.syncTelegramNow()" class="py-3 px-4 bg-emerald-500/20 hover:bg-emerald-500 hover:text-black text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 shrink-0"></i>
+                            <span>Sincronizar Mensagens Agora</span>
+                        </button>
+
+                        <!-- Botão Testar Envio Real -->
+                        <button type="button" id="btnTestTelegramConfig" onclick="window.testTelegramNotification()" class="py-3 px-4 bg-sky-500/20 hover:bg-sky-500 hover:text-black text-sky-300 border border-sky-500/40 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <i data-lucide="send" class="w-4 h-4 shrink-0"></i>
+                            <span>Enviar Notificação de Teste</span>
+                        </button>
+                    </div>
+
+                    <!-- Toggle Polling Automático -->
+                    <div class="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-zinc-200 block">Sincronização Automática em Segundo Plano</span>
+                            <span class="text-[11px] text-zinc-400">Verifica novas mensagens do Telegram a cada 4 segundos</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" id="telegramAutoSyncToggle" onchange="window.toggleTelegramAutoSync(this.checked)" class="sr-only peer">
+                            <div class="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Guia Passo a Passo -->
+                <div class="bg-zinc-950/40 p-4 rounded-2xl border border-zinc-800 space-y-2 text-xs text-zinc-300">
+                    <h4 class="font-bold text-white flex items-center gap-1.5 text-xs">
+                        <i data-lucide="help-circle" class="w-4 h-4 text-amber-400"></i> Como conectar passo a passo:
+                    </h4>
+                    <ol class="list-decimal list-inside space-y-1 text-zinc-400 text-[11px] leading-relaxed">
+                        <li>Abra o Telegram, procure por <b class="text-white">@BotFather</b> e mande o comando <code>/newbot</code> para criar seu bot.</li>
+                        <li>Copie o <b class="text-white">API Token</b> gerado e cole no campo "Telegram Bot Token" acima.</li>
+                        <li>Abra o chat com o seu bot novo no Telegram e mande a mensagem <b class="text-white">/start</b> ou <b class="text-white">menu</b>.</li>
+                        <li>Clique no botão <b class="text-sky-400">Detectar Chat ID</b> acima para preencher seu Chat ID automaticamente.</li>
+                        <li>Clique em <b class="text-white">Salvar Credenciais</b> e interaja com o menu Orçamento diretamente no Telegram!</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase & Logic -->
     </div> <!-- End of appContent -->
@@ -5055,16 +5272,118 @@ service cloud.firestore {
             window.renderBotChat();
         };
 
+        // Telegram Modal Open / Close
+        window.openTelegramModal = () => {
+            const modal = document.getElementById('telegramModal');
+            if (modal) {
+                modal.classList.add('active');
+                if (window.loadSavedBotSettings) window.loadSavedBotSettings();
+                if (window.lucide) window.lucide.createIcons();
+            }
+        };
+
+        window.closeTelegramModal = () => {
+            const modal = document.getElementById('telegramModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        };
+
         // Telegram Settings & Real Push Test
         const DEFAULT_TG_TOKEN = "8821145839:AAEEavXarIUeMlze4V-Skd10yU600kD4zIs";
         const DEFAULT_TG_CHAT_ID = "615009994";
 
         window.telegramChatState = window.telegramChatState || {};
 
+        window.detectTelegramChatId = async () => {
+            const token = document.getElementById('telegramTokenInput')?.value.trim() || localStorage.getItem('bot_telegram_token') || DEFAULT_TG_TOKEN;
+            const btn = document.getElementById('btnDetectChatId');
+            const chatEl = document.getElementById('telegramChatIdInput');
+            const statusDiv = document.getElementById('telegramConfigStatus');
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Detectando...';
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?timeout=1`);
+                const data = await res.json();
+
+                if (data.ok && Array.isArray(data.result) && data.result.length > 0) {
+                    const lastUpdate = [...data.result].reverse().find(u => (u.message && u.message.chat) || (u.callback_query && u.callback_query.message && u.callback_query.message.chat));
+                    if (lastUpdate) {
+                        const chatId = lastUpdate.message ? lastUpdate.message.chat.id : lastUpdate.callback_query.message.chat.id;
+                        if (chatEl) chatEl.value = String(chatId);
+                        localStorage.setItem('bot_telegram_chatId', String(chatId));
+
+                        if (statusDiv) {
+                            statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-2";
+                            statusDiv.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>Chat ID ${chatId} detectado e preenchido com sucesso!</span>`;
+                            statusDiv.classList.remove('hidden');
+                            if (window.lucide) window.lucide.createIcons();
+                        }
+                    } else {
+                        if (statusDiv) {
+                            statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-2";
+                            statusDiv.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i><span>Nenhuma mensagem recente encontrada. Envie <b>/start</b> para o bot no Telegram e tente novamente.</span>`;
+                            statusDiv.classList.remove('hidden');
+                            if (window.lucide) window.lucide.createIcons();
+                        }
+                    }
+                } else {
+                    if (statusDiv) {
+                        statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-2";
+                        statusDiv.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i><span>Nenhuma mensagem encontrada. Envie <b>/start</b> para o bot no Telegram e tente novamente.</span>`;
+                        statusDiv.classList.remove('hidden');
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                }
+            } catch (e) {
+                if (statusDiv) {
+                    statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-2";
+                    statusDiv.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0"></i><span>Erro ao buscar mensagens. Verifique o Bot Token.</span>`;
+                    statusDiv.classList.remove('hidden');
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="radar" class="w-3.5 h-3.5"></i> Detectar Chat ID';
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            }
+        };
+
+        window.telegramAutoSyncInterval = null;
+        window.toggleTelegramAutoSync = (enabled) => {
+            localStorage.setItem('bot_telegram_auto_sync', enabled ? 'true' : 'false');
+            if (enabled) {
+                if (!window.telegramAutoSyncInterval) {
+                    window.telegramAutoSyncInterval = setInterval(() => {
+                        if (window.checkTelegramUpdates) window.checkTelegramUpdates();
+                    }, 4000);
+                }
+            } else {
+                if (window.telegramAutoSyncInterval) {
+                    clearInterval(window.telegramAutoSyncInterval);
+                    window.telegramAutoSyncInterval = null;
+                }
+            }
+        };
+
         window.loadSavedBotSettings = async () => {
             const tokenEl = document.getElementById('telegramTokenInput');
             const chatEl = document.getElementById('telegramChatIdInput');
             const statusDiv = document.getElementById('telegramConfigStatus');
+            const autoSyncToggle = document.getElementById('telegramAutoSyncToggle');
+
+            // Restore auto sync toggle
+            const autoSyncSaved = localStorage.getItem('bot_telegram_auto_sync');
+            const isAutoSync = autoSyncSaved !== 'false';
+            if (autoSyncToggle) autoSyncToggle.checked = isAutoSync;
+            window.toggleTelegramAutoSync(isAutoSync);
 
             // 1. Check local storage or set default user token/chatId
             let localToken = localStorage.getItem('bot_telegram_token');
@@ -5424,6 +5743,9 @@ service cloud.firestore {
                         }
 
                         if (text && chatId) {
+                            localStorage.setItem('bot_telegram_chatId', String(chatId));
+                            const chatEl = document.getElementById('telegramChatIdInput');
+                            if (chatEl) chatEl.value = String(chatId);
                             await window.replyToTelegramMessage(token, chatId, text, senderName);
                         }
                     }
