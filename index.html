@@ -85,6 +85,33 @@
 
             <!-- Content Body -->
             <div class="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
+                <!-- Conexão Automática Instantânea -->
+                <div class="bg-gradient-to-r from-sky-500/20 via-blue-500/10 to-indigo-500/20 p-4 sm:p-5 rounded-2xl border border-sky-500/40 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="relative flex h-3 w-3">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-3 w-3 bg-sky-500"></span>
+                            </span>
+                            <h3 class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">Conexão Automática 1-Clique</h3>
+                        </div>
+                        <span class="text-[10px] bg-sky-500/30 text-sky-300 font-extrabold px-2 py-0.5 rounded-full border border-sky-400/30">Opção Mais Segura</span>
+                    </div>
+                    <p class="text-xs text-zinc-300 leading-relaxed">
+                        Clique no botão abaixo para abrir o aplicativo do Telegram ou Telegram Web. Ao clicar em <b>START / INICIAR</b> no bot, a conexão será configurada automaticamente!
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                        <button type="button" onclick="window.startAutomaticTelegramConnection()" class="flex-1 py-3 px-4 bg-sky-500 hover:bg-sky-400 text-black font-extrabold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 cursor-pointer">
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                            <span>Abrir Telegram (App / Web)</span>
+                        </button>
+                        <button type="button" onclick="window.detectTelegramChatId()" class="py-3 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <i data-lucide="radar" class="w-4 h-4 text-sky-400"></i>
+                            <span>Verificar Conexão</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Status Banner Div -->
                 <div id="telegramConfigStatus" class="hidden"></div>
 
@@ -97,7 +124,7 @@
                     <!-- Bot Token Input -->
                     <div>
                         <label class="block text-xs font-bold text-zinc-300 mb-1">Telegram Bot Token (HTTP API) *</label>
-                        <input type="text" id="telegramTokenInput" placeholder="Ex: 8821145839:AAEEavXarIUeMlze4V-Skd10yU600kD4zIs" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
+                        <input type="text" id="telegramTokenInput" oninput="window.updateSaveButtonState(false)" placeholder="Ex: 8821145839:AAEEavXarIUeMlze4V-Skd10yU600kD4zIs" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
                         <p class="text-[11px] text-zinc-400 mt-1">Obtenha no Telegram com o <b>@BotFather</b> enviando o comando <code>/newbot</code>.</p>
                     </div>
 
@@ -109,7 +136,7 @@
                                 <i data-lucide="radar" class="w-3.5 h-3.5"></i> Detectar Chat ID
                             </button>
                         </div>
-                        <input type="text" id="telegramChatIdInput" placeholder="Ex: 615009994" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
+                        <input type="text" id="telegramChatIdInput" oninput="window.updateSaveButtonState(false)" placeholder="Ex: 615009994" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
                         <p class="text-[11px] text-zinc-400 mt-1">Seu ID no Telegram. Clique em <b>Detectar Chat ID</b> após enviar <code>/start</code> para o bot no Telegram.</p>
                     </div>
 
@@ -961,111 +988,6 @@
                     <div id="existingTagsList" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 bg-zinc-950/40 rounded-xl border border-zinc-800/80">
                         <!-- Dynamic tag pills with delete buttons -->
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Telegram Connection & Synchronization Modal -->
-    <div id="telegramModal" class="modal fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
-        <div class="bg-zinc-900 w-full max-w-xl rounded-2xl border border-sky-500/30 overflow-hidden shadow-2xl flex flex-col my-auto max-h-[92vh]">
-            <!-- Header -->
-            <div class="flex justify-between items-center p-4 sm:p-5 border-b border-zinc-800 bg-zinc-950/80">
-                <div class="flex items-center gap-2.5">
-                    <div class="p-2 bg-sky-500/20 rounded-xl border border-sky-500/30">
-                        <i data-lucide="send" class="w-5 h-5 text-sky-400"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-base sm:text-lg font-bold text-white leading-tight">Conexão & Sincronização Telegram</h2>
-                        <p class="text-xs text-zinc-400">Integração do Bot para o Menu Orçamento e Faturas</p>
-                    </div>
-                </div>
-                <button type="button" onclick="window.closeTelegramModal()" class="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-zinc-800 transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-
-            <!-- Content Body -->
-            <div class="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
-                <!-- Status Banner Div -->
-                <div id="telegramConfigStatus" class="hidden"></div>
-
-                <!-- Credenciais Form -->
-                <form id="telegramConfigForm" onsubmit="window.saveTelegramBotConfig(event)" class="space-y-4 bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-800">
-                    <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <i data-lucide="key" class="w-4 h-4"></i> Credenciais de Acesso do Bot
-                    </h3>
-
-                    <!-- Bot Token Input -->
-                    <div>
-                        <label class="block text-xs font-bold text-zinc-300 mb-1">Telegram Bot Token (HTTP API) *</label>
-                        <input type="text" id="telegramTokenInput" placeholder="Ex: 8821145839:AAEEavXarIUeMlze4V-Skd10yU600kD4zIs" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
-                        <p class="text-[11px] text-zinc-400 mt-1">Obtenha no Telegram com o <b>@BotFather</b> enviando o comando <code>/newbot</code>.</p>
-                    </div>
-
-                    <!-- Chat ID Input + Auto Detect -->
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="block text-xs font-bold text-zinc-300">Chat ID do Usuário *</label>
-                            <button type="button" id="btnDetectChatId" onclick="window.detectTelegramChatId()" class="text-xs text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1 hover:underline cursor-pointer">
-                                <i data-lucide="radar" class="w-3.5 h-3.5"></i> Detectar Chat ID
-                            </button>
-                        </div>
-                        <input type="text" id="telegramChatIdInput" placeholder="Ex: 615009994" class="w-full bg-zinc-900 border border-zinc-700 focus:border-sky-500 rounded-xl px-3.5 py-2.5 outline-none text-white text-xs sm:text-sm font-mono placeholder-zinc-600">
-                        <p class="text-[11px] text-zinc-400 mt-1">Seu ID no Telegram. Clique em <b>Detectar Chat ID</b> após enviar <code>/start</code> para o bot no Telegram.</p>
-                    </div>
-
-                    <!-- Botão Salvar Credenciais -->
-                    <div class="pt-2 flex gap-2">
-                        <button type="submit" id="btnSaveTelegramConfig" class="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer">
-                            <i data-lucide="save" class="w-4 h-4"></i> Salvar Credenciais
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Painel de Sincronização & Testes -->
-                <div class="space-y-3 bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-800">
-                    <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Ações & Sincronização
-                    </h3>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <!-- Botão Sincronizar Agora -->
-                        <button type="button" id="btnSyncTelegramUpdates" onclick="window.syncTelegramNow()" class="py-3 px-4 bg-emerald-500/20 hover:bg-emerald-500 hover:text-black text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
-                            <i data-lucide="refresh-cw" class="w-4 h-4 shrink-0"></i>
-                            <span>Sincronizar Mensagens Agora</span>
-                        </button>
-
-                        <!-- Botão Testar Envio Real -->
-                        <button type="button" id="btnTestTelegramConfig" onclick="window.testTelegramNotification()" class="py-3 px-4 bg-sky-500/20 hover:bg-sky-500 hover:text-black text-sky-300 border border-sky-500/40 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
-                            <i data-lucide="send" class="w-4 h-4 shrink-0"></i>
-                            <span>Enviar Notificação de Teste</span>
-                        </button>
-                    </div>
-
-                    <!-- Toggle Polling Automático -->
-                    <div class="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
-                        <div>
-                            <span class="text-xs font-bold text-zinc-200 block">Sincronização Automática em Segundo Plano</span>
-                            <span class="text-[11px] text-zinc-400">Verifica novas mensagens do Telegram a cada 4 segundos</span>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                            <input type="checkbox" id="telegramAutoSyncToggle" onchange="window.toggleTelegramAutoSync(this.checked)" class="sr-only peer">
-                            <div class="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Guia Passo a Passo -->
-                <div class="bg-zinc-950/40 p-4 rounded-2xl border border-zinc-800 space-y-2 text-xs text-zinc-300">
-                    <h4 class="font-bold text-white flex items-center gap-1.5 text-xs">
-                        <i data-lucide="help-circle" class="w-4 h-4 text-amber-400"></i> Como conectar passo a passo:
-                    </h4>
-                    <ol class="list-decimal list-inside space-y-1 text-zinc-400 text-[11px] leading-relaxed">
-                        <li>Abra o Telegram, procure por <b class="text-white">@BotFather</b> e mande o comando <code>/newbot</code> para criar seu bot.</li>
-                        <li>Copie o <b class="text-white">API Token</b> gerado e cole no campo "Telegram Bot Token" acima.</li>
-                        <li>Abra o chat com o seu bot novo no Telegram e mande a mensagem <b class="text-white">/start</b> ou <b class="text-white">menu</b>.</li>
-                        <li>Clique no botão <b class="text-sky-400">Detectar Chat ID</b> acima para preencher seu Chat ID automaticamente.</li>
-                        <li>Clique em <b class="text-white">Salvar Credenciais</b> e interaja com o menu Orçamento diretamente no Telegram!</li>
-                    </ol>
                 </div>
             </div>
         </div>
@@ -2285,13 +2207,13 @@
                 const sys = `Você é um consultor financeiro especialista do sistema FinanceUP. Responda de forma concisa, educada e sofisticada. Movimentações:\n${ctx || 'Nenhuma.'}`;
                 
                 const response = await ai.models.generateContent({
-                    model: 'gemini-3-flash-preview',
+                    model: 'gemini-2.5-flash',
                     contents: text,
                     config: { systemInstruction: sys, temperature: 0.7 }
                 });
                 window.aiMessages.push({ role: 'model', text: response.text || 'Erro.' });
             } catch (e) {
-                console.error(e);
+                console.error("AI Assistant error:", e ? (e.message || String(e)) : e);
                 window.aiMessages.push({ role: 'model', text: 'Erro ao conectar com a IA.' });
             }
             window.renderAIMessages();
@@ -2521,12 +2443,19 @@
                     if (value instanceof Error) {
                         return { message: value.message, code: value.code, stack: value.stack };
                     }
+                    if (typeof value === 'function') {
+                        return '[Function]';
+                    }
+                    if (typeof Element !== 'undefined' && value instanceof Element) {
+                        return '[DOM Element]';
+                    }
                     return value;
                 });
             } catch (e) {
                 return '{"error":"Error stringifying object"}';
             }
         }
+        window.safeJsonStringify = safeJsonStringify;
 
         function handleFirestoreError(error, operationType, path, shouldThrow = true) {
             const errStr = error instanceof Error ? error.message : (error ? String(error.message || error.code || error) : 'Unknown error');
@@ -4361,6 +4290,107 @@ service cloud.firestore {
 
 
 
+        window.getSystemMetrics = () => {
+            const mSel = document.getElementById('monthSelect');
+            const ySel = document.getElementById('yearSelect');
+            const now = new Date();
+            const m = (mSel && mSel.value !== undefined && mSel.value !== '' && !isNaN(parseInt(mSel.value))) ? parseInt(mSel.value) : now.getMonth();
+            const y = (ySel && ySel.value !== undefined && ySel.value !== '' && !isNaN(parseInt(ySel.value))) ? parseInt(ySel.value) : now.getFullYear();
+
+            const monthNames = [
+                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            const monthName = `${monthNames[m]} de ${y}`;
+            const curPeriodStr = `${y}-${(m+1).toString().padStart(2, '0')}`;
+            const selMonthTotal = y * 12 + m;
+
+            let totalIncomes = 0;
+            let paidIncomes = 0;
+            let totalExpenses = 0;
+            let paidExpenses = 0;
+            const upcomingBills = [];
+
+            const txs = window.transactions || [];
+
+            const filtered = txs.filter(t => {
+                if (t.isTombstone) return false;
+                const dateStr = t.dueDate || t.date;
+                if (!dateStr || typeof dateStr !== 'string') return false;
+                const parts = dateStr.split('-');
+                if (parts.length < 2) return false;
+                const [ty, tm] = parts;
+                const txMonthTotal = parseInt(ty) * 12 + (parseInt(tm) - 1);
+                
+                const isFixed = window.isFixedHeader ? window.isFixedHeader(t) : Boolean(t.isRecurring);
+                
+                if (isFixed) {
+                    if (txMonthTotal > selMonthTotal) return false;
+                    const hasOverride = txs.some(ot => ot.parentId === t.id && ot.parentMonth === curPeriodStr);
+                    return !hasOverride;
+                }
+                return txMonthTotal === selMonthTotal;
+            }).map(t => {
+                let displayDate = t.receiptDate || t.dueDate || t.date;
+                const isFixed = window.isFixedHeader ? window.isFixedHeader(t) : Boolean(t.isRecurring);
+                
+                if (isFixed && displayDate && typeof displayDate === 'string') {
+                    const parts = displayDate.split('-');
+                    const day = parts.length > 2 ? parts[2] : '05';
+                    displayDate = `${y}-${(m+1).toString().padStart(2, '0')}-${day}`;
+                }
+
+                return {
+                    ...t,
+                    displayDate
+                };
+            });
+
+            if (window.ensureCardTransactionsForPeriod) {
+                window.ensureCardTransactionsForPeriod(filtered, curPeriodStr);
+            }
+
+            filtered.forEach(t => {
+                const val = parseFloat(t.value) || 0;
+                const type = t.type || 'Saída';
+                const dStr = t.displayDate || t.receiptDate || t.dueDate || t.date || curPeriodStr;
+
+                if (type === 'Entrada') {
+                    totalIncomes += val;
+                    if (t.isPaid) paidIncomes += val;
+                } else {
+                    totalExpenses += val;
+                    if (t.isPaid) paidExpenses += val;
+                    if (!t.isPaid) {
+                        upcomingBills.push({
+                            id: String(t.id || ''),
+                            name: String(t.description || t.name || 'Conta'),
+                            description: String(t.description || t.name || 'Conta'),
+                            value: val,
+                            date: String(dStr || '')
+                        });
+                    }
+                }
+            });
+
+            const cards = window.getSystemCards ? window.getSystemCards() : [];
+            const totalCardsInvoice = cards.reduce((sum, c) => sum + (parseFloat(c.used || c.invoiceValue || 0)), 0);
+
+            const estimatedAvailable = totalIncomes - totalExpenses;
+
+            return {
+                monthName,
+                totalIncomes,
+                paidIncomes,
+                totalExpenses,
+                paidExpenses,
+                totalCardsInvoice,
+                cardsCount: cards.length,
+                estimatedAvailable,
+                upcomingBills
+            };
+        };
+
         window.getSystemCards = () => {
             const mSel = document.getElementById('monthSelect');
             const ySel = document.getElementById('yearSelect');
@@ -4657,11 +4687,12 @@ service cloud.firestore {
             try {
                 if (window.GoogleGenAI) {
                     const ai = new window.GoogleGenAI({ apiKey: "AIzaSyCrqECbdY29Vw1mKHt0Gfjdmsm2KGauIVo" });
-                    const contextStr = `Mês: ${metrics.monthName}. Disponível Estimado: R$ ${metrics.estimatedAvailable}. Total Entradas: R$ ${metrics.totalIncomes}. Total Saídas: R$ ${metrics.totalExpenses}. Total Cartões: R$ ${metrics.totalCardsInvoice}. Contas a vencer: ${JSON.stringify(metrics.upcomingBills.slice(0, 5))}.`;
+                    const cleanBills = (metrics.upcomingBills || []).slice(0, 5).map(b => `${b.description}: R$ ${b.value} (${b.date})`).join('; ');
+                    const contextStr = `Mês: ${metrics.monthName}. Disponível Estimado: R$ ${metrics.estimatedAvailable}. Total Entradas: R$ ${metrics.totalIncomes}. Total Saídas: R$ ${metrics.totalExpenses}. Total Cartões: R$ ${metrics.totalCardsInvoice}. Contas a vencer: ${cleanBills || 'Nenhuma'}.`;
                     const sysPrompt = `Você é o Bot Assistente Financeiro FinanceUP. Responda em português com clareza, objetividade, emojis e negritos Markdown. Dados financeiros atuais do usuário: ${contextStr}`;
 
                     const response = await ai.models.generateContent({
-                        model: 'gemini-3-flash-preview',
+                        model: 'gemini-2.5-flash',
                         contents: text,
                         config: { systemInstruction: sysPrompt, temperature: 0.7 }
                     });
@@ -4674,7 +4705,7 @@ service cloud.firestore {
                     throw new Error("AI SDK not ready");
                 }
             } catch (err) {
-                console.log("AI Bot fallback:", err);
+                console.log("AI Bot fallback:", err ? (err.message || String(err)) : "Error");
                 const botMsg = window.botMessages.find(m => m.id === tempId);
                 if (botMsg) {
                     botMsg.text = `🤖 **Entendi sua mensagem:** *"${text}"*\n\n📊 **RESUMO RÁPIDO DO MÊS (${metrics.monthName}):**\n💰 **Disponível Estimado:** **${window.formatMoney(metrics.estimatedAvailable)}**\n🟢 **Entradas:** ${window.formatMoney(metrics.totalIncomes)} | 🔴 **Saídas:** ${window.formatMoney(metrics.totalExpenses)}\n💳 **Cartões:** ${window.formatMoney(metrics.totalCardsInvoice)}\n\n💡 *Clique em uma das opções do menu abaixo:*`;
@@ -5289,6 +5320,112 @@ service cloud.firestore {
             }
         };
 
+        window.updateSaveButtonState = (isSaved) => {
+            const btn = document.getElementById('btnSaveTelegramConfig');
+            if (!btn) return;
+            if (isSaved) {
+                btn.disabled = false;
+                btn.className = "flex-1 py-2.5 sm:py-3 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md cursor-default";
+                btn.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>Credenciais Salvas ✓</span>';
+            } else {
+                btn.disabled = false;
+                btn.className = "flex-1 py-2.5 sm:py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer";
+                btn.innerHTML = '<i data-lucide="save" class="w-4 h-4 shrink-0"></i><span>Salvar Credenciais</span>';
+            }
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.startAutomaticTelegramConnection = async () => {
+            const token = document.getElementById('telegramTokenInput')?.value.trim() || localStorage.getItem('bot_telegram_token') || DEFAULT_TG_TOKEN;
+            const statusDiv = document.getElementById('telegramConfigStatus');
+
+            if (statusDiv) {
+                statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center justify-between animate-pulse";
+                statusDiv.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="loader-2" class="w-4 h-4 text-sky-400 animate-spin shrink-0"></i>
+                        <span>Abrindo Telegram... Clique em /start ou enviar mensagem no bot.</span>
+                    </div>
+                `;
+                statusDiv.classList.remove('hidden');
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            let botUsername = "Assistente_financeup_bot";
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+                const data = await res.json();
+                if (data.ok && data.result && data.result.username) {
+                    botUsername = data.result.username;
+                }
+            } catch (e) {
+                console.warn("Could not fetch bot username dynamically:", e);
+            }
+
+            // Open Telegram App / Web Link
+            const tgLink = `https://t.me/${botUsername}?start=1`;
+            window.open(tgLink, '_blank');
+
+            // Start auto detection polling
+            let attempts = 0;
+            const maxAttempts = 30;
+            const pollInterval = setInterval(async () => {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    clearInterval(pollInterval);
+                    if (statusDiv) {
+                        statusDiv.classList.remove('animate-pulse');
+                    }
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?timeout=1`);
+                    const data = await res.json();
+                    if (data.ok && Array.isArray(data.result) && data.result.length > 0) {
+                        const lastUpdate = [...data.result].reverse().find(u => (u.message && u.message.chat) || (u.callback_query && u.callback_query.message && u.callback_query.message.chat));
+                        if (lastUpdate) {
+                            const chatId = lastUpdate.message ? lastUpdate.message.chat.id : lastUpdate.callback_query.message.chat.id;
+                            const senderName = lastUpdate.message ? (lastUpdate.message.from?.first_name || 'Usuário') : 'Usuário';
+
+                            const chatEl = document.getElementById('telegramChatIdInput');
+                            if (chatEl) chatEl.value = String(chatId);
+                            localStorage.setItem('bot_telegram_chatId', String(chatId));
+                            localStorage.setItem('bot_telegram_token', token);
+                            localStorage.setItem('bot_telegram_saved', 'true');
+
+                            clearInterval(pollInterval);
+
+                            window.updateSaveButtonState(true);
+
+                            if (statusDiv) {
+                                statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center justify-between";
+                                statusDiv.innerHTML = `
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                                        <span>Conectado com sucesso ao Telegram de <b>${senderName}</b>!</span>
+                                    </div>
+                                    <span class="text-[10px] bg-emerald-500/30 px-2 py-0.5 rounded-full uppercase font-black tracking-wider text-emerald-300">Conectado</span>
+                                `;
+                                statusDiv.classList.remove('hidden');
+                                statusDiv.classList.remove('animate-pulse');
+                                if (window.lucide) window.lucide.createIcons();
+                            }
+
+                            const badge = document.getElementById('telegramHeaderBadge');
+                            if (badge) {
+                                badge.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+                            }
+
+                            if (window.testTelegramNotification) window.testTelegramNotification();
+                        }
+                    }
+                } catch (err) {
+                    console.error("Auto polling error:", err);
+                }
+            }, 2000);
+        };
+
         // Telegram Settings & Real Push Test
         const DEFAULT_TG_TOKEN = "8821145839:AAEEavXarIUeMlze4V-Skd10yU600kD4zIs";
         const DEFAULT_TG_CHAT_ID = "615009994";
@@ -5317,10 +5454,12 @@ service cloud.firestore {
                         const chatId = lastUpdate.message ? lastUpdate.message.chat.id : lastUpdate.callback_query.message.chat.id;
                         if (chatEl) chatEl.value = String(chatId);
                         localStorage.setItem('bot_telegram_chatId', String(chatId));
+                        localStorage.setItem('bot_telegram_saved', 'true');
+                        window.updateSaveButtonState(true);
 
                         if (statusDiv) {
                             statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-2";
-                            statusDiv.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>Chat ID ${chatId} detectado e preenchido com sucesso!</span>`;
+                            statusDiv.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>Chat ID ${chatId} detectado e salvo com sucesso!</span>`;
                             statusDiv.classList.remove('hidden');
                             if (window.lucide) window.lucide.createIcons();
                         }
@@ -5401,6 +5540,10 @@ service cloud.firestore {
             if (tokenEl) tokenEl.value = localToken;
             if (chatEl) chatEl.value = localChatId;
 
+            // Set button state to Saved if configured
+            const isSaved = localStorage.getItem('bot_telegram_saved') === 'true' || Boolean(localToken && localChatId);
+            window.updateSaveButtonState(isSaved);
+
             if (statusDiv) {
                 statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center justify-between";
                 statusDiv.innerHTML = `
@@ -5422,6 +5565,7 @@ service cloud.firestore {
                     const data = snap.data();
                     if (tokenEl && data.token) tokenEl.value = data.token;
                     if (chatEl && data.chatId) chatEl.value = data.chatId;
+                    window.updateSaveButtonState(true);
                 }
             } catch (e) {
                 console.log("No stored bot settings found yet.");
@@ -5444,6 +5588,7 @@ service cloud.firestore {
             // Always save to localStorage
             localStorage.setItem('bot_telegram_token', token);
             localStorage.setItem('bot_telegram_chatId', chatId);
+            localStorage.setItem('bot_telegram_saved', 'true');
 
             let savedInCloud = false;
             if (window.dbInstance && window.currentUser) {
@@ -5460,18 +5605,7 @@ service cloud.firestore {
                 }
             }
 
-            if (btn) {
-                btn.disabled = false;
-                btn.className = "flex-1 py-3 rounded-xl bg-emerald-500 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer";
-                btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i><span>Configurações Salvas!</span>';
-                if (window.lucide) window.lucide.createIcons();
-
-                setTimeout(() => {
-                    btn.className = "flex-1 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer";
-                    btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i><span>Salvar Configurações</span>';
-                    if (window.lucide) window.lucide.createIcons();
-                }, 3000);
-            }
+            window.updateSaveButtonState(true);
 
             if (statusDiv) {
                 statusDiv.className = "my-2 p-3.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center justify-between";
@@ -5704,17 +5838,37 @@ service cloud.firestore {
             window.renderBotChat();
         };
 
-        window.checkTelegramUpdates = async () => {
-            const token = document.getElementById('telegramTokenInput')?.value.trim() || localStorage.getItem('bot_telegram_token') || DEFAULT_TG_TOKEN;
-            if (!token) return;
+        window.processedTelegramUpdateIds = window.processedTelegramUpdateIds || new Set();
+        window.isPollingTelegram = false;
 
-            let offset = parseInt(localStorage.getItem('bot_telegram_last_update_id') || '0', 10);
+        window.checkTelegramUpdates = async () => {
+            if (window.isPollingTelegram) return;
+            window.isPollingTelegram = true;
+
             try {
+                const token = document.getElementById('telegramTokenInput')?.value.trim() || localStorage.getItem('bot_telegram_token') || DEFAULT_TG_TOKEN;
+                if (!token) return;
+
+                let storedOffset = localStorage.getItem('bot_telegram_last_update_id');
+                let offset = parseInt(storedOffset || '0', 10);
+
                 const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?offset=${offset + 1}&timeout=1`);
                 const data = await res.json();
 
                 if (data.ok && Array.isArray(data.result) && data.result.length > 0) {
+                    if (!storedOffset || storedOffset === '0') {
+                        const maxUpdateId = Math.max(...data.result.map(u => u.update_id));
+                        localStorage.setItem('bot_telegram_last_update_id', String(maxUpdateId));
+                        offset = maxUpdateId;
+                        data.result = [data.result[data.result.length - 1]];
+                    }
+
                     for (const update of data.result) {
+                        if (window.processedTelegramUpdateIds.has(update.update_id)) {
+                            continue;
+                        }
+                        window.processedTelegramUpdateIds.add(update.update_id);
+
                         if (update.update_id > offset) {
                             offset = update.update_id;
                             localStorage.setItem('bot_telegram_last_update_id', String(offset));
@@ -5752,6 +5906,8 @@ service cloud.firestore {
                 }
             } catch (err) {
                 // Ignore network errors during polling
+            } finally {
+                window.isPollingTelegram = false;
             }
         };
 
