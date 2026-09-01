@@ -1,11 +1,15 @@
 {
   "name": "financeup",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "npx serve -p 3000",
+    "start": "node server.js",
+    "dev": "node server.js",
     "build": "mkdir -p public && cp index.html public/"
   },
   "dependencies": {
+    "express": "^5.2.1",
+    "firebase": "^12.18.0",
     "serve": "^14.2.1"
   }
 }

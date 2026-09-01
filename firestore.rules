@@ -22,17 +22,8 @@ service cloud.firestore {
       allow read, write, create: if true;
     }
     
-    function isAllowedUser() {
-      return request.auth != null && (
-        request.auth.uid == '2UP0Q0zULZVIS0M0qhXCRRRuzY63' ||
-        request.auth.uid == 'ozELGQLi3caqRx8e7cOo8dkA0523' ||
-        request.auth.token.email in ['marcioes411@gmail.com', 'sousaleidiane242025@gmail.com']
-      );
-    }
-
     match /{document=**} {
-      allow read, write: if isAllowedUser() || (request.auth != null && resource.data.userId == request.auth.uid);
-      allow create: if request.auth != null;
+      allow read, write, create: if true;
     }
   }
 }
